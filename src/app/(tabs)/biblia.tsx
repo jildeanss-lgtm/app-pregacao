@@ -2,26 +2,40 @@ import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
-import { chaveVersiculo, referenciasCruzadas, textoPortugues } from '../../data/biblia';
-import { carregarLexico, carregarLivro, livrosNT, type CodigoLivro, type PalavraGrega } from '../../data/grego';
+import { chaveVersiculo, referenciasCruzadas } from '../../data/biblia';
+import {
+  carregarLexico,
+  carregarLivro,
+  livrosNT,
+  type CodigoLivro as CodigoNT,
+  type PalavraGrega,
+} from '../../data/grego';
 import { descreverMorfologia } from '../../data/grego/morfologia';
+import { carregarTexto, livros, type CodigoLivro } from '../../data/portugues';
 import { useSermao, useSermoes } from '../../store/sermoes';
 import { cores, fonteBiblia } from '../../theme';
 
 type Selecao = { ver: number; palavra: PalavraGrega };
+type Testamento = 'AT' | 'NT';
+
+const temGrego = (c: CodigoLivro): c is CodigoNT => livrosNT.some((l) => l.codigo === c);
 
 export default function BibliaTela() {
   const { sermao: sermaoId } = useLocalSearchParams<{ sermao?: string }>();
   const sermao = useSermao(sermaoId);
   const { adicionarBloco } = useSermoes();
+  const [testamento, setTestamento] = useState<Testamento>('NT');
   const [codigo, setCodigo] = useState<CodigoLivro>('JOH');
   const [cap, setCap] = useState(3);
+  const [mostrarGrego, setMostrarGrego] = useState(true);
   const [selecao, setSelecao] = useState<Selecao | null>(null);
   const [aviso, setAviso] = useState('');
 
-  const livro = livrosNT.find((l) => l.codigo === codigo)!;
-  const versiculos = useMemo(() => carregarLivro(codigo)[cap - 1] ?? [], [codigo, cap]);
+  const livro = livros.find((l) => l.codigo === codigo)!;
+  const portugues = useMemo(() => carregarTexto(codigo)[cap - 1] ?? [], [codigo, cap]);
+  const grego = useMemo(() => (temGrego(codigo) ? (carregarLivro(codigo)[cap - 1] ?? []) : []), [codigo, cap]);
   const lexico = useMemo(() => carregarLexico(), []);
+  const totalVersiculos = Math.max(portugues.length, grego.length);
 
   const ref = (ver: number) => `${livro.nome} ${cap}:${ver}`;
 
@@ -37,16 +51,27 @@ export default function BibliaTela() {
     setSelecao(null);
   };
 
+  const escolherTestamento = (t: Testamento) => {
+    setTestamento(t);
+    escolherLivro(livros.find((l) => l.testamento === t)!.codigo);
+  };
+
   const verbete = selecao ? lexico[selecao.palavra[1]] : undefined;
 
   return (
     <View style={{ flex: 1 }}>
       <View style={estilos.seletores}>
         {sermao && <Text style={estilos.contexto}>Estudando para: {sermao.titulo || 'Sermão sem título'}</Text>}
+        <View style={estilos.linha}>
+          <Pilula texto="Antigo Testamento" ativa={testamento === 'AT'} onPress={() => escolherTestamento('AT')} />
+          <Pilula texto="Novo Testamento" ativa={testamento === 'NT'} onPress={() => escolherTestamento('NT')} />
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={estilos.linha}>
-          {livrosNT.map((l) => (
-            <Pilula key={l.codigo} texto={l.nome} ativa={l.codigo === codigo} onPress={() => escolherLivro(l.codigo)} />
-          ))}
+          {livros
+            .filter((l) => l.testamento === testamento)
+            .map((l) => (
+              <Pilula key={l.codigo} texto={l.nome} ativa={l.codigo === codigo} onPress={() => escolherLivro(l.codigo)} />
+            ))}
         </ScrollView>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={estilos.linha}>
           {Array.from({ length: livro.capitulos }, (_, i) => i + 1).map((n) => (
@@ -65,49 +90,71 @@ export default function BibliaTela() {
       </View>
 
       <FlatList
-        data={versiculos}
-        keyExtractor={(_, i) => String(i)}
+        key={`${codigo}-${cap}`}
+        data={Array.from({ length: totalVersiculos }, (_, i) => i + 1)}
+        keyExtractor={(ver) => String(ver)}
         contentContainerStyle={estilos.lista}
         ListHeaderComponent={
-          <Text style={estilos.dica}>
-            Texto grego do Novo Testamento com números de Strong. Toque numa palavra para estudar.
-          </Text>
+          <View style={{ gap: 8 }}>
+            <Text style={estilos.titulo}>
+              {livro.nome} {cap}
+            </Text>
+            {grego.length > 0 && (
+              <Pressable
+                accessibilityRole="switch"
+                accessibilityState={{ checked: mostrarGrego }}
+                onPress={() => setMostrarGrego((v) => !v)}
+                style={estilos.alternar}
+              >
+                <Text style={estilos.textoAlternar}>
+                  {mostrarGrego ? 'Ocultar o grego' : 'Mostrar o grego (toque numa palavra para estudar)'}
+                </Text>
+              </Pressable>
+            )}
+          </View>
         }
-        renderItem={({ item: palavras, index }) => {
-          const ver = index + 1;
-          const chave = chaveVersiculo(codigo, cap, ver);
-          const portugues = textoPortugues[chave];
-          const referencias = referenciasCruzadas[chave];
+        renderItem={({ item: ver }) => {
+          const texto = portugues[ver - 1];
+          const palavras = grego[ver - 1];
+          const referencias = referenciasCruzadas[chaveVersiculo(codigo, cap, ver)];
           return (
             <Cartao style={{ gap: 8 }}>
               <Rotulo>{ref(ver)}</Rotulo>
-              {portugues && <Text style={estilos.versiculo}>{portugues}</Text>}
-              <Text style={estilos.grego}>
-                {palavras.map((p, i) => {
-                  const ativa = selecao?.ver === ver && selecao.palavra === p;
-                  return (
+              {texto ? <Text style={estilos.versiculo}>{texto}</Text> : null}
+              {mostrarGrego && palavras && (
+                <Text style={estilos.grego}>
+                  {palavras.map((p, i) => (
                     <Text
                       key={i}
                       onPress={() => setSelecao({ ver, palavra: p })}
-                      style={ativa ? estilos.palavraAtiva : undefined}
+                      style={selecao?.palavra === p ? estilos.palavraAtiva : undefined}
                     >
                       {p[0]}{' '}
                     </Text>
-                  );
-                })}
-              </Text>
+                  ))}
+                </Text>
+              )}
               {referencias && <Text style={estilos.dica}>Veja também: {referencias.join(', ')}</Text>}
               {sermao && (
                 <Botao
                   titulo="Inserir versículo no sermão"
                   variante="contorno"
-                  onPress={() => inserir('versiculo', portugues ? `${ref(ver)}: ${portugues}` : ref(ver))}
+                  onPress={() => inserir('versiculo', texto ? `${ref(ver)}: ${texto}` : ref(ver))}
                 />
               )}
             </Cartao>
           );
         }}
-        ListFooterComponent={aviso ? <Text style={estilos.aviso}>{aviso}</Text> : undefined}
+        ListFooterComponent={
+          <View style={{ gap: 8, marginTop: 8 }}>
+            {aviso ? <Text style={estilos.aviso}>{aviso}</Text> : null}
+            <Text style={estilos.creditos}>
+              Texto em português: Bíblia Livre (BLIVRE), © Diego Santos, Mario Sérgio e Marco Teles, fevereiro de
+              2018, licença CC BY 4.0 Brasil.
+              {grego.length > 0 ? ' Grego: texto bizantino de Robinson-Pierpont (domínio público).' : ''}
+            </Text>
+          </View>
+        }
       />
 
       {selecao && (
@@ -183,6 +230,9 @@ const estilos = StyleSheet.create({
   contexto: { fontSize: 13, fontWeight: '600', color: cores.destaque, paddingHorizontal: 20 },
   linha: { flexDirection: 'row', gap: 8, paddingHorizontal: 20 },
   lista: { padding: 20, gap: 12, paddingBottom: 48 },
+  titulo: { fontSize: 22, fontWeight: '700', color: cores.texto },
+  alternar: { minHeight: 44, justifyContent: 'center' },
+  textoAlternar: { fontSize: 14, fontWeight: '600', color: cores.destaque },
   pilula: {
     minHeight: 40,
     minWidth: 44,
@@ -197,12 +247,13 @@ const estilos = StyleSheet.create({
   pilulaAtiva: { backgroundColor: cores.texto, borderColor: cores.texto },
   textoPilula: { fontSize: 14, fontWeight: '600', color: cores.texto },
   versiculo: { fontFamily: fonteBiblia, fontSize: 18, lineHeight: 28, color: cores.texto },
-  grego: { fontFamily: fonteBiblia, fontSize: 20, lineHeight: 32, color: cores.texto },
-  palavraAtiva: { backgroundColor: '#D7ECEC' },
+  grego: { fontFamily: fonteBiblia, fontSize: 19, lineHeight: 30, color: cores.textoSuave },
+  palavraAtiva: { backgroundColor: '#D7ECEC', color: cores.texto },
   dica: { fontSize: 13, color: cores.textoSuave },
+  creditos: { fontSize: 12, color: cores.textoSuave, lineHeight: 18 },
   lema: { fontFamily: fonteBiblia, fontSize: 26, fontWeight: '600', color: cores.texto },
   corpo: { fontSize: 15, color: cores.texto },
-  aviso: { fontSize: 14, fontWeight: '600', color: cores.destaqueEscuro, marginTop: 8 },
+  aviso: { fontSize: 14, fontWeight: '600', color: cores.destaqueEscuro },
   painel: {
     backgroundColor: cores.cartao,
     borderTopWidth: 2,
