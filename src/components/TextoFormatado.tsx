@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, type TextStyle } from 'react-native';
 import type { TipoBloco } from '../data/modelos';
-import { dividirDestaques, dividirQuadro, estiloBloco, linhasDoBloco } from '../estilo';
+import { coresPregacao, dividirDestaques, dividirQuadro, estiloBloco, linhasDoBloco } from '../estilo';
 import { fonteBiblia } from '../theme';
 
 type Props = {
@@ -8,9 +8,11 @@ type Props = {
   texto: string;
   // Tamanho da letra: 16 no editor, maior no púlpito
   tamanho?: number;
+  // No púlpito o quadro aparece sem a caixa: subtópico com ➔ e os pontos embaixo
+  semMoldura?: boolean;
 };
 
-export function TextoFormatado({ tipo, texto, tamanho = 16 }: Props) {
+export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }: Props) {
   const e = estiloBloco[tipo];
   const base: TextStyle = {
     color: e.cor,
@@ -22,9 +24,9 @@ export function TextoFormatado({ tipo, texto, tamanho = 16 }: Props) {
     fontFamily: tipo === 'versiculo' || tipo === 'citacao' ? fonteBiblia : undefined,
   };
 
-  const linha = (conteudo: string) =>
+  const linha = (conteudo: string, corChave?: string) =>
     dividirDestaques(conteudo).map((p, i) => (
-      <Text key={i} style={p.chave ? estilos.chave : undefined}>
+      <Text key={i} style={p.chave ? [estilos.chave, corChave ? { color: corChave } : null] : undefined}>
         {p.texto}
       </Text>
     ));
@@ -33,12 +35,12 @@ export function TextoFormatado({ tipo, texto, tamanho = 16 }: Props) {
     const { subtopico, pontos } = dividirQuadro(texto);
     const itens: TextStyle | undefined = e.itens && { color: e.itens.cor, fontStyle: e.itens.italico ? 'italic' : 'normal' };
     return (
-      <View style={estilos.quadro}>
-        <View style={estilos.quadroTopo}>
-          <Text style={[base, { fontWeight: '700' }]}>➔ {linha(subtopico)}</Text>
+      <View style={semMoldura ? { gap: 2 } : estilos.quadro}>
+        <View style={!semMoldura && estilos.quadroTopo}>
+          <Text style={base}>➔ {linha(subtopico, coresPregacao.frase)}</Text>
         </View>
         {pontos.map((l, i) => (
-          <View key={i} style={[estilos.item, estilos.quadroLinha, i > 0 && estilos.divisoria]}>
+          <View key={i} style={[estilos.item, !semMoldura && estilos.quadroLinha, !semMoldura && i > 0 && estilos.divisoria]}>
             <Text style={[base, itens, estilos.marcador]}>•</Text>
             <Text style={[base, itens, { flex: 1 }]}>{linha(l)}</Text>
           </View>
