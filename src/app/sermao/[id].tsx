@@ -4,12 +4,15 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { TextoFormatado } from '../../components/TextoFormatado';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
 import { modelos, nomesBloco, type TipoBloco } from '../../data/modelos';
+import { estiloBloco, pontosDoQuadro } from '../../estilo';
 import { exportarPdf } from '../../lib/pdf';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
 import { cores } from '../../theme';
 
 const tiposParaAdicionar: TipoBloco[] = [
   'topico',
+  'quadro',
+  'quadroPerguntas',
   'explicacao',
   'exemplo',
   'frase',
@@ -186,15 +189,30 @@ const dicas: Partial<Record<TipoBloco, string>> = {
 };
 
 function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: BlocoEditorProps) {
-  const [editando, setEditando] = useState(!bloco.texto);
+  const [editando, setEditando] = useState(!bloco.texto.trim());
   const [selecao, setSelecao] = useState({ start: 0, end: 0 });
+  const [campo, setCampo] = useState(0);
+
+  // O quadro é editado em linhas separadas: subtópico em cima e um campo por ponto
+  const ehQuadro = !!estiloBloco[bloco.tipo].quadro;
+  const nomeItem = estiloBloco[bloco.tipo].nomeItem ?? 'Ponto';
+  const linhas = bloco.texto.split('\n');
+  const campos = ehQuadro
+    ? Array.from({ length: Math.max(pontosDoQuadro + 1, linhas.length) }, (_, i) => linhas[i] ?? '')
+    : [bloco.texto];
+  const mudarCampo = (i: number, texto: string) => {
+    if (!ehQuadro) return onMudar(texto);
+    const novos = [...campos];
+    novos[i] = texto.replace(/\n/g, ' ');
+    onMudar(novos.join('\n'));
+  };
 
   // Coloca *asteriscos* em volta do trecho selecionado, marcando como palavra-chave
   const destacar = () => {
     const { start, end } = selecao;
     if (start === end) return;
-    const t = bloco.texto;
-    onMudar(`${t.slice(0, start)}*${t.slice(start, end)}*${t.slice(end)}`);
+    const t = campos[campo] ?? '';
+    mudarCampo(campo, `${t.slice(0, start)}*${t.slice(start, end)}*${t.slice(end)}`);
   };
 
   return (
@@ -209,20 +227,39 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
       </View>
       {editando ? (
         <>
-          <TextInput
-            accessibilityLabel={rotulo}
-            value={bloco.texto}
-            onChangeText={onMudar}
-            onSelectionChange={(e) => setSelecao(e.nativeEvent.selection)}
-            multiline
-            autoFocus={!!bloco.texto}
-            placeholder={bloco.dica ?? dicas[bloco.tipo] ?? 'Escreva aqui. Use *asteriscos* para destacar palavras-chave'}
-            placeholderTextColor={cores.textoSuave}
-            style={[estilos.entrada, { minHeight: 44 }]}
-          />
+          {ehQuadro ? (
+            <View style={estilos.quadro}>
+              {campos.map((valor, i) => (
+                <TextInput
+                  key={i}
+                  accessibilityLabel={i === 0 ? 'Subtópico' : `${nomeItem} ${i}`}
+                  value={valor}
+                  onChangeText={(t) => mudarCampo(i, t)}
+                  onFocus={() => setCampo(i)}
+                  onSelectionChange={(e) => setSelecao(e.nativeEvent.selection)}
+                  placeholder={i === 0 ? 'Subtópico' : `${nomeItem} ${i}`}
+                  placeholderTextColor={cores.textoSuave}
+                  style={[estilos.entrada, estilos.linhaQuadro, i === 0 ? estilos.topoQuadro : i > 1 && estilos.divisoria]}
+                />
+              ))}
+            </View>
+          ) : (
+            <TextInput
+              accessibilityLabel={rotulo}
+              value={bloco.texto}
+              onChangeText={onMudar}
+              onSelectionChange={(e) => setSelecao(e.nativeEvent.selection)}
+              multiline
+              autoFocus={!!bloco.texto}
+              placeholder={bloco.dica ?? dicas[bloco.tipo] ?? 'Escreva aqui. Use *asteriscos* para destacar palavras-chave'}
+              placeholderTextColor={cores.textoSuave}
+              style={[estilos.entrada, { minHeight: 44 }]}
+            />
+          )}
           <View style={estilos.linha}>
             <Botao titulo="Destacar seleção" variante="contorno" onPress={destacar} />
-            {bloco.texto ? <Botao titulo="Pronto" onPress={() => setEditando(false)} /> : null}
+            {ehQuadro && <Botao titulo={`+ ${nomeItem}`} variante="contorno" onPress={() => onMudar(`${campos.join('\n')}\n`)} />}
+            {bloco.texto.trim() ? <Botao titulo="Pronto" onPress={() => setEditando(false)} /> : null}
           </View>
         </>
       ) : (
@@ -254,5 +291,9 @@ const estilos = StyleSheet.create({
   entradaTitulo: { fontSize: 20, fontWeight: '700' },
   linha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   cabecalhoBloco: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  quadro: { borderWidth: 1.5, borderColor: '#000000', borderRadius: 6, overflow: 'hidden' },
+  linhaQuadro: { paddingHorizontal: 10, minHeight: 44 },
+  topoQuadro: { fontWeight: '700', backgroundColor: '#F1EFE9', borderBottomWidth: 1.5, borderColor: '#000000' },
+  divisoria: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#999999' },
   acao: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 });
