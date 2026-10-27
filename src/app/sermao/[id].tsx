@@ -12,18 +12,18 @@ import { cores } from '../../theme';
 const tiposParaAdicionar: TipoBloco[] = [
   'topico',
   'quadro',
+  'efeito',
+  'versiculo',
+  'subtopico',
+  'citacao',
+  'aplicacao',
   'quadroPerguntas',
-  'explicacao',
-  'exemplo',
+  'pergunta',
   'frase',
   'pontos',
-  'versiculo',
-  'efeito',
-  'pergunta',
-  'subtopico',
+  'explicacao',
+  'exemplo',
   'ilustracao',
-  'aplicacao',
-  'citacao',
 ];
 
 export default function EditorTela() {

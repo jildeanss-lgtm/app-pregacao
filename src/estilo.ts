@@ -10,6 +10,8 @@ export const coresPregacao = {
   frase: '#1A3BD6',
   efeito: '#38761D',
   pergunta: '#4A86E8',
+  aplicacao: '#7030A0',
+  citacao: '#B45F06',
   fundoTopico: '#00FF00',
 };
 
@@ -41,7 +43,7 @@ export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
   frase: { cor: coresPregacao.frase, seta: true },
   pontos: { cor: coresPregacao.texto, lista: true },
   versiculo: { cor: coresPregacao.textoBiblico, italico: true },
-  citacao: { cor: coresPregacao.textoBiblico, italico: true },
+  citacao: { cor: coresPregacao.citacao, italico: true },
   efeito: { cor: coresPregacao.efeito, italico: true, centralizado: true },
   pergunta: { cor: coresPregacao.pergunta, italico: true, seta: true },
   palavra: { cor: coresPregacao.texto },
@@ -51,7 +53,7 @@ export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
   exemplo: { cor: coresPregacao.texto },
   introducao: { cor: coresPregacao.texto },
   ilustracao: { cor: coresPregacao.texto },
-  aplicacao: { cor: coresPregacao.texto },
+  aplicacao: { cor: coresPregacao.aplicacao, italico: true },
   conclusao: { cor: coresPregacao.texto },
   apelo: { cor: coresPregacao.texto },
 };
