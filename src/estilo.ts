@@ -23,12 +23,21 @@ export type EstiloBloco = {
   lista?: boolean;
   // Caixa com o subtópico na linha de cima e os pontos embaixo
   quadro?: boolean;
+  // Cor e ênfase das linhas de baixo do quadro, quando diferem do subtópico
+  itens?: { cor: string; italico?: boolean };
+  nomeItem?: string;
 };
 
 export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
   topico: { cor: coresPregacao.texto, negrito: true, fundo: coresPregacao.fundoTopico },
   subtopico: { cor: coresPregacao.texto, negrito: true, seta: true },
-  quadro: { cor: coresPregacao.texto, quadro: true },
+  quadro: { cor: coresPregacao.texto, quadro: true, nomeItem: 'Ponto' },
+  quadroPerguntas: {
+    cor: coresPregacao.texto,
+    quadro: true,
+    itens: { cor: coresPregacao.pergunta, italico: true },
+    nomeItem: 'Pergunta',
+  },
   frase: { cor: coresPregacao.frase, seta: true },
   pontos: { cor: coresPregacao.texto, lista: true },
   versiculo: { cor: coresPregacao.textoBiblico, italico: true },

@@ -35,7 +35,8 @@ function blocoHtml(b: Bloco) {
   const rotulo = nome ? `<span class="rotulo">${escapar(nome)}</span><br>` : '';
   if (e.quadro) {
     const { subtopico, pontos } = dividirQuadro(b.texto);
-    const linhas = pontos.map((l) => `<tr><td>• ${comDestaques(l)}</td></tr>`).join('');
+    const estiloItens = e.itens ? ` style="color:${e.itens.cor};${e.itens.italico ? 'font-style:italic' : ''}"` : '';
+    const linhas = pontos.map((l) => `<tr><td${estiloItens}>• ${comDestaques(l)}</td></tr>`).join('');
     return `<table class="quadro"><tr><th>➔ ${comDestaques(subtopico)}</th></tr>${linhas}</table>`;
   }
   if (e.lista) {

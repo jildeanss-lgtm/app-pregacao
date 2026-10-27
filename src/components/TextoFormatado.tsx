@@ -31,6 +31,7 @@ export function TextoFormatado({ tipo, texto, tamanho = 16 }: Props) {
 
   if (e.quadro) {
     const { subtopico, pontos } = dividirQuadro(texto);
+    const itens: TextStyle | undefined = e.itens && { color: e.itens.cor, fontStyle: e.itens.italico ? 'italic' : 'normal' };
     return (
       <View style={estilos.quadro}>
         <View style={estilos.quadroTopo}>
@@ -38,8 +39,8 @@ export function TextoFormatado({ tipo, texto, tamanho = 16 }: Props) {
         </View>
         {pontos.map((l, i) => (
           <View key={i} style={[estilos.item, estilos.quadroLinha, i > 0 && estilos.divisoria]}>
-            <Text style={[base, estilos.marcador]}>•</Text>
-            <Text style={[base, { flex: 1 }]}>{linha(l)}</Text>
+            <Text style={[base, itens, estilos.marcador]}>•</Text>
+            <Text style={[base, itens, { flex: 1 }]}>{linha(l)}</Text>
           </View>
         ))}
       </View>
