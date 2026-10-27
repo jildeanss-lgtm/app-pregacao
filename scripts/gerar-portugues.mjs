@@ -63,7 +63,9 @@ const lista = livros
     return `  { codigo: '${codigo}', nome: '${nome}', capitulos: ${caps}, testamento: '${i < 39 ? 'AT' : 'NT'}' },`;
   })
   .join('\n');
-const carregadores = livros.map(([, c]) => `    case '${c}':\n      return require('./${c}.json');`).join('\n');
+const carregadores = livros
+  .map(([, c]) => `    case '${c}':\n      return (await import('./${c}.json')).default as unknown as string[][];`)
+  .join('\n');
 
 writeFileSync(
   join(saida, 'index.ts'),
@@ -76,7 +78,8 @@ ${lista}
 
 export type CodigoLivro = (typeof livros)[number]['codigo'];
 
-export function carregarTexto(codigo: CodigoLivro): string[][] {
+// Cada livro é carregado sob demanda (no navegador, um arquivo por livro)
+export async function carregarTexto(codigo: CodigoLivro): Promise<string[][]> {
   switch (codigo) {
 ${carregadores}
   }

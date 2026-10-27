@@ -87,4 +87,29 @@ for (const n of [...usados].sort((a, b) => a - b)) {
 }
 writeFileSync(join(saida, 'lexico.json'), JSON.stringify(lexico));
 
+const capitulosPorLivro = livrosNT.map(([codigo]) => JSON.parse(readFileSync(join(saida, `${codigo}.json`), 'utf8')).length);
+writeFileSync(
+  join(saida, 'index.ts'),
+  `// Gerado por scripts/gerar-grego.mjs. Cada livro é carregado sob demanda (no navegador, um arquivo por livro).
+
+import type { Lexico, PalavraOriginal } from '../tipos';
+
+export const livrosNT = [
+${livrosNT.map(([c, n], i) => `  { codigo: '${c}', nome: '${n}', capitulos: ${capitulosPorLivro[i]} },`).join('\n')}
+] as const;
+
+export type CodigoLivroNT = (typeof livrosNT)[number]['codigo'];
+
+export async function carregarLivroGrego(codigo: CodigoLivroNT): Promise<PalavraOriginal[][][]> {
+  switch (codigo) {
+${livrosNT.map(([c]) => `    case '${c}':\n      return (await import('./${c}.json')).default as unknown as PalavraOriginal[][][];`).join('\n')}
+  }
+}
+
+export async function carregarLexicoGrego(): Promise<Lexico> {
+  return (await import('./lexico.json')).default as unknown as Lexico;
+}
+`,
+);
+
 console.log(`Livros: ${livrosNT.length}. Versículos com acentuação: ${versosAlinhados}/${versosTotal}. Verbetes: ${Object.keys(lexico).length}.`);

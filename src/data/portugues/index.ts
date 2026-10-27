@@ -72,139 +72,140 @@ export const livros = [
 
 export type CodigoLivro = (typeof livros)[number]['codigo'];
 
-export function carregarTexto(codigo: CodigoLivro): string[][] {
+// Cada livro é carregado sob demanda (no navegador, um arquivo por livro)
+export async function carregarTexto(codigo: CodigoLivro): Promise<string[][]> {
   switch (codigo) {
     case 'GEN':
-      return require('./GEN.json');
+      return (await import('./GEN.json')).default as unknown as string[][];
     case 'EXO':
-      return require('./EXO.json');
+      return (await import('./EXO.json')).default as unknown as string[][];
     case 'LEV':
-      return require('./LEV.json');
+      return (await import('./LEV.json')).default as unknown as string[][];
     case 'NUM':
-      return require('./NUM.json');
+      return (await import('./NUM.json')).default as unknown as string[][];
     case 'DEU':
-      return require('./DEU.json');
+      return (await import('./DEU.json')).default as unknown as string[][];
     case 'JOS':
-      return require('./JOS.json');
+      return (await import('./JOS.json')).default as unknown as string[][];
     case 'JDG':
-      return require('./JDG.json');
+      return (await import('./JDG.json')).default as unknown as string[][];
     case 'RUT':
-      return require('./RUT.json');
+      return (await import('./RUT.json')).default as unknown as string[][];
     case '1SA':
-      return require('./1SA.json');
+      return (await import('./1SA.json')).default as unknown as string[][];
     case '2SA':
-      return require('./2SA.json');
+      return (await import('./2SA.json')).default as unknown as string[][];
     case '1KI':
-      return require('./1KI.json');
+      return (await import('./1KI.json')).default as unknown as string[][];
     case '2KI':
-      return require('./2KI.json');
+      return (await import('./2KI.json')).default as unknown as string[][];
     case '1CH':
-      return require('./1CH.json');
+      return (await import('./1CH.json')).default as unknown as string[][];
     case '2CH':
-      return require('./2CH.json');
+      return (await import('./2CH.json')).default as unknown as string[][];
     case 'EZR':
-      return require('./EZR.json');
+      return (await import('./EZR.json')).default as unknown as string[][];
     case 'NEH':
-      return require('./NEH.json');
+      return (await import('./NEH.json')).default as unknown as string[][];
     case 'EST':
-      return require('./EST.json');
+      return (await import('./EST.json')).default as unknown as string[][];
     case 'JOB':
-      return require('./JOB.json');
+      return (await import('./JOB.json')).default as unknown as string[][];
     case 'PSA':
-      return require('./PSA.json');
+      return (await import('./PSA.json')).default as unknown as string[][];
     case 'PRO':
-      return require('./PRO.json');
+      return (await import('./PRO.json')).default as unknown as string[][];
     case 'ECC':
-      return require('./ECC.json');
+      return (await import('./ECC.json')).default as unknown as string[][];
     case 'SNG':
-      return require('./SNG.json');
+      return (await import('./SNG.json')).default as unknown as string[][];
     case 'ISA':
-      return require('./ISA.json');
+      return (await import('./ISA.json')).default as unknown as string[][];
     case 'JER':
-      return require('./JER.json');
+      return (await import('./JER.json')).default as unknown as string[][];
     case 'LAM':
-      return require('./LAM.json');
+      return (await import('./LAM.json')).default as unknown as string[][];
     case 'EZK':
-      return require('./EZK.json');
+      return (await import('./EZK.json')).default as unknown as string[][];
     case 'DAN':
-      return require('./DAN.json');
+      return (await import('./DAN.json')).default as unknown as string[][];
     case 'HOS':
-      return require('./HOS.json');
+      return (await import('./HOS.json')).default as unknown as string[][];
     case 'JOL':
-      return require('./JOL.json');
+      return (await import('./JOL.json')).default as unknown as string[][];
     case 'AMO':
-      return require('./AMO.json');
+      return (await import('./AMO.json')).default as unknown as string[][];
     case 'OBA':
-      return require('./OBA.json');
+      return (await import('./OBA.json')).default as unknown as string[][];
     case 'JON':
-      return require('./JON.json');
+      return (await import('./JON.json')).default as unknown as string[][];
     case 'MIC':
-      return require('./MIC.json');
+      return (await import('./MIC.json')).default as unknown as string[][];
     case 'NAM':
-      return require('./NAM.json');
+      return (await import('./NAM.json')).default as unknown as string[][];
     case 'HAB':
-      return require('./HAB.json');
+      return (await import('./HAB.json')).default as unknown as string[][];
     case 'ZEP':
-      return require('./ZEP.json');
+      return (await import('./ZEP.json')).default as unknown as string[][];
     case 'HAG':
-      return require('./HAG.json');
+      return (await import('./HAG.json')).default as unknown as string[][];
     case 'ZEC':
-      return require('./ZEC.json');
+      return (await import('./ZEC.json')).default as unknown as string[][];
     case 'MAL':
-      return require('./MAL.json');
+      return (await import('./MAL.json')).default as unknown as string[][];
     case 'MAT':
-      return require('./MAT.json');
+      return (await import('./MAT.json')).default as unknown as string[][];
     case 'MAR':
-      return require('./MAR.json');
+      return (await import('./MAR.json')).default as unknown as string[][];
     case 'LUK':
-      return require('./LUK.json');
+      return (await import('./LUK.json')).default as unknown as string[][];
     case 'JOH':
-      return require('./JOH.json');
+      return (await import('./JOH.json')).default as unknown as string[][];
     case 'ACT':
-      return require('./ACT.json');
+      return (await import('./ACT.json')).default as unknown as string[][];
     case 'ROM':
-      return require('./ROM.json');
+      return (await import('./ROM.json')).default as unknown as string[][];
     case '1CO':
-      return require('./1CO.json');
+      return (await import('./1CO.json')).default as unknown as string[][];
     case '2CO':
-      return require('./2CO.json');
+      return (await import('./2CO.json')).default as unknown as string[][];
     case 'GAL':
-      return require('./GAL.json');
+      return (await import('./GAL.json')).default as unknown as string[][];
     case 'EPH':
-      return require('./EPH.json');
+      return (await import('./EPH.json')).default as unknown as string[][];
     case 'PHP':
-      return require('./PHP.json');
+      return (await import('./PHP.json')).default as unknown as string[][];
     case 'COL':
-      return require('./COL.json');
+      return (await import('./COL.json')).default as unknown as string[][];
     case '1TH':
-      return require('./1TH.json');
+      return (await import('./1TH.json')).default as unknown as string[][];
     case '2TH':
-      return require('./2TH.json');
+      return (await import('./2TH.json')).default as unknown as string[][];
     case '1TI':
-      return require('./1TI.json');
+      return (await import('./1TI.json')).default as unknown as string[][];
     case '2TI':
-      return require('./2TI.json');
+      return (await import('./2TI.json')).default as unknown as string[][];
     case 'TIT':
-      return require('./TIT.json');
+      return (await import('./TIT.json')).default as unknown as string[][];
     case 'PHM':
-      return require('./PHM.json');
+      return (await import('./PHM.json')).default as unknown as string[][];
     case 'HEB':
-      return require('./HEB.json');
+      return (await import('./HEB.json')).default as unknown as string[][];
     case 'JAM':
-      return require('./JAM.json');
+      return (await import('./JAM.json')).default as unknown as string[][];
     case '1PE':
-      return require('./1PE.json');
+      return (await import('./1PE.json')).default as unknown as string[][];
     case '2PE':
-      return require('./2PE.json');
+      return (await import('./2PE.json')).default as unknown as string[][];
     case '1JO':
-      return require('./1JO.json');
+      return (await import('./1JO.json')).default as unknown as string[][];
     case '2JO':
-      return require('./2JO.json');
+      return (await import('./2JO.json')).default as unknown as string[][];
     case '3JO':
-      return require('./3JO.json');
+      return (await import('./3JO.json')).default as unknown as string[][];
     case 'JUD':
-      return require('./JUD.json');
+      return (await import('./JUD.json')).default as unknown as string[][];
     case 'REV':
-      return require('./REV.json');
+      return (await import('./REV.json')).default as unknown as string[][];
   }
 }

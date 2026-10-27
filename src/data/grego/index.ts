@@ -1,7 +1,6 @@
-// Gerado a partir de scripts/gerar-grego.mjs. Os JSON só são carregados quando o livro é aberto.
+// Gerado por scripts/gerar-grego.mjs. Cada livro é carregado sob demanda (no navegador, um arquivo por livro).
 
-export type PalavraGrega = [grego: string, strong: number, morfologia: string];
-export type Capitulo = PalavraGrega[][];
+import type { Lexico, PalavraOriginal } from '../tipos';
 
 export const livrosNT = [
   { codigo: 'MAT', nome: 'Mateus', capitulos: 28 },
@@ -33,68 +32,67 @@ export const livrosNT = [
   { codigo: 'REV', nome: 'Apocalipse', capitulos: 22 },
 ] as const;
 
-export type CodigoLivro = (typeof livrosNT)[number]['codigo'];
+export type CodigoLivroNT = (typeof livrosNT)[number]['codigo'];
 
-export function carregarLivro(codigo: CodigoLivro): Capitulo[] {
+export async function carregarLivroGrego(codigo: CodigoLivroNT): Promise<PalavraOriginal[][][]> {
   switch (codigo) {
     case 'MAT':
-      return require('./MAT.json');
+      return (await import('./MAT.json')).default as unknown as PalavraOriginal[][][];
     case 'MAR':
-      return require('./MAR.json');
+      return (await import('./MAR.json')).default as unknown as PalavraOriginal[][][];
     case 'LUK':
-      return require('./LUK.json');
+      return (await import('./LUK.json')).default as unknown as PalavraOriginal[][][];
     case 'JOH':
-      return require('./JOH.json');
+      return (await import('./JOH.json')).default as unknown as PalavraOriginal[][][];
     case 'ACT':
-      return require('./ACT.json');
+      return (await import('./ACT.json')).default as unknown as PalavraOriginal[][][];
     case 'ROM':
-      return require('./ROM.json');
+      return (await import('./ROM.json')).default as unknown as PalavraOriginal[][][];
     case '1CO':
-      return require('./1CO.json');
+      return (await import('./1CO.json')).default as unknown as PalavraOriginal[][][];
     case '2CO':
-      return require('./2CO.json');
+      return (await import('./2CO.json')).default as unknown as PalavraOriginal[][][];
     case 'GAL':
-      return require('./GAL.json');
+      return (await import('./GAL.json')).default as unknown as PalavraOriginal[][][];
     case 'EPH':
-      return require('./EPH.json');
+      return (await import('./EPH.json')).default as unknown as PalavraOriginal[][][];
     case 'PHP':
-      return require('./PHP.json');
+      return (await import('./PHP.json')).default as unknown as PalavraOriginal[][][];
     case 'COL':
-      return require('./COL.json');
+      return (await import('./COL.json')).default as unknown as PalavraOriginal[][][];
     case '1TH':
-      return require('./1TH.json');
+      return (await import('./1TH.json')).default as unknown as PalavraOriginal[][][];
     case '2TH':
-      return require('./2TH.json');
+      return (await import('./2TH.json')).default as unknown as PalavraOriginal[][][];
     case '1TI':
-      return require('./1TI.json');
+      return (await import('./1TI.json')).default as unknown as PalavraOriginal[][][];
     case '2TI':
-      return require('./2TI.json');
+      return (await import('./2TI.json')).default as unknown as PalavraOriginal[][][];
     case 'TIT':
-      return require('./TIT.json');
+      return (await import('./TIT.json')).default as unknown as PalavraOriginal[][][];
     case 'PHM':
-      return require('./PHM.json');
+      return (await import('./PHM.json')).default as unknown as PalavraOriginal[][][];
     case 'HEB':
-      return require('./HEB.json');
+      return (await import('./HEB.json')).default as unknown as PalavraOriginal[][][];
     case 'JAM':
-      return require('./JAM.json');
+      return (await import('./JAM.json')).default as unknown as PalavraOriginal[][][];
     case '1PE':
-      return require('./1PE.json');
+      return (await import('./1PE.json')).default as unknown as PalavraOriginal[][][];
     case '2PE':
-      return require('./2PE.json');
+      return (await import('./2PE.json')).default as unknown as PalavraOriginal[][][];
     case '1JO':
-      return require('./1JO.json');
+      return (await import('./1JO.json')).default as unknown as PalavraOriginal[][][];
     case '2JO':
-      return require('./2JO.json');
+      return (await import('./2JO.json')).default as unknown as PalavraOriginal[][][];
     case '3JO':
-      return require('./3JO.json');
+      return (await import('./3JO.json')).default as unknown as PalavraOriginal[][][];
     case 'JUD':
-      return require('./JUD.json');
+      return (await import('./JUD.json')).default as unknown as PalavraOriginal[][][];
     case 'REV':
-      return require('./REV.json');
+      return (await import('./REV.json')).default as unknown as PalavraOriginal[][][];
   }
 }
 
-// Número de Strong -> [lema, transliteração, definição (inglês), tradução na KJV (inglês)]
-export function carregarLexico(): Record<string, [string, string, string, string]> {
-  return require('./lexico.json');
+export async function carregarLexicoGrego(): Promise<Lexico> {
+  return (await import('./lexico.json')).default as unknown as Lexico;
 }

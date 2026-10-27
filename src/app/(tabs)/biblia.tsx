@@ -1,24 +1,46 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
 import { chaveVersiculo, referenciasCruzadas } from '../../data/biblia';
-import {
-  carregarLexico,
-  carregarLivro,
-  livrosNT,
-  type CodigoLivro as CodigoNT,
-  type PalavraGrega,
-} from '../../data/grego';
+import { carregarLexicoGrego, carregarLivroGrego, livrosNT, type CodigoLivroNT } from '../../data/grego';
 import { descreverMorfologia } from '../../data/grego/morfologia';
+import { carregarLexicoHebraico, carregarLivroHebraico, livrosAT, type CodigoLivroAT } from '../../data/hebraico';
+import { descreverMorfologiaHebraica } from '../../data/hebraico/morfologia';
 import { carregarTexto, livros, type CodigoLivro } from '../../data/portugues';
+import type { Lexico, PalavraOriginal } from '../../data/tipos';
 import { useSermao, useSermoes } from '../../store/sermoes';
 import { cores, fonteBiblia } from '../../theme';
 
-type Selecao = { ver: number; palavra: PalavraGrega };
+type Selecao = { ver: number; palavra: PalavraOriginal };
 type Testamento = 'AT' | 'NT';
+type Livro = {
+  codigo: CodigoLivro;
+  portugues: string[][];
+  original: PalavraOriginal[][][];
+  lexico: Lexico;
+  lingua: 'grego' | 'hebraico';
+};
 
-const temGrego = (c: CodigoLivro): c is CodigoNT => livrosNT.some((l) => l.codigo === c);
+const ehNT = (c: CodigoLivro): c is CodigoLivroNT => livrosNT.some((l) => l.codigo === c);
+const ehAT = (c: CodigoLivro): c is CodigoLivroAT => (livrosAT as readonly string[]).includes(c);
+
+async function carregarLivroCompleto(codigo: CodigoLivro): Promise<Livro> {
+  const portugues = carregarTexto(codigo);
+  if (ehNT(codigo)) {
+    const [p, original, lexico] = await Promise.all([portugues, carregarLivroGrego(codigo), carregarLexicoGrego()]);
+    return { codigo, portugues: p, original, lexico, lingua: 'grego' };
+  }
+  if (ehAT(codigo)) {
+    const [p, original, lexico] = await Promise.all([
+      portugues,
+      carregarLivroHebraico(codigo),
+      carregarLexicoHebraico(),
+    ]);
+    return { codigo, portugues: p, original, lexico, lingua: 'hebraico' };
+  }
+  return { codigo, portugues: await portugues, original: [], lexico: {}, lingua: 'grego' };
+}
 
 export default function BibliaTela() {
   const { sermao: sermaoId } = useLocalSearchParams<{ sermao?: string }>();
@@ -27,15 +49,27 @@ export default function BibliaTela() {
   const [testamento, setTestamento] = useState<Testamento>('NT');
   const [codigo, setCodigo] = useState<CodigoLivro>('JOH');
   const [cap, setCap] = useState(3);
-  const [mostrarGrego, setMostrarGrego] = useState(true);
+  const [mostrarOriginal, setMostrarOriginal] = useState(true);
+  const [dados, setDados] = useState<Livro | null>(null);
   const [selecao, setSelecao] = useState<Selecao | null>(null);
   const [aviso, setAviso] = useState('');
 
+  useEffect(() => {
+    let ativo = true;
+    carregarLivroCompleto(codigo).then((d) => {
+      if (ativo) setDados(d);
+    });
+    return () => {
+      ativo = false;
+    };
+  }, [codigo]);
+
   const livro = livros.find((l) => l.codigo === codigo)!;
-  const portugues = useMemo(() => carregarTexto(codigo)[cap - 1] ?? [], [codigo, cap]);
-  const grego = useMemo(() => (temGrego(codigo) ? (carregarLivro(codigo)[cap - 1] ?? []) : []), [codigo, cap]);
-  const lexico = useMemo(() => carregarLexico(), []);
-  const totalVersiculos = Math.max(portugues.length, grego.length);
+  const carregado = dados?.codigo === codigo ? dados : null;
+  const portugues = carregado?.portugues[cap - 1] ?? [];
+  const original = carregado?.original[cap - 1] ?? [];
+  const hebraico = carregado?.lingua === 'hebraico';
+  const totalVersiculos = Math.max(portugues.length, original.length);
 
   const ref = (ver: number) => `${livro.nome} ${cap}:${ver}`;
 
@@ -56,7 +90,9 @@ export default function BibliaTela() {
     escolherLivro(livros.find((l) => l.testamento === t)!.codigo);
   };
 
-  const verbete = selecao ? lexico[selecao.palavra[1]] : undefined;
+  const verbete = selecao ? carregado?.lexico[selecao.palavra[1]] : undefined;
+  const prefixo = hebraico ? 'H' : 'G';
+  const nomeLingua = hebraico ? 'hebraico' : 'grego';
 
   return (
     <View style={{ flex: 1 }}>
@@ -89,6 +125,7 @@ export default function BibliaTela() {
         </ScrollView>
       </View>
 
+      {!carregado && <ActivityIndicator style={{ marginTop: 32 }} color={cores.destaque} />}
       <FlatList
         key={`${codigo}-${cap}`}
         data={Array.from({ length: totalVersiculos }, (_, i) => i + 1)}
@@ -99,15 +136,17 @@ export default function BibliaTela() {
             <Text style={estilos.titulo}>
               {livro.nome} {cap}
             </Text>
-            {grego.length > 0 && (
+            {original.length > 0 && (
               <Pressable
                 accessibilityRole="switch"
-                accessibilityState={{ checked: mostrarGrego }}
-                onPress={() => setMostrarGrego((v) => !v)}
+                accessibilityState={{ checked: mostrarOriginal }}
+                onPress={() => setMostrarOriginal((v) => !v)}
                 style={estilos.alternar}
               >
                 <Text style={estilos.textoAlternar}>
-                  {mostrarGrego ? 'Ocultar o grego' : 'Mostrar o grego (toque numa palavra para estudar)'}
+                  {mostrarOriginal
+                    ? `Ocultar o ${nomeLingua}`
+                    : `Mostrar o ${nomeLingua} (toque numa palavra para estudar)`}
                 </Text>
               </Pressable>
             )}
@@ -115,14 +154,14 @@ export default function BibliaTela() {
         }
         renderItem={({ item: ver }) => {
           const texto = portugues[ver - 1];
-          const palavras = grego[ver - 1];
+          const palavras = original[ver - 1];
           const referencias = referenciasCruzadas[chaveVersiculo(codigo, cap, ver)];
           return (
             <Cartao style={{ gap: 8 }}>
               <Rotulo>{ref(ver)}</Rotulo>
               {texto ? <Text style={estilos.versiculo}>{texto}</Text> : null}
-              {mostrarGrego && palavras && (
-                <Text style={estilos.grego}>
+              {mostrarOriginal && palavras && palavras.length > 0 && (
+                <Text style={[estilos.original, hebraico && estilos.hebraico]}>
                   {palavras.map((p, i) => (
                     <Text
                       key={i}
@@ -151,7 +190,11 @@ export default function BibliaTela() {
             <Text style={estilos.creditos}>
               Texto em português: Bíblia Livre (BLIVRE), © Diego Santos, Mario Sérgio e Marco Teles, fevereiro de
               2018, licença CC BY 4.0 Brasil.
-              {grego.length > 0 ? ' Grego: texto bizantino de Robinson-Pierpont (domínio público).' : ''}
+              {hebraico
+                ? ' Hebraico: Open Scriptures Hebrew Bible (Códice de Leningrado, CC BY 4.0).'
+                : original.length > 0
+                  ? ' Grego: texto bizantino de Robinson-Pierpont (domínio público).'
+                  : ''}
             </Text>
           </View>
         }
@@ -163,7 +206,8 @@ export default function BibliaTela() {
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', flex: 1 }}>
               <Text style={estilos.lema}>{verbete?.[0] ?? selecao.palavra[0]}</Text>
               <Text style={estilos.dica}>
-                {verbete?.[1]} · G{selecao.palavra[1]}
+                {verbete?.[1]} · {prefixo}
+                {selecao.palavra[1]}
               </Text>
             </View>
             <Pressable
@@ -176,8 +220,9 @@ export default function BibliaTela() {
             </Pressable>
           </View>
           <Text style={estilos.corpo}>
-            {selecao.palavra[0]}: {descreverMorfologia(selecao.palavra[2])}
+            {hebraico ? descreverMorfologiaHebraica(selecao.palavra[2]) : descreverMorfologia(selecao.palavra[2])}
           </Text>
+          <Text style={estilos.dica}>Forma no texto: {selecao.palavra[0]}</Text>
           {verbete && (
             <Text style={estilos.dica}>
               Definição de Strong (inglês): {verbete[2]}
@@ -190,7 +235,7 @@ export default function BibliaTela() {
               onPress={() =>
                 inserir(
                   'palavra',
-                  `${verbete?.[0] ?? selecao.palavra[0]} (${verbete?.[1] ?? ''}, G${selecao.palavra[1]}), ${ref(selecao.ver)}: ${verbete?.[2] ?? ''}`,
+                  `${verbete?.[0] ?? selecao.palavra[0]} (${verbete?.[1] ?? ''}, ${prefixo}${selecao.palavra[1]}), ${ref(selecao.ver)}: ${verbete?.[2] ?? ''}`,
                 )
               }
             />
@@ -247,7 +292,8 @@ const estilos = StyleSheet.create({
   pilulaAtiva: { backgroundColor: cores.texto, borderColor: cores.texto },
   textoPilula: { fontSize: 14, fontWeight: '600', color: cores.texto },
   versiculo: { fontFamily: fonteBiblia, fontSize: 18, lineHeight: 28, color: cores.texto },
-  grego: { fontFamily: fonteBiblia, fontSize: 19, lineHeight: 30, color: cores.textoSuave },
+  original: { fontFamily: fonteBiblia, fontSize: 19, lineHeight: 30, color: cores.textoSuave },
+  hebraico: { fontSize: 22, lineHeight: 36, writingDirection: 'rtl', textAlign: 'right' },
   palavraAtiva: { backgroundColor: '#D7ECEC', color: cores.texto },
   dica: { fontSize: 13, color: cores.textoSuave },
   creditos: { fontSize: 12, color: cores.textoSuave, lineHeight: 18 },
