@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TextoFormatado } from '../../components/TextoFormatado';
-import { nomesBloco, type TipoBloco } from '../../data/modelos';
+import { nomesBloco } from '../../data/modelos';
+import { rotuloVisivel } from '../../estilo';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
 import { cores } from '../../theme';
 
@@ -22,9 +23,6 @@ function dividirEmPartes(blocos: Bloco[], tituloAbertura: string) {
   }
   return partes;
 }
-
-// Blocos sem cor própria ganham um rótulo pequeno no púlpito (ex.: "Ilustração")
-const semEstiloProprio = new Set<TipoBloco>(['introducao', 'ilustracao', 'aplicacao', 'conclusao', 'apelo', 'palavra']);
 
 function relogio(segundos: number) {
   const m = Math.floor(segundos / 60);
@@ -105,14 +103,15 @@ export default function PulpitoTela() {
             <Text style={estilos.titulo}>{parte?.titulo || 'Sem título'}</Text>
           )}
           {indice === 0 && sermao.textoBase ? <Text style={estilos.base}>{sermao.textoBase}</Text> : null}
-          {parte?.blocos.map((b) => (
-            <View key={b.id} style={{ gap: 4 }}>
-              {semEstiloProprio.has(b.tipo) && nomesBloco[b.tipo] !== parte.titulo && (
-                <Text style={estilos.rotulo}>{nomesBloco[b.tipo]}</Text>
-              )}
-              <TextoFormatado tipo={b.tipo} texto={b.texto} tamanho={22} />
-            </View>
-          ))}
+          {parte?.blocos.filter((b) => b.texto.trim()).map((b) => {
+            const rotulo = rotuloVisivel(b);
+            return (
+              <View key={b.id} style={{ gap: 4 }}>
+                {rotulo && rotulo !== parte.titulo && <Text style={estilos.rotulo}>{rotulo}</Text>}
+                <TextoFormatado tipo={b.tipo} texto={b.texto} tamanho={22} />
+              </View>
+            );
+          })}
         </ScrollView>
       )}
 

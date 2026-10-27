@@ -10,6 +10,8 @@ import { cores } from '../../theme';
 
 const tiposParaAdicionar: TipoBloco[] = [
   'topico',
+  'explicacao',
+  'exemplo',
   'frase',
   'pontos',
   'versiculo',
@@ -65,6 +67,30 @@ export default function EditorTela() {
         </Text>
 
         <Cartao style={{ gap: 8 }}>
+          <View style={estilos.linha}>
+            <View style={{ flex: 2, gap: 4 }}>
+              <Rotulo>Culto</Rotulo>
+              <TextInput
+                accessibilityLabel="Culto"
+                value={sermao.culto ?? ''}
+                onChangeText={(culto) => atualizar(sermao.id, (s) => ({ ...s, culto }))}
+                placeholder="Ex.: Culto de Santa Ceia"
+                placeholderTextColor={cores.textoSuave}
+                style={estilos.entrada}
+              />
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Rotulo>Data</Rotulo>
+              <TextInput
+                accessibilityLabel="Data"
+                value={sermao.data ?? ''}
+                onChangeText={(data) => atualizar(sermao.id, (s) => ({ ...s, data }))}
+                placeholder="dd/mm/aaaa"
+                placeholderTextColor={cores.textoSuave}
+                style={estilos.entrada}
+              />
+            </View>
+          </View>
           <Rotulo>Título</Rotulo>
           <TextInput
             accessibilityLabel="Título do sermão"
@@ -74,9 +100,9 @@ export default function EditorTela() {
             placeholderTextColor={cores.textoSuave}
             style={[estilos.entrada, estilos.entradaTitulo]}
           />
-          <Rotulo>Texto base</Rotulo>
+          <Rotulo>Texto referência</Rotulo>
           <TextInput
-            accessibilityLabel="Texto base"
+            accessibilityLabel="Texto referência"
             value={sermao.textoBase}
             onChangeText={(textoBase) => atualizar(sermao.id, (s) => ({ ...s, textoBase }))}
             placeholder="Ex.: João 3:16"
@@ -89,7 +115,7 @@ export default function EditorTela() {
           <BlocoEditor
             key={bloco.id}
             bloco={bloco}
-            rotulo={bloco.tipo === 'topico' ? `Tópico ${numerosTopico[i]}` : nomesBloco[bloco.tipo]}
+            rotulo={bloco.rotulo ?? (bloco.tipo === 'topico' ? `Tópico ${numerosTopico[i]}` : nomesBloco[bloco.tipo])}
             onMudar={(t) => mudarBloco(bloco.id, t)}
             onSubir={() => mover(i, -1)}
             onDescer={() => mover(i, 1)}
@@ -118,7 +144,12 @@ export default function EditorTela() {
           <View style={estilos.linha}>
             <Botao titulo="+ Bloco" variante="contorno" onPress={() => setMostrandoTipos(true)} />
             <Botao
-              titulo="Estudar a passagem"
+              titulo="Roteiro de estudo"
+              variante="contorno"
+              onPress={() => router.push(`/estudo/${sermao.id}`)}
+            />
+            <Botao
+              titulo="Abrir na Bíblia"
               variante="contorno"
               onPress={() => router.push({ pathname: '/biblia', params: { sermao: sermao.id } })}
             />
@@ -185,7 +216,7 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
             onSelectionChange={(e) => setSelecao(e.nativeEvent.selection)}
             multiline
             autoFocus={!!bloco.texto}
-            placeholder={dicas[bloco.tipo] ?? 'Escreva aqui. Use *asteriscos* para destacar palavras-chave'}
+            placeholder={bloco.dica ?? dicas[bloco.tipo] ?? 'Escreva aqui. Use *asteriscos* para destacar palavras-chave'}
             placeholderTextColor={cores.textoSuave}
             style={[estilos.entrada, { minHeight: 44 }]}
           />

@@ -1,11 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { modelos, type Modelo, type TipoBloco } from '../data/modelos';
+import type { BlocoInicial, Modelo, TipoBloco } from '../data/modelos';
+import type { Genero } from '../data/roteiro';
 
 export type Bloco = {
   id: string;
   tipo: TipoBloco;
   texto: string;
+  // Nome próprio do bloco (ex.: "Versículo de apoio") e dica de preenchimento
+  rotulo?: string;
+  dica?: string;
 };
 
 export type Pregacao = {
@@ -19,6 +23,11 @@ export type Sermao = {
   titulo: string;
   textoBase: string;
   modelo: Modelo;
+  culto?: string;
+  data?: string;
+  genero?: Genero;
+  // Anotações do roteiro de estudo (observação e interpretação)
+  estudo?: string;
   blocos: Bloco[];
   pregacoes: Pregacao[];
   atualizadoEm: string;
@@ -30,10 +39,20 @@ function novoId() {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 }
 
+export type NovoSermao = {
+  titulo: string;
+  textoBase: string;
+  modelo: Modelo;
+  culto: string;
+  data: string;
+  genero?: Genero;
+  blocos: BlocoInicial[];
+};
+
 type Contexto = {
   carregado: boolean;
   sermoes: Sermao[];
-  criar: (modelo: Modelo) => Sermao;
+  criar: (dados: NovoSermao) => Sermao;
   atualizar: (id: string, mudar: (s: Sermao) => Sermao) => void;
   remover: (id: string) => void;
   adicionarBloco: (id: string, tipo: TipoBloco, texto?: string) => void;
@@ -63,14 +82,11 @@ export function SermoesProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const criar = useCallback((modelo: Modelo) => {
-    const def = modelos.find((m) => m.id === modelo)!;
+  const criar = useCallback(({ blocos, ...dados }: NovoSermao) => {
     const sermao: Sermao = {
       id: novoId(),
-      titulo: '',
-      textoBase: '',
-      modelo,
-      blocos: def.blocos.map((tipo) => ({ id: novoId(), tipo, texto: '' })),
+      ...dados,
+      blocos: blocos.map((b) => ({ ...b, id: novoId(), texto: b.texto ?? '' })),
       pregacoes: [],
       atualizadoEm: new Date().toISOString(),
     };

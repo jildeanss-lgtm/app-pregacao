@@ -1,8 +1,8 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
-import { modelos, nomesBloco, type TipoBloco } from '../data/modelos';
-import { dividirDestaques, estiloBloco, linhasDoBloco } from '../estilo';
+import { modelos } from '../data/modelos';
+import { dividirDestaques, estiloBloco, linhasDoBloco, rotuloVisivel } from '../estilo';
 import { minutosEstimados, type Bloco, type Sermao } from '../store/sermoes';
 
 function escapar(texto: string) {
@@ -31,19 +31,17 @@ function blocoHtml(b: Bloco) {
     .filter(Boolean)
     .join(';');
 
+  const nome = rotuloVisivel(b);
+  const rotulo = nome ? `<span class="rotulo">${escapar(nome)}</span><br>` : '';
   if (e.lista) {
     const itens = linhasDoBloco(b.texto).map((l) => `<li>${comDestaques(l)}</li>`).join('');
-    return `<ul style="${estilo}">${itens}</ul>`;
+    return `${rotulo ? `<p>${rotulo}</p>` : ''}<ul style="${estilo}">${itens}</ul>`;
   }
   if (e.fundo) {
     return `<p class="topico"><span style="${estilo};background:${e.fundo}">${comDestaques(b.texto)}</span></p>`;
   }
-  const rotulo = rotulados.has(b.tipo) ? `<span class="rotulo">${nomesBloco[b.tipo]}</span><br>` : '';
   return `<p style="${estilo}">${rotulo}${e.seta ? '➔ ' : ''}${comDestaques(b.texto)}</p>`;
 }
-
-// Blocos sem cor própria levam um rótulo pequeno
-const rotulados = new Set<TipoBloco>(['introducao', 'ilustracao', 'aplicacao', 'conclusao', 'apelo', 'palavra']);
 
 export function htmlDoSermao(s: Sermao) {
   const blocos = s.blocos
@@ -66,6 +64,7 @@ export function htmlDoSermao(s: Sermao) {
   .rotulo { font-size: 9pt; font-weight: bold; color: #5B6470; text-transform: uppercase; letter-spacing: 0.5pt; }
 </style></head>
 <body>
+  ${s.culto || s.data ? `<div class="meta">${escapar([s.culto, s.data].filter(Boolean).join(' · '))}</div>` : ''}
   <h1>${escapar(s.titulo || 'Sermão sem título')}</h1>
   <div class="meta">${[s.textoBase, modelo, `cerca de ${minutosEstimados(s)} min`].filter(Boolean).map(escapar).join(' · ')}</div>
   ${blocos}

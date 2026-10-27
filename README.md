@@ -4,7 +4,9 @@ App de celular (Android e iPhone) para montar pregações, com estudo bíblico c
 
 ## O que o protótipo faz
 
-- **Sermões:** cria um sermão a partir de um modelo (expositivo, temático ou textual), com blocos que podem ser editados, reordenados e apagados. Mostra o tempo estimado.
+- **Novo sermão:** tela de criação baseada no modelo de pregação do Jildean. Pede culto e data, texto referência, tipo de sermão (temático, textual, expositivo ou lectio continua), objetivo (Exibir, Mostrar, Advertir, Explicar), opção de introdução (citações, análise de hoje ou tema) e gênero literário (sugerido pelo livro). O sermão já nasce com a saudação, o objetivo, a introdução, três tópicos (texto, explicação, versículo de apoio, exemplo bíblico, aplicação) e a conclusão (frase de efeito, aplicação, chamado e convite, reflexão).
+- **Sermões:** blocos que podem ser editados, reordenados e apagados, com o tempo estimado.
+- **Roteiro de estudo:** método indutivo (observação, interpretação, aplicação), com perguntas próprias de cada gênero literário, as seis pistas do texto, as cinco chaves da interpretação, os princípios do sentido figurado e um espaço para anotações.
 - **Bíblia:** Bíblia completa em português (Bíblia Livre), com o hebraico do Antigo Testamento e o grego do Novo Testamento por baixo de cada versículo. Toque numa palavra do original para ver o lema, a transliteração, o número de Strong, a análise morfológica em português e a definição de Strong. Versículo e palavra podem ser inseridos no sermão.
 - **Formato das pregações:** cada tipo de bloco tem o seu visual. Tópico em preto com fundo verde, frase em azul com ➔, pontos em lista, texto bíblico em vermelho escuro e itálico, frase de efeito centralizada em verde escuro, pergunta em azul claro com ➔. Palavras-chave entre `*asteriscos*` aparecem em negrito sublinhado (há um botão para destacar a seleção). O mesmo visual vale para o editor, o modo púlpito e o PDF.
 - **Exportar PDF:** o sermão vira um PDF formatado para imprimir ou compartilhar.

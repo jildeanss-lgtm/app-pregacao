@@ -2,7 +2,7 @@
 // e as palavras-chave (escritas entre *asteriscos*) aparecem em negrito sublinhado.
 // Usado no editor, no modo púlpito e no PDF.
 
-import type { TipoBloco } from './data/modelos';
+import { nomesBloco, type TipoBloco } from './data/modelos';
 
 export const coresPregacao = {
   texto: '#000000',
@@ -33,12 +33,25 @@ export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
   efeito: { cor: coresPregacao.efeito, italico: true, centralizado: true },
   pergunta: { cor: coresPregacao.pergunta, italico: true, seta: true },
   palavra: { cor: coresPregacao.texto },
+  saudacao: { cor: coresPregacao.texto },
+  objetivo: { cor: coresPregacao.texto },
+  explicacao: { cor: coresPregacao.texto },
+  exemplo: { cor: coresPregacao.texto },
   introducao: { cor: coresPregacao.texto },
   ilustracao: { cor: coresPregacao.texto },
   aplicacao: { cor: coresPregacao.texto },
   conclusao: { cor: coresPregacao.texto },
   apelo: { cor: coresPregacao.texto },
 };
+
+// Blocos sem cor própria levam um rótulo pequeno no púlpito e no PDF (ex.: "Ilustração")
+const semCorPropria = new Set<TipoBloco>([
+  'saudacao', 'objetivo', 'introducao', 'explicacao', 'exemplo', 'ilustracao', 'aplicacao', 'conclusao', 'apelo', 'palavra',
+]);
+
+export function rotuloVisivel(b: { tipo: TipoBloco; rotulo?: string }) {
+  return b.rotulo ?? (semCorPropria.has(b.tipo) ? nomesBloco[b.tipo] : undefined);
+}
 
 // "Examinai *tudo*" -> [{ texto: 'Examinai ', chave: false }, { texto: 'tudo', chave: true }]
 export function dividirDestaques(texto: string) {
