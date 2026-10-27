@@ -21,11 +21,14 @@ export type EstiloBloco = {
   fundo?: string;
   seta?: boolean;
   lista?: boolean;
+  // Caixa com o subtópico na linha de cima e os pontos embaixo
+  quadro?: boolean;
 };
 
 export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
   topico: { cor: coresPregacao.texto, negrito: true, fundo: coresPregacao.fundoTopico },
   subtopico: { cor: coresPregacao.texto, negrito: true, seta: true },
+  quadro: { cor: coresPregacao.texto, quadro: true },
   frase: { cor: coresPregacao.frase, seta: true },
   pontos: { cor: coresPregacao.texto, lista: true },
   versiculo: { cor: coresPregacao.textoBiblico, italico: true },
@@ -72,4 +75,12 @@ export function linhasDoBloco(texto: string) {
     .split('\n')
     .map((l) => l.replace(/^\s*[-•]\s*/, '').trimEnd())
     .filter((l) => l.trim());
+}
+
+// Quadro: 1ª linha é o subtópico, as demais são os pontos
+export const pontosDoQuadro = 3;
+
+export function dividirQuadro(texto: string) {
+  const [subtopico = '', ...resto] = texto.split('\n');
+  return { subtopico: subtopico.trim(), pontos: linhasDoBloco(resto.join('\n')) };
 }

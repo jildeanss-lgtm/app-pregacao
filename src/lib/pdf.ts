@@ -2,7 +2,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { modelos } from '../data/modelos';
-import { dividirDestaques, estiloBloco, linhasDoBloco, rotuloVisivel } from '../estilo';
+import { dividirDestaques, dividirQuadro, estiloBloco, linhasDoBloco, rotuloVisivel } from '../estilo';
 import { minutosEstimados, type Bloco, type Sermao } from '../store/sermoes';
 
 function escapar(texto: string) {
@@ -33,6 +33,11 @@ function blocoHtml(b: Bloco) {
 
   const nome = rotuloVisivel(b);
   const rotulo = nome ? `<span class="rotulo">${escapar(nome)}</span><br>` : '';
+  if (e.quadro) {
+    const { subtopico, pontos } = dividirQuadro(b.texto);
+    const linhas = pontos.map((l) => `<tr><td>• ${comDestaques(l)}</td></tr>`).join('');
+    return `<table class="quadro"><tr><th>➔ ${comDestaques(subtopico)}</th></tr>${linhas}</table>`;
+  }
   if (e.lista) {
     const itens = linhasDoBloco(b.texto).map((l) => `<li>${comDestaques(l)}</li>`).join('');
     return `${rotulo ? `<p>${rotulo}</p>` : ''}<ul style="${estilo}">${itens}</ul>`;
@@ -61,6 +66,9 @@ export function htmlDoSermao(s: Sermao) {
   ul { margin: 2pt 0 8pt; padding-left: 22pt; }
   .topico { margin: 18pt 0 6pt; font-size: 14pt; }
   .topico span { padding: 1pt 4pt; }
+  .quadro { width: 100%; border-collapse: collapse; border: 1.5pt solid #000; margin: 8pt 0; }
+  .quadro th { text-align: left; background: #F1EFE9; border-bottom: 1.5pt solid #000; padding: 4pt 8pt; }
+  .quadro td { border-top: 0.5pt solid #999; padding: 4pt 8pt; }
   .rotulo { font-size: 9pt; font-weight: bold; color: #5B6470; text-transform: uppercase; letter-spacing: 0.5pt; }
 </style></head>
 <body>

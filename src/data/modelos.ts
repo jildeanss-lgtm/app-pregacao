@@ -4,6 +4,7 @@ export type TipoBloco =
   | 'introducao'
   | 'topico'
   | 'subtopico'
+  | 'quadro'
   | 'frase'
   | 'pontos'
   | 'versiculo'
@@ -24,6 +25,7 @@ export const nomesBloco: Record<TipoBloco, string> = {
   introducao: 'Introdução',
   topico: 'Tópico',
   subtopico: 'Subtópico',
+  quadro: 'Quadro (subtópico e pontos)',
   frase: 'Frase',
   pontos: 'Pontos',
   versiculo: 'Texto bíblico',
