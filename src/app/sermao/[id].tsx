@@ -1,13 +1,27 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { TextoFormatado } from '../../components/TextoFormatado';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
 import { modelos, nomesBloco, type TipoBloco } from '../../data/modelos';
 import { exportarPdf } from '../../lib/pdf';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
 import { cores } from '../../theme';
 
-const tiposParaAdicionar: TipoBloco[] = ['topico', 'subtopico', 'versiculo', 'ilustracao', 'aplicacao', 'citacao'];
+const tiposParaAdicionar: TipoBloco[] = [
+  'topico',
+  'explicacao',
+  'exemplo',
+  'frase',
+  'pontos',
+  'versiculo',
+  'efeito',
+  'pergunta',
+  'subtopico',
+  'ilustracao',
+  'aplicacao',
+  'citacao',
+];
 
 export default function EditorTela() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -53,6 +67,30 @@ export default function EditorTela() {
         </Text>
 
         <Cartao style={{ gap: 8 }}>
+          <View style={estilos.linha}>
+            <View style={{ flex: 2, gap: 4 }}>
+              <Rotulo>Culto</Rotulo>
+              <TextInput
+                accessibilityLabel="Culto"
+                value={sermao.culto ?? ''}
+                onChangeText={(culto) => atualizar(sermao.id, (s) => ({ ...s, culto }))}
+                placeholder="Ex.: Culto de Santa Ceia"
+                placeholderTextColor={cores.textoSuave}
+                style={estilos.entrada}
+              />
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Rotulo>Data</Rotulo>
+              <TextInput
+                accessibilityLabel="Data"
+                value={sermao.data ?? ''}
+                onChangeText={(data) => atualizar(sermao.id, (s) => ({ ...s, data }))}
+                placeholder="dd/mm/aaaa"
+                placeholderTextColor={cores.textoSuave}
+                style={estilos.entrada}
+              />
+            </View>
+          </View>
           <Rotulo>Título</Rotulo>
           <TextInput
             accessibilityLabel="Título do sermão"
@@ -62,9 +100,9 @@ export default function EditorTela() {
             placeholderTextColor={cores.textoSuave}
             style={[estilos.entrada, estilos.entradaTitulo]}
           />
-          <Rotulo>Texto base</Rotulo>
+          <Rotulo>Texto referência</Rotulo>
           <TextInput
-            accessibilityLabel="Texto base"
+            accessibilityLabel="Texto referência"
             value={sermao.textoBase}
             onChangeText={(textoBase) => atualizar(sermao.id, (s) => ({ ...s, textoBase }))}
             placeholder="Ex.: João 3:16"
@@ -77,7 +115,7 @@ export default function EditorTela() {
           <BlocoEditor
             key={bloco.id}
             bloco={bloco}
-            rotulo={bloco.tipo === 'topico' ? `Tópico ${numerosTopico[i]}` : nomesBloco[bloco.tipo]}
+            rotulo={bloco.rotulo ?? (bloco.tipo === 'topico' ? `Tópico ${numerosTopico[i]}` : nomesBloco[bloco.tipo])}
             onMudar={(t) => mudarBloco(bloco.id, t)}
             onSubir={() => mover(i, -1)}
             onDescer={() => mover(i, 1)}
@@ -106,7 +144,12 @@ export default function EditorTela() {
           <View style={estilos.linha}>
             <Botao titulo="+ Bloco" variante="contorno" onPress={() => setMostrandoTipos(true)} />
             <Botao
-              titulo="Estudar a passagem"
+              titulo="Roteiro de estudo"
+              variante="contorno"
+              onPress={() => router.push(`/estudo/${sermao.id}`)}
+            />
+            <Botao
+              titulo="Abrir na Bíblia"
               variante="contorno"
               onPress={() => router.push({ pathname: '/biblia', params: { sermao: sermao.id } })}
             />
@@ -137,15 +180,25 @@ type BlocoEditorProps = {
   onApagar: () => void;
 };
 
+const dicas: Partial<Record<TipoBloco, string>> = {
+  pontos: 'Um ponto por linha',
+  versiculo: 'Ex.: 1 Tessalonicenses 5:21 - *Examinai* *tudo*. *Retende* o *bem*',
+};
+
 function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: BlocoEditorProps) {
-  const destaque =
-    bloco.tipo === 'versiculo' || bloco.tipo === 'citacao'
-      ? { backgroundColor: cores.apoioFundo }
-      : bloco.tipo === 'palavra'
-        ? { backgroundColor: cores.destaqueFundo }
-        : null;
+  const [editando, setEditando] = useState(!bloco.texto);
+  const [selecao, setSelecao] = useState({ start: 0, end: 0 });
+
+  // Coloca *asteriscos* em volta do trecho selecionado, marcando como palavra-chave
+  const destacar = () => {
+    const { start, end } = selecao;
+    if (start === end) return;
+    const t = bloco.texto;
+    onMudar(`${t.slice(0, start)}*${t.slice(start, end)}*${t.slice(end)}`);
+  };
+
   return (
-    <Cartao style={[{ gap: 6 }, destaque]}>
+    <Cartao style={{ gap: 6 }}>
       <View style={estilos.cabecalhoBloco}>
         <Rotulo>{rotulo}</Rotulo>
         <View style={{ flexDirection: 'row' }}>
@@ -154,15 +207,34 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
           <Acao rotulo="Apagar bloco" simbolo="×" onPress={onApagar} />
         </View>
       </View>
-      <TextInput
-        accessibilityLabel={rotulo}
-        value={bloco.texto}
-        onChangeText={onMudar}
-        multiline
-        placeholder="Escreva aqui"
-        placeholderTextColor={cores.textoSuave}
-        style={[estilos.entrada, { minHeight: 44 }, bloco.tipo === 'topico' && { fontWeight: '600' }]}
-      />
+      {editando ? (
+        <>
+          <TextInput
+            accessibilityLabel={rotulo}
+            value={bloco.texto}
+            onChangeText={onMudar}
+            onSelectionChange={(e) => setSelecao(e.nativeEvent.selection)}
+            multiline
+            autoFocus={!!bloco.texto}
+            placeholder={bloco.dica ?? dicas[bloco.tipo] ?? 'Escreva aqui. Use *asteriscos* para destacar palavras-chave'}
+            placeholderTextColor={cores.textoSuave}
+            style={[estilos.entrada, { minHeight: 44 }]}
+          />
+          <View style={estilos.linha}>
+            <Botao titulo="Destacar seleção" variante="contorno" onPress={destacar} />
+            {bloco.texto ? <Botao titulo="Pronto" onPress={() => setEditando(false)} /> : null}
+          </View>
+        </>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Editar ${rotulo}`}
+          onPress={() => setEditando(true)}
+          style={{ minHeight: 44, justifyContent: 'center' }}
+        >
+          <TextoFormatado tipo={bloco.tipo} texto={bloco.texto} />
+        </Pressable>
+      )}
     </Cartao>
   );
 }
