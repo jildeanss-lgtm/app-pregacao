@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
 import { modelos, nomesBloco, type TipoBloco } from '../../data/modelos';
+import { exportarPdf } from '../../lib/pdf';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
 import { cores } from '../../theme';
 
@@ -113,6 +114,7 @@ export default function EditorTela() {
         )}
 
         <Botao titulo="Pregar" onPress={() => router.push(`/pregar/${sermao.id}`)} />
+        <Botao titulo="Exportar PDF" variante="contorno" onPress={() => exportarPdf(sermao)} />
         <Botao
           titulo="Apagar sermão"
           variante="perigo"

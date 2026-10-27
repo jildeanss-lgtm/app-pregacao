@@ -19,11 +19,16 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "output": "single"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-sharing"
     ],
-    "scheme": "apppregacao"
+    "scheme": "apppregacao",
+    "experiments": {
+      "baseUrl": "/app-pregacao"
+    }
   }
 }
