@@ -1,0 +1,23 @@
+import { Stack } from 'expo-router/stack';
+import { StatusBar } from 'expo-status-bar';
+import { SermoesProvider } from '../store/sermoes';
+import { cores } from '../theme';
+
+export default function RootLayout() {
+  return (
+    <SermoesProvider>
+      <StatusBar style="dark" />
+      <Stack
+        screenOptions={{
+          headerTintColor: cores.texto,
+          headerStyle: { backgroundColor: cores.fundo },
+          contentStyle: { backgroundColor: cores.fundo },
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="sermao/[id]" options={{ title: 'Sermão' }} />
+        <Stack.Screen name="pregar/[id]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+      </Stack>
+    </SermoesProvider>
+  );
+}

@@ -1,0 +1,22 @@
+export const cores = {
+  fundo: '#F6F5F1',
+  cartao: '#FFFFFF',
+  borda: '#E3E1DA',
+  bordaForte: '#C9CCD1',
+  texto: '#1C2430',
+  textoSuave: '#5B6470',
+  destaque: '#1F6F78',
+  destaqueEscuro: '#174F56',
+  destaqueFundo: '#EEF5F5',
+  apoioFundo: '#FBF3E6',
+  apoioTexto: '#6B4510',
+  neutroFundo: '#F1EFE9',
+  pulpitoFundo: '#12171E',
+  pulpitoCartao: '#1C232C',
+  pulpitoTexto: '#F2F1EC',
+  pulpitoSuave: '#A9B0B9',
+  pulpitoDestaque: '#7CC6CC',
+  pulpitoApoio: '#E3B26A',
+};
+
+export const fonteBiblia = 'Georgia';
