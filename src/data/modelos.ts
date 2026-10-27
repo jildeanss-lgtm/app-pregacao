@@ -2,7 +2,11 @@ export type TipoBloco =
   | 'introducao'
   | 'topico'
   | 'subtopico'
+  | 'frase'
+  | 'pontos'
   | 'versiculo'
+  | 'efeito'
+  | 'pergunta'
   | 'palavra'
   | 'ilustracao'
   | 'aplicacao'
@@ -14,7 +18,11 @@ export const nomesBloco: Record<TipoBloco, string> = {
   introducao: 'Introdução',
   topico: 'Tópico',
   subtopico: 'Subtópico',
-  versiculo: 'Versículo de apoio',
+  frase: 'Frase',
+  pontos: 'Pontos',
+  versiculo: 'Texto bíblico',
+  efeito: 'Frase de efeito',
+  pergunta: 'Pergunta',
   palavra: 'Palavra no original',
   ilustracao: 'Ilustração',
   aplicacao: 'Aplicação',
@@ -30,18 +38,30 @@ export const modelos: { id: Modelo; nome: string; descricao: string; blocos: Tip
     id: 'expositivo',
     nome: 'Expositivo',
     descricao: 'Tópicos tirados da divisão natural da passagem, verso a verso.',
-    blocos: ['introducao', 'topico', 'topico', 'topico', 'conclusao', 'apelo'],
+    blocos: [
+      'introducao',
+      'topico', 'versiculo', 'frase', 'pontos',
+      'topico', 'versiculo', 'frase', 'efeito',
+      'topico', 'versiculo', 'frase', 'pergunta',
+      'conclusao', 'apelo',
+    ],
   },
   {
     id: 'tematico',
     nome: 'Temático',
     descricao: 'Um tema, com textos de várias partes da Bíblia.',
-    blocos: ['introducao', 'topico', 'versiculo', 'topico', 'versiculo', 'topico', 'versiculo', 'conclusao', 'apelo'],
+    blocos: [
+      'introducao', 'pergunta',
+      'topico', 'frase', 'versiculo', 'pontos',
+      'topico', 'frase', 'versiculo', 'efeito',
+      'topico', 'frase', 'versiculo',
+      'conclusao', 'apelo',
+    ],
   },
   {
     id: 'textual',
     nome: 'Textual',
     descricao: 'Um tópico para cada palavra ou frase-chave de um versículo curto.',
-    blocos: ['introducao', 'topico', 'topico', 'conclusao', 'apelo'],
+    blocos: ['versiculo', 'introducao', 'topico', 'frase', 'pontos', 'topico', 'frase', 'efeito', 'conclusao', 'apelo'],
   },
 ];

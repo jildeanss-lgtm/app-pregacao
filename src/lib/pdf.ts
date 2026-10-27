@@ -1,8 +1,9 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
-import { modelos, nomesBloco } from '../data/modelos';
-import { minutosEstimados, type Sermao } from '../store/sermoes';
+import { modelos, nomesBloco, type TipoBloco } from '../data/modelos';
+import { dividirDestaques, estiloBloco, linhasDoBloco } from '../estilo';
+import { minutosEstimados, type Bloco, type Sermao } from '../store/sermoes';
 
 function escapar(texto: string) {
   return texto
@@ -12,20 +13,42 @@ function escapar(texto: string) {
     .replace(/\n/g, '<br>');
 }
 
+// Converte um texto com *palavras-chave* em HTML, já escapado
+function comDestaques(texto: string) {
+  return dividirDestaques(texto)
+    .map((p) => (p.chave ? `<b><u>${escapar(p.texto)}</u></b>` : escapar(p.texto)))
+    .join('');
+}
+
+function blocoHtml(b: Bloco) {
+  const e = estiloBloco[b.tipo];
+  const estilo = [
+    `color:${e.cor}`,
+    e.italico && 'font-style:italic',
+    e.negrito && 'font-weight:bold',
+    e.centralizado && 'text-align:center',
+  ]
+    .filter(Boolean)
+    .join(';');
+
+  if (e.lista) {
+    const itens = linhasDoBloco(b.texto).map((l) => `<li>${comDestaques(l)}</li>`).join('');
+    return `<ul style="${estilo}">${itens}</ul>`;
+  }
+  if (e.fundo) {
+    return `<p class="topico"><span style="${estilo};background:${e.fundo}">${comDestaques(b.texto)}</span></p>`;
+  }
+  const rotulo = rotulados.has(b.tipo) ? `<span class="rotulo">${nomesBloco[b.tipo]}</span><br>` : '';
+  return `<p style="${estilo}">${rotulo}${e.seta ? '➔ ' : ''}${comDestaques(b.texto)}</p>`;
+}
+
+// Blocos sem cor própria levam um rótulo pequeno
+const rotulados = new Set<TipoBloco>(['introducao', 'ilustracao', 'aplicacao', 'conclusao', 'apelo', 'palavra']);
+
 export function htmlDoSermao(s: Sermao) {
-  let topico = 0;
   const blocos = s.blocos
     .filter((b) => b.texto.trim())
-    .map((b) => {
-      if (b.tipo === 'topico') {
-        topico += 1;
-        return `<h2>${topico}. ${escapar(b.texto)}</h2>`;
-      }
-      if (b.tipo === 'versiculo' || b.tipo === 'citacao') {
-        return `<blockquote>${escapar(b.texto)}</blockquote>`;
-      }
-      return `<p><span class="rotulo">${nomesBloco[b.tipo]}</span><br>${escapar(b.texto)}</p>`;
-    })
+    .map(blocoHtml)
     .join('\n');
 
   const modelo = modelos.find((m) => m.id === s.modelo)?.nome ?? '';
@@ -33,12 +56,14 @@ export function htmlDoSermao(s: Sermao) {
 <html lang="pt-BR"><head><meta charset="utf-8">
 <style>
   @page { margin: 2cm; }
-  body { font-family: Georgia, serif; font-size: 13pt; line-height: 1.5; color: #1C2430; }
-  h1 { font-size: 22pt; margin: 0 0 4pt; }
-  .meta { font-family: Helvetica, Arial, sans-serif; font-size: 10pt; color: #5B6470; margin-bottom: 18pt; }
-  h2 { font-size: 15pt; margin: 18pt 0 6pt; color: #174F56; }
-  blockquote { margin: 8pt 0; padding: 6pt 12pt; border-left: 3pt solid #B7791F; background: #FBF3E6; }
-  .rotulo { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; font-weight: bold; color: #5B6470; text-transform: uppercase; letter-spacing: 0.5pt; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 13pt; line-height: 1.45; color: #000; }
+  h1 { font-size: 20pt; margin: 0 0 4pt; }
+  .meta { font-size: 10pt; color: #5B6470; margin-bottom: 18pt; }
+  p { margin: 6pt 0; }
+  ul { margin: 2pt 0 8pt; padding-left: 22pt; }
+  .topico { margin: 18pt 0 6pt; font-size: 14pt; }
+  .topico span { padding: 1pt 4pt; }
+  .rotulo { font-size: 9pt; font-weight: bold; color: #5B6470; text-transform: uppercase; letter-spacing: 0.5pt; }
 </style></head>
 <body>
   <h1>${escapar(s.titulo || 'Sermão sem título')}</h1>

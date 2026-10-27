@@ -6,8 +6,9 @@ App de celular (Android e iPhone) para montar pregações, com estudo bíblico c
 
 - **Sermões:** cria um sermão a partir de um modelo (expositivo, temático ou textual), com blocos que podem ser editados, reordenados e apagados. Mostra o tempo estimado.
 - **Bíblia:** Bíblia completa em português (Bíblia Livre), com o hebraico do Antigo Testamento e o grego do Novo Testamento por baixo de cada versículo. Toque numa palavra do original para ver o lema, a transliteração, o número de Strong, a análise morfológica em português e a definição de Strong. Versículo e palavra podem ser inseridos no sermão.
+- **Formato das pregações:** cada tipo de bloco tem o seu visual. Tópico em preto com fundo verde, frase em azul com ➔, pontos em lista, texto bíblico em vermelho escuro e itálico, frase de efeito centralizada em verde escuro, pergunta em azul claro com ➔. Palavras-chave entre `*asteriscos*` aparecem em negrito sublinhado (há um botão para destacar a seleção). O mesmo visual vale para o editor, o modo púlpito e o PDF.
 - **Exportar PDF:** o sermão vira um PDF formatado para imprimir ou compartilhar.
-- **Pregar:** modo púlpito com tela escura, letra grande, cronômetro e uma parte do sermão por vez. Ao encerrar, o sermão vai para o arquivo com data e local.
+- **Pregar:** modo púlpito com letra grande, nas mesmas cores do esboço, cronômetro e uma parte do sermão por vez. Ao encerrar, o sermão vai para o arquivo com data e local.
 - **Biblioteca:** sermões já pregados e as pastas da biblioteca no Google Drive (conexão ainda não implementada).
 
 Tudo fica salvo no próprio aparelho e funciona offline.

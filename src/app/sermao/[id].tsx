@@ -1,13 +1,25 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { TextoFormatado } from '../../components/TextoFormatado';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
 import { modelos, nomesBloco, type TipoBloco } from '../../data/modelos';
 import { exportarPdf } from '../../lib/pdf';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
 import { cores } from '../../theme';
 
-const tiposParaAdicionar: TipoBloco[] = ['topico', 'subtopico', 'versiculo', 'ilustracao', 'aplicacao', 'citacao'];
+const tiposParaAdicionar: TipoBloco[] = [
+  'topico',
+  'frase',
+  'pontos',
+  'versiculo',
+  'efeito',
+  'pergunta',
+  'subtopico',
+  'ilustracao',
+  'aplicacao',
+  'citacao',
+];
 
 export default function EditorTela() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -137,15 +149,25 @@ type BlocoEditorProps = {
   onApagar: () => void;
 };
 
+const dicas: Partial<Record<TipoBloco, string>> = {
+  pontos: 'Um ponto por linha',
+  versiculo: 'Ex.: 1 Tessalonicenses 5:21 - *Examinai* *tudo*. *Retende* o *bem*',
+};
+
 function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: BlocoEditorProps) {
-  const destaque =
-    bloco.tipo === 'versiculo' || bloco.tipo === 'citacao'
-      ? { backgroundColor: cores.apoioFundo }
-      : bloco.tipo === 'palavra'
-        ? { backgroundColor: cores.destaqueFundo }
-        : null;
+  const [editando, setEditando] = useState(!bloco.texto);
+  const [selecao, setSelecao] = useState({ start: 0, end: 0 });
+
+  // Coloca *asteriscos* em volta do trecho selecionado, marcando como palavra-chave
+  const destacar = () => {
+    const { start, end } = selecao;
+    if (start === end) return;
+    const t = bloco.texto;
+    onMudar(`${t.slice(0, start)}*${t.slice(start, end)}*${t.slice(end)}`);
+  };
+
   return (
-    <Cartao style={[{ gap: 6 }, destaque]}>
+    <Cartao style={{ gap: 6 }}>
       <View style={estilos.cabecalhoBloco}>
         <Rotulo>{rotulo}</Rotulo>
         <View style={{ flexDirection: 'row' }}>
@@ -154,15 +176,34 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
           <Acao rotulo="Apagar bloco" simbolo="×" onPress={onApagar} />
         </View>
       </View>
-      <TextInput
-        accessibilityLabel={rotulo}
-        value={bloco.texto}
-        onChangeText={onMudar}
-        multiline
-        placeholder="Escreva aqui"
-        placeholderTextColor={cores.textoSuave}
-        style={[estilos.entrada, { minHeight: 44 }, bloco.tipo === 'topico' && { fontWeight: '600' }]}
-      />
+      {editando ? (
+        <>
+          <TextInput
+            accessibilityLabel={rotulo}
+            value={bloco.texto}
+            onChangeText={onMudar}
+            onSelectionChange={(e) => setSelecao(e.nativeEvent.selection)}
+            multiline
+            autoFocus={!!bloco.texto}
+            placeholder={dicas[bloco.tipo] ?? 'Escreva aqui. Use *asteriscos* para destacar palavras-chave'}
+            placeholderTextColor={cores.textoSuave}
+            style={[estilos.entrada, { minHeight: 44 }]}
+          />
+          <View style={estilos.linha}>
+            <Botao titulo="Destacar seleção" variante="contorno" onPress={destacar} />
+            {bloco.texto ? <Botao titulo="Pronto" onPress={() => setEditando(false)} /> : null}
+          </View>
+        </>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Editar ${rotulo}`}
+          onPress={() => setEditando(true)}
+          style={{ minHeight: 44, justifyContent: 'center' }}
+        >
+          <TextoFormatado tipo={bloco.tipo} texto={bloco.texto} />
+        </Pressable>
+      )}
     </Cartao>
   );
 }

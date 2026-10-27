@@ -3,24 +3,28 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { nomesBloco } from '../../data/modelos';
+import { TextoFormatado } from '../../components/TextoFormatado';
+import { nomesBloco, type TipoBloco } from '../../data/modelos';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
-import { cores, fonteBiblia } from '../../theme';
+import { cores } from '../../theme';
 
 // Divide o sermão em telas: tudo antes do 1º tópico é a abertura,
 // cada tópico leva consigo os blocos que vêm depois dele.
 function dividirEmPartes(blocos: Bloco[], tituloAbertura: string) {
-  const partes: { titulo: string; blocos: Bloco[] }[] = [];
+  const partes: { titulo: string; topico: boolean; blocos: Bloco[] }[] = [];
   for (const b of blocos) {
     if (b.tipo === 'topico' || b.tipo === 'conclusao' || partes.length === 0) {
       const titulo = b.tipo === 'topico' ? b.texto : partes.length === 0 ? tituloAbertura : nomesBloco[b.tipo];
-      partes.push({ titulo, blocos: b.tipo === 'topico' ? [] : [b] });
+      partes.push({ titulo, topico: b.tipo === 'topico', blocos: b.tipo === 'topico' ? [] : [b] });
     } else {
       partes[partes.length - 1].blocos.push(b);
     }
   }
   return partes;
 }
+
+// Blocos sem cor própria ganham um rótulo pequeno no púlpito (ex.: "Ilustração")
+const semEstiloProprio = new Set<TipoBloco>(['introducao', 'ilustracao', 'aplicacao', 'conclusao', 'apelo', 'palavra']);
 
 function relogio(segundos: number) {
   const m = Math.floor(segundos / 60);
@@ -60,7 +64,7 @@ export default function PulpitoTela() {
 
   return (
     <SafeAreaView style={estilos.tela}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <View style={estilos.topo}>
         <Pressable accessibilityRole="button" onPress={() => router.back()} style={estilos.sair}>
           <Text style={estilos.suave}>Sair</Text>
@@ -83,7 +87,7 @@ export default function PulpitoTela() {
             value={local}
             onChangeText={setLocal}
             placeholder="Ex.: Culto de domingo"
-            placeholderTextColor={cores.pulpitoSuave}
+            placeholderTextColor={cores.textoSuave}
             style={estilos.entrada}
           />
           <Pressable accessibilityRole="button" onPress={encerrar} style={[estilos.botao, estilos.botaoPrincipal]}>
@@ -95,21 +99,20 @@ export default function PulpitoTela() {
           <Text style={estilos.contador}>
             PARTE {indice + 1} DE {partes.length}
           </Text>
-          <Text style={estilos.titulo}>{parte?.titulo || 'Sem título'}</Text>
-          {indice === 0 && sermao.textoBase ? <Text style={estilos.rotuloApoio}>{sermao.textoBase}</Text> : null}
-          {parte?.blocos.map((b) =>
-            b.tipo === 'versiculo' || b.tipo === 'citacao' ? (
-              <View key={b.id} style={estilos.cartao}>
-                <Text style={estilos.rotuloApoio}>{nomesBloco[b.tipo].toUpperCase()}</Text>
-                <Text style={estilos.versiculo}>{b.texto}</Text>
-              </View>
-            ) : (
-              <View key={b.id}>
-                {nomesBloco[b.tipo] !== parte.titulo && <Text style={estilos.rotulo}>{nomesBloco[b.tipo]}</Text>}
-                <Text style={estilos.corpo}>{b.texto}</Text>
-              </View>
-            ),
+          {parte?.topico ? (
+            <TextoFormatado tipo="topico" texto={parte.titulo || 'Sem título'} tamanho={28} />
+          ) : (
+            <Text style={estilos.titulo}>{parte?.titulo || 'Sem título'}</Text>
           )}
+          {indice === 0 && sermao.textoBase ? <Text style={estilos.base}>{sermao.textoBase}</Text> : null}
+          {parte?.blocos.map((b) => (
+            <View key={b.id} style={{ gap: 4 }}>
+              {semEstiloProprio.has(b.tipo) && nomesBloco[b.tipo] !== parte.titulo && (
+                <Text style={estilos.rotulo}>{nomesBloco[b.tipo]}</Text>
+              )}
+              <TextoFormatado tipo={b.tipo} texto={b.texto} tamanho={22} />
+            </View>
+          ))}
         </ScrollView>
       )}
 
@@ -147,31 +150,29 @@ export default function PulpitoTela() {
 }
 
 const estilos = StyleSheet.create({
-  tela: { flex: 1, backgroundColor: cores.pulpitoFundo, paddingHorizontal: 24 },
+  // Fundo claro, como papel, para as cores do esboço aparecerem iguais às do editor e do PDF
+  tela: { flex: 1, backgroundColor: '#FFFFFF', paddingHorizontal: 24 },
   topo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8 },
   sair: { minHeight: 44, justifyContent: 'center' },
-  relogio: { fontSize: 28, fontWeight: '700', color: cores.pulpitoTexto },
-  suave: { fontSize: 15, color: cores.pulpitoSuave },
-  barra: { height: 4, backgroundColor: '#2A323C', borderRadius: 2, marginTop: 12 },
-  barraCheia: { height: 4, backgroundColor: cores.pulpitoDestaque, borderRadius: 2 },
-  contador: { fontSize: 13, fontWeight: '600', letterSpacing: 1, color: cores.pulpitoDestaque },
-  titulo: { fontSize: 30, fontWeight: '700', lineHeight: 38, color: cores.pulpitoTexto },
-  cartao: { backgroundColor: cores.pulpitoCartao, borderRadius: 14, padding: 18, gap: 8 },
-  rotuloApoio: { fontSize: 13, fontWeight: '600', color: cores.pulpitoApoio },
-  versiculo: { fontFamily: fonteBiblia, fontSize: 22, lineHeight: 33, color: cores.pulpitoTexto },
-  rotulo: { fontSize: 13, fontWeight: '600', color: cores.pulpitoSuave },
-  corpo: { fontSize: 21, lineHeight: 32, color: '#DCDAD3' },
+  relogio: { fontSize: 28, fontWeight: '700', color: cores.texto },
+  suave: { fontSize: 15, color: cores.textoSuave },
+  barra: { height: 4, backgroundColor: cores.borda, borderRadius: 2, marginTop: 12 },
+  barraCheia: { height: 4, backgroundColor: cores.destaque, borderRadius: 2 },
+  contador: { fontSize: 13, fontWeight: '600', letterSpacing: 1, color: cores.destaque },
+  titulo: { fontSize: 28, fontWeight: '700', lineHeight: 36, color: cores.texto },
+  base: { fontSize: 15, fontWeight: '600', color: cores.textoSuave },
+  rotulo: { fontSize: 13, fontWeight: '600', color: cores.textoSuave, textTransform: 'uppercase' },
   rodape: { flexDirection: 'row', gap: 12, paddingVertical: 16 },
   botao: { flex: 1, minHeight: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  botaoContorno: { borderWidth: 1, borderColor: '#3A434E' },
-  botaoPrincipal: { backgroundColor: cores.pulpitoDestaque },
-  textoBotao: { fontSize: 16, fontWeight: '600', color: cores.pulpitoTexto },
-  textoBotaoPrincipal: { fontSize: 16, fontWeight: '700', color: cores.pulpitoFundo },
+  botaoContorno: { borderWidth: 1, borderColor: cores.bordaForte },
+  botaoPrincipal: { backgroundColor: cores.destaque },
+  textoBotao: { fontSize: 16, fontWeight: '600', color: cores.texto },
+  textoBotaoPrincipal: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
   entrada: {
     fontSize: 18,
-    color: cores.pulpitoTexto,
+    color: cores.texto,
     borderWidth: 1,
-    borderColor: '#3A434E',
+    borderColor: cores.bordaForte,
     borderRadius: 12,
     padding: 14,
   },
