@@ -26,7 +26,7 @@ export const nomesBloco: Record<TipoBloco, string> = {
   introducao: 'Introdução',
   topico: 'Tópico',
   subtopico: 'Subtópico',
-  quadro: 'Quadro (subtópico e pontos)',
+  quadro: 'Corpo',
   quadroPerguntas: 'Quadro de perguntas',
   frase: 'Frase',
   pontos: 'Pontos',
