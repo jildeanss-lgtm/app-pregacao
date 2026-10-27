@@ -293,7 +293,7 @@ const estilos = StyleSheet.create({
   cabecalhoBloco: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   quadro: { borderWidth: 1.5, borderColor: '#000000', borderRadius: 6, overflow: 'hidden' },
   linhaQuadro: { paddingHorizontal: 10, minHeight: 44 },
-  topoQuadro: { fontWeight: '700', backgroundColor: '#F1EFE9', borderBottomWidth: 1.5, borderColor: '#000000' },
+  topoQuadro: { backgroundColor: '#F1EFE9', borderBottomWidth: 1.5, borderColor: '#000000' },
   divisoria: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#999999' },
   acao: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 });

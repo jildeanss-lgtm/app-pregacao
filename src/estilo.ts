@@ -31,8 +31,8 @@ export type EstiloBloco = {
 };
 
 export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
-  topico: { cor: coresPregacao.texto, negrito: true, fundo: coresPregacao.fundoTopico },
-  subtopico: { cor: coresPregacao.texto, negrito: true, seta: true },
+  topico: { cor: coresPregacao.texto, fundo: coresPregacao.fundoTopico },
+  subtopico: { cor: coresPregacao.texto, seta: true },
   quadro: { cor: coresPregacao.texto, quadro: true, nomeItem: 'Ponto' },
   quadroPerguntas: {
     cor: coresPregacao.texto,
@@ -67,10 +67,11 @@ export function rotuloVisivel(b: { tipo: TipoBloco; rotulo?: string }) {
   return b.rotulo ?? (semCorPropria.has(b.tipo) ? nomesBloco[b.tipo] : undefined);
 }
 
-// "Examinai *tudo*" -> [{ texto: 'Examinai ', chave: false }, { texto: 'tudo', chave: true }]
+// "Examinai *tudo*" (ou "Examinai TUDO") -> [{ texto: 'Examinai ', chave: false }, { texto: 'tudo', chave: true }]
 export function dividirDestaques(texto: string) {
   const partes: { texto: string; chave: boolean }[] = [];
   let ultimo = 0;
+  texto = marcarMaiusculas(texto);
   for (const m of texto.matchAll(/\*([^*\n]+)\*/g)) {
     if (m.index > ultimo) partes.push({ texto: texto.slice(ultimo, m.index), chave: false });
     partes.push({ texto: m[1], chave: true });
@@ -94,4 +95,9 @@ export const pontosDoQuadro = 3;
 export function dividirQuadro(texto: string) {
   const [subtopico = '', ...resto] = texto.split('\n');
   return { subtopico: subtopico.trim(), pontos: linhasDoBloco(resto.join('\n')) };
+}
+
+// Palavras em MAIÚSCULAS (2 letras ou mais) já viram palavra-chave, sem precisar de asteriscos
+export function marcarMaiusculas(texto: string) {
+  return texto.replace(/(?<![\p{L}*])(\p{Lu}{2,})(?![\p{L}*])/gu, '*$1*');
 }
