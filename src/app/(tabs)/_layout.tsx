@@ -16,7 +16,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="biblia" options={{ title: 'Bíblia' }} />
       <Tabs.Screen name="estudo" options={{ title: 'Estudo' }} />
-      <Tabs.Screen name="index" options={{ title: 'Criar sermão' }} />
+      <Tabs.Screen name="index" options={{ title: 'Sermão' }} />
       <Tabs.Screen name="pregar" options={{ title: 'Pregar' }} />
     </Tabs>
   );
