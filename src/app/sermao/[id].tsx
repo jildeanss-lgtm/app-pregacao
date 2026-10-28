@@ -75,7 +75,7 @@ export default function EditorTela() {
         .filter((q) => q.resposta)
         .map((q) => `${q.pergunta} ${q.resposta}`);
       const nota = (sermao.anotacoes?.[e] ?? (e === 'observacao' ? sermao.estudo : '') ?? '').trim();
-      return { nome: etapas[i].nome, texto: [...respostas, nota].filter(Boolean).join('\n') };
+      return { nome: etapas[i + 1].nome, texto: [...respostas, nota].filter(Boolean).join('\n') };
     })
     .filter((a) => a.texto);
 

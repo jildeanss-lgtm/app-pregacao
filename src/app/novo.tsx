@@ -95,7 +95,7 @@ export default function NovoSermaoTela() {
           accessibilityLabel="Texto referência"
           value={textoBase}
           onChangeText={setTextoBase}
-          placeholder="Ex.: Êxodo 8"
+          placeholder="Ex.: Êxodo 8 (ou escolha na Bíblia, na próxima tela)"
           placeholderTextColor={cores.textoSuave}
           style={estilos.entrada}
         />
