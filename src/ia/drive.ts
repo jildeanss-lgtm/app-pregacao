@@ -6,7 +6,7 @@ import { chamarClaude } from './estudo';
 // na hora, a IA escolhe os trechos e só os trechos ficam guardados no estudo
 
 // ID do cliente OAuth do projeto "App Pregação" no Google Cloud (não é segredo)
-export const ID_CLIENTE_GOOGLE = '';
+export const ID_CLIENTE_GOOGLE = '1015553560821-dtjfl2639pkg6j5s2hnsm64j5a770ue2.apps.googleusercontent.com';
 
 const PASTA_BIBLIOTECA = '1N-CV4gNyutRASYfWP0dBfW7hN7vsXqOH';
 const ESCOPO = 'https://www.googleapis.com/auth/drive.readonly';
@@ -34,12 +34,16 @@ function carregarScript(src: string) {
   return scripts.get(src)!;
 }
 
+export const prepararLogin = () => carregarScript('https://accounts.google.com/gsi/client');
+
 // Login do Google: o token vale uma hora e fica só na memória
 let token: { valor: string; ate: number } | null = null;
 async function pedirToken(): Promise<string> {
   if (token && token.ate > Date.now()) return token.valor;
   if (!ID_CLIENTE_GOOGLE) throw new Error('Falta o ID do cliente do Google no app.');
-  await carregarScript('https://accounts.google.com/gsi/client');
+  // O login abre numa janela, que o celular só deixa abrir logo depois do toque: por isso o script do Google é
+  // carregado antes (prepararLogin) e, já carregado, a janela abre sem esperar nada
+  if (!(window as unknown as { google?: unknown }).google) await prepararLogin();
   const google = (window as unknown as { google: any }).google;
   return new Promise((ok, erro) => {
     const cliente = google.accounts.oauth2.initTokenClient({

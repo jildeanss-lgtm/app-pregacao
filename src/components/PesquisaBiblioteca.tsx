@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
-import { buscarNaBiblioteca, ID_CLIENTE_GOOGLE } from '../ia/drive';
+import { buscarNaBiblioteca, ID_CLIENTE_GOOGLE, prepararLogin } from '../ia/drive';
 import { lerTrechos, montarPedidoBiblioteca, useChave } from '../ia/estudo';
 import type { DadosEstudo } from '../store/sermoes';
 import { cores } from '../theme';
@@ -23,6 +23,10 @@ export function PesquisaBiblioteca({ estudo, mudar }: { estudo: DadosEstudo; mud
   const trechos = estudo.trechosBiblioteca ?? [];
   // Com a chave da Anthropic e o login do Google, a busca é automática; sem eles, vai pelo claude.ai
   const automatica = Platform.OS === 'web' && !!ID_CLIENTE_GOOGLE && !!chave;
+
+  useEffect(() => {
+    if (automatica) prepararLogin().catch(() => {});
+  }, [automatica]);
 
   const buscarSozinho = async () => {
     if (ocupado) return;
