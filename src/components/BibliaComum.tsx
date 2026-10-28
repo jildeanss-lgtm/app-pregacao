@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,7 +14,7 @@ import {
 import { coresPregacao } from '../estilo';
 import { carregarTexto, livros, type CodigoLivro } from '../data/portugues';
 import { referenciaDoTexto, sugerirGenero } from '../data/roteiro';
-import { useSermao, useSermoes } from '../store/sermoes';
+import { useSermao, useSermoes, type DadosEstudo } from '../store/sermoes';
 import { cores, fonteBiblia } from '../theme';
 import { Botao } from './ui';
 
@@ -56,7 +57,16 @@ export function BibliaComum({ sermaoId }: { sermaoId?: string }) {
     else if (de === n && ate === n) return;
     const texto = `${livro.nome} ${cap}:${inicio}${n > inicio ? `-${n}` : ''}`;
     setAviso('');
-    mudarEstudo((e) => ({ ...e, textoBase: texto, genero: sugerirGenero(texto) }));
+    // Outro texto (não só mais versículos do mesmo trecho) começa um estudo limpo, para as respostas de um
+    // texto não aparecerem no outro. Se o estudo tem conteúdo, pergunta antes
+    const outroTexto = !aqui || inicio !== de;
+    if (outroTexto && temConteudo(estudo)) {
+      const ok = confirmar(
+        `Começar um estudo novo de ${texto}? As respostas do estudo de ${estudo.textoBase} serão apagadas. Se você já criou o sermão, elas estão guardadas nele.`,
+      );
+      if (!ok) return;
+    }
+    mudarEstudo((e) => (outroTexto ? { textoBase: texto, genero: sugerirGenero(texto) } : { ...e, textoBase: texto }));
   };
 
   const textoEscolhido = () =>
@@ -310,3 +320,21 @@ const estilos = StyleSheet.create({
   pilulaAtiva: { backgroundColor: cores.texto, borderColor: cores.texto },
   textoPilula: { fontSize: 15, fontWeight: '600', color: cores.texto },
 });
+
+// O estudo já tem algo escrito (respostas, anotações, biblioteca ou resumo)?
+function temConteudo(e: DadosEstudo) {
+  const textos = [
+    ...Object.values(e.respostas ?? {}),
+    ...Object.values(e.anotacoes ?? {}),
+    e.estudo,
+    e.notasBiblia,
+    e.notasBiblioteca,
+    e.resumo,
+  ];
+  return textos.some((t) => t?.trim()) || !!e.trechosBiblioteca?.length || !!e.temas?.length;
+}
+
+function confirmar(mensagem: string) {
+  // No navegador, a caixa de confirmação do próprio navegador; no celular nativo, segue sem perguntar
+  return Platform.OS === 'web' ? window.confirm(mensagem) : true;
+}
