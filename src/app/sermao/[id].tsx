@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { TextoFormatado } from '../../components/TextoFormatado';
+import { BarraAbas } from '../../components/BarraAbas';
 import { CampoCrescente } from '../../components/CampoCrescente';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
 import { etapasDeEstudo, nomesEstudo } from '../../data/etapas';
@@ -232,6 +233,7 @@ export default function EditorTela() {
           }}
         />
       </ScrollView>
+      <BarraAbas />
     </>
   );
 }

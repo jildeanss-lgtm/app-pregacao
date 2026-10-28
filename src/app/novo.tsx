@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { Botao, Cartao, Rotulo } from '../components/ui';
+import { BarraAbas } from '../components/BarraAbas';
 import {
   modelos,
   montarBlocos,
@@ -98,148 +99,151 @@ export default function NovoSermaoTela() {
   };
 
   return (
-    <ScrollView contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
-      <Cartao style={{ gap: 8 }}>
-        <View style={estilos.linha}>
-          <View style={{ flex: 2, gap: 4 }}>
-            <Rotulo>Culto</Rotulo>
-            <TextInput
-              accessibilityLabel="Culto"
-              value={culto}
-              onChangeText={setCulto}
-              placeholder="Ex.: Culto de Santa Ceia"
-              placeholderTextColor={cores.textoSuave}
-              style={estilos.entrada}
-            />
+    <View style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
+        <Cartao style={{ gap: 8 }}>
+          <View style={estilos.linha}>
+            <View style={{ flex: 2, gap: 4 }}>
+              <Rotulo>Culto</Rotulo>
+              <TextInput
+                accessibilityLabel="Culto"
+                value={culto}
+                onChangeText={setCulto}
+                placeholder="Ex.: Culto de Santa Ceia"
+                placeholderTextColor={cores.textoSuave}
+                style={estilos.entrada}
+              />
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Rotulo>Data</Rotulo>
+              <TextInput
+                accessibilityLabel="Data"
+                value={data}
+                onChangeText={setData}
+                placeholder="dd/mm/aaaa"
+                placeholderTextColor={cores.textoSuave}
+                style={estilos.entrada}
+              />
+            </View>
           </View>
-          <View style={{ flex: 1, gap: 4 }}>
-            <Rotulo>Data</Rotulo>
-            <TextInput
-              accessibilityLabel="Data"
-              value={data}
-              onChangeText={setData}
-              placeholder="dd/mm/aaaa"
-              placeholderTextColor={cores.textoSuave}
-              style={estilos.entrada}
+          <Rotulo>Título</Rotulo>
+          <TextInput
+            accessibilityLabel="Título do sermão"
+            value={titulo}
+            onChangeText={setTitulo}
+            placeholder="Pode deixar para depois"
+            placeholderTextColor={cores.textoSuave}
+            style={[estilos.entrada, { fontSize: 18, fontWeight: '700' }]}
+          />
+          {temas.length > 0 && (
+            <View style={{ gap: 6 }}>
+              <Text style={estilos.suave}>Temas sugeridos pelo estudo. Toque num deles para usar como título:</Text>
+              {temas.map((t) => (
+                <Escolha key={t} ativo={titulo === t} titulo={t} onPress={() => setTitulo(t)} />
+              ))}
+            </View>
+          )}
+          <Rotulo>Texto referência</Rotulo>
+          <TextInput
+            accessibilityLabel="Texto referência"
+            value={textoBase}
+            onChangeText={setTextoBase}
+            placeholder="Ex.: Êxodo 8 (ou toque no versículo na aba Bíblia)"
+            placeholderTextColor={cores.textoSuave}
+            style={estilos.entrada}
+          />
+        </Cartao>
+
+        <Cartao style={{ gap: 8 }}>
+          <Rotulo>Tipo de sermão</Rotulo>
+          {modelos.map((m) => (
+            <Escolha
+              key={m.id}
+              ativo={modelo === m.id}
+              titulo={m.nome}
+              descricao={m.descricao}
+              onPress={() => setModelo(m.id)}
             />
-          </View>
-        </View>
-        <Rotulo>Título</Rotulo>
-        <TextInput
-          accessibilityLabel="Título do sermão"
-          value={titulo}
-          onChangeText={setTitulo}
-          placeholder="Pode deixar para depois"
-          placeholderTextColor={cores.textoSuave}
-          style={[estilos.entrada, { fontSize: 18, fontWeight: '700' }]}
-        />
-        {temas.length > 0 && (
-          <View style={{ gap: 6 }}>
-            <Text style={estilos.suave}>Temas sugeridos pelo estudo. Toque num deles para usar como título:</Text>
-            {temas.map((t) => (
-              <Escolha key={t} ativo={titulo === t} titulo={t} onPress={() => setTitulo(t)} />
+          ))}
+        </Cartao>
+
+        <Cartao style={{ gap: 8 }}>
+          <Rotulo>Objetivo do sermão</Rotulo>
+          <View style={estilos.linha}>
+            {objetivosSermao.map((o) => (
+              <Pressable
+                key={o}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: tipoObjetivo === o }}
+                onPress={() => setTipoObjetivo(o)}
+                style={[estilos.pilula, tipoObjetivo === o && estilos.pilulaAtiva]}
+              >
+                <Text style={[estilos.textoPilula, tipoObjetivo === o && { color: '#FFFFFF' }]}>{o}</Text>
+              </Pressable>
             ))}
           </View>
-        )}
-        <Rotulo>Texto referência</Rotulo>
-        <TextInput
-          accessibilityLabel="Texto referência"
-          value={textoBase}
-          onChangeText={setTextoBase}
-          placeholder="Ex.: Êxodo 8 (ou toque no versículo na aba Bíblia)"
-          placeholderTextColor={cores.textoSuave}
-          style={estilos.entrada}
-        />
-      </Cartao>
-
-      <Cartao style={{ gap: 8 }}>
-        <Rotulo>Tipo de sermão</Rotulo>
-        {modelos.map((m) => (
-          <Escolha
-            key={m.id}
-            ativo={modelo === m.id}
-            titulo={m.nome}
-            descricao={m.descricao}
-            onPress={() => setModelo(m.id)}
+          <TextInput
+            accessibilityLabel="Objetivo"
+            value={objetivo}
+            onChangeText={setObjetivo}
+            multiline
+            placeholder="Opcional. Ex.: mostrar que Deus age mesmo quando o coração endurece"
+            placeholderTextColor={cores.textoSuave}
+            style={[estilos.entrada, { minHeight: 64 }]}
           />
-        ))}
-      </Cartao>
+        </Cartao>
 
-      <Cartao style={{ gap: 8 }}>
-        <Rotulo>Objetivo do sermão</Rotulo>
-        <View style={estilos.linha}>
-          {objetivosSermao.map((o) => (
-            <Pressable
-              key={o}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: tipoObjetivo === o }}
-              onPress={() => setTipoObjetivo(o)}
-              style={[estilos.pilula, tipoObjetivo === o && estilos.pilulaAtiva]}
-            >
-              <Text style={[estilos.textoPilula, tipoObjetivo === o && { color: '#FFFFFF' }]}>{o}</Text>
-            </Pressable>
+        <Cartao style={{ gap: 8 }}>
+          <Rotulo>Introdução</Rotulo>
+          {opcoesIntroducao.map((o) => (
+            <Escolha
+              key={o.id}
+              ativo={introducao === o.id}
+              titulo={o.nome}
+              descricao={o.dica}
+              onPress={() => setIntroducao(o.id)}
+            />
           ))}
-        </View>
-        <TextInput
-          accessibilityLabel="Objetivo"
-          value={objetivo}
-          onChangeText={setObjetivo}
-          multiline
-          placeholder="Opcional. Ex.: mostrar que Deus age mesmo quando o coração endurece"
-          placeholderTextColor={cores.textoSuave}
-          style={[estilos.entrada, { minHeight: 64 }]}
-        />
-      </Cartao>
+        </Cartao>
 
-      <Cartao style={{ gap: 8 }}>
-        <Rotulo>Introdução</Rotulo>
-        {opcoesIntroducao.map((o) => (
-          <Escolha
-            key={o.id}
-            ativo={introducao === o.id}
-            titulo={o.nome}
-            descricao={o.dica}
-            onPress={() => setIntroducao(o.id)}
+        <Cartao style={{ gap: 8 }}>
+          <Rotulo>Gênero literário do texto</Rotulo>
+          {sugerido && !generoEscolhido ? (
+            <Text style={estilos.suave}>Definido pelo livro: {generos.find((g) => g.id === sugerido)?.nome}</Text>
+          ) : null}
+          <View style={estilos.linha}>
+            {generos.map((g) => (
+              <Pressable
+                key={g.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: genero === g.id }}
+                onPress={() => setGenero(g.id)}
+                style={[estilos.pilula, genero === g.id && estilos.pilulaAtiva]}
+              >
+                <Text style={[estilos.textoPilula, genero === g.id && { color: '#FFFFFF' }]}>{g.nome}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={estilos.suave}>Usado no estudo do texto, na etapa de observação.</Text>
+        </Cartao>
+
+        <Cartao style={[estilos.linha, { alignItems: 'center', justifyContent: 'space-between' }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={estilos.titulo}>Incluir minha saudação</Text>
+            <Text style={estilos.suave}>Louvado seja o nome de Jesus, gratidão, abra sua Bíblia, Mateus 13:19</Text>
+          </View>
+          <Switch
+            accessibilityLabel="Incluir minha saudação"
+            value={comSaudacao}
+            onValueChange={setComSaudacao}
+            trackColor={{ true: cores.destaque, false: cores.bordaForte }}
           />
-        ))}
-      </Cartao>
+        </Cartao>
 
-      <Cartao style={{ gap: 8 }}>
-        <Rotulo>Gênero literário do texto</Rotulo>
-        {sugerido && !generoEscolhido ? (
-          <Text style={estilos.suave}>Definido pelo livro: {generos.find((g) => g.id === sugerido)?.nome}</Text>
-        ) : null}
-        <View style={estilos.linha}>
-          {generos.map((g) => (
-            <Pressable
-              key={g.id}
-              accessibilityRole="button"
-              accessibilityState={{ selected: genero === g.id }}
-              onPress={() => setGenero(g.id)}
-              style={[estilos.pilula, genero === g.id && estilos.pilulaAtiva]}
-            >
-              <Text style={[estilos.textoPilula, genero === g.id && { color: '#FFFFFF' }]}>{g.nome}</Text>
-            </Pressable>
-          ))}
-        </View>
-        <Text style={estilos.suave}>Usado no estudo do texto, na etapa de observação.</Text>
-      </Cartao>
-
-      <Cartao style={[estilos.linha, { alignItems: 'center', justifyContent: 'space-between' }]}>
-        <View style={{ flex: 1 }}>
-          <Text style={estilos.titulo}>Incluir minha saudação</Text>
-          <Text style={estilos.suave}>Louvado seja o nome de Jesus, gratidão, abra sua Bíblia, Mateus 13:19</Text>
-        </View>
-        <Switch
-          accessibilityLabel="Incluir minha saudação"
-          value={comSaudacao}
-          onValueChange={setComSaudacao}
-          trackColor={{ true: cores.destaque, false: cores.bordaForte }}
-        />
-      </Cartao>
-
-      <Botao titulo={criando ? 'Criando...' : 'Criar sermão'} onPress={criarSermao} />
-    </ScrollView>
+        <Botao titulo={criando ? 'Criando...' : 'Criar sermão'} onPress={criarSermao} />
+      </ScrollView>
+      <BarraAbas atual="/" />
+    </View>
   );
 }
 
