@@ -12,6 +12,8 @@ export const coresPregacao = {
   pergunta: '#4A86E8',
   aplicacao: '#7030A0',
   citacao: '#B45F06',
+  // Sugestão para o subtópico: azul petróleo, distinto do azul das frases e do azul claro das perguntas
+  subtopico: '#134F5C',
   fundoTopico: '#00FF00',
 };
 
@@ -38,7 +40,7 @@ export type EstiloBloco = {
 
 export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
   topico: { cor: coresPregacao.texto, fundo: coresPregacao.fundoTopico },
-  subtopico: { cor: coresPregacao.texto, seta: true },
+  subtopico: { cor: coresPregacao.subtopico, seta: true },
   quadro: {
     cor: coresPregacao.texto,
     quadro: true,

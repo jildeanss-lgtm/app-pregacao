@@ -12,27 +12,22 @@ import { exportarPdf } from '../../lib/pdf';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
 import { cores } from '../../theme';
 
+// Blocos sempre à vista para adicionar, na ordem do JILDEAN
 const tiposParaAdicionar: TipoBloco[] = [
   'topico',
   'quadro',
   'efeito',
   'versiculo',
+  'quadroPerguntas',
+  'aplicacao',
   'subtopico',
   'citacao',
-  'aplicacao',
-  'quadroPerguntas',
-  'frase',
-  'pontos',
-  'explicacao',
-  'exemplo',
-  'ilustracao',
 ];
 
 export default function EditorTela() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const sermao = useSermao(id);
   const { atualizar, adicionarBloco, remover } = useSermoes();
-  const [mostrandoTipos, setMostrandoTipos] = useState(false);
   const [vendoEstudo, setVendoEstudo] = useState(true);
 
   if (!sermao) {
@@ -168,33 +163,37 @@ export default function EditorTela() {
           />
         ))}
 
-        {mostrandoTipos ? (
-          <Cartao style={{ gap: 8 }}>
-            <Rotulo>Adicionar bloco</Rotulo>
-            <View style={estilos.linha}>
-              {tiposParaAdicionar.map((tipo) => (
-                <Botao
-                  key={tipo}
-                  titulo={nomesBloco[tipo]}
-                  variante="contorno"
-                  onPress={() => {
-                    adicionarBloco(sermao.id, tipo);
-                    setMostrandoTipos(false);
-                  }}
-                />
-              ))}
-            </View>
-          </Cartao>
-        ) : (
+        <Cartao style={{ gap: 8 }}>
+          <Rotulo>+ Bloco</Rotulo>
           <View style={estilos.linha}>
-            <Botao titulo="+ Bloco" variante="contorno" onPress={() => setMostrandoTipos(true)} />
-            <Botao
-              titulo="Abrir na Bíblia"
-              variante="contorno"
-              onPress={() => router.push({ pathname: '/biblia', params: { sermao: sermao.id } })}
-            />
+            {tiposParaAdicionar.map((tipo) => {
+              const e = estiloBloco[tipo];
+              return (
+                <Pressable
+                  key={tipo}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Adicionar ${nomesBloco[tipo]}`}
+                  onPress={() => adicionarBloco(sermao.id, tipo)}
+                  style={[estilos.chipBloco, e.fundo ? { backgroundColor: e.fundo, borderColor: e.fundo } : null]}
+                >
+                  <Text
+                    style={[
+                      estilos.textoChip,
+                      { color: e.topo?.cor ?? e.cor, fontStyle: e.topo?.italico || e.italico ? 'italic' : 'normal' },
+                    ]}
+                  >
+                    + {nomesBloco[tipo]}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
-        )}
+        </Cartao>
+        <Botao
+          titulo="Abrir na Bíblia"
+          variante="contorno"
+          onPress={() => router.push({ pathname: '/biblia', params: { sermao: sermao.id } })}
+        />
 
         <Botao titulo="Pregar" onPress={() => router.push(`/pregar/${sermao.id}`)} />
         <Botao titulo="Exportar PDF" variante="contorno" onPress={() => exportarPdf(sermao)} />
@@ -336,6 +335,16 @@ const estilos = StyleSheet.create({
   entrada: { fontSize: 16, color: cores.texto, paddingVertical: 6 },
   entradaTitulo: { fontSize: 20, fontWeight: '700' },
   linha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chipBloco: {
+    minHeight: 44,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: cores.borda,
+    backgroundColor: cores.cartao,
+    justifyContent: 'center',
+  },
+  textoChip: { fontSize: 15, fontWeight: '600' },
   cabecalhoBloco: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   quadro: { borderWidth: 1.5, borderColor: '#000000', borderRadius: 6, overflow: 'hidden' },
   linhaQuadro: { paddingHorizontal: 10, minHeight: 44 },
