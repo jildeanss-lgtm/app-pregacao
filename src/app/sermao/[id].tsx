@@ -7,7 +7,7 @@ import { Botao, Cartao, Rotulo } from '../../components/ui';
 import { etapasDeEstudo, nomesEstudo } from '../../data/etapas';
 import { perguntasDaEtapa } from '../../data/roteiro';
 import { modelos, nomesBloco, type TipoBloco } from '../../data/modelos';
-import { estiloBloco, pontosDoQuadro } from '../../estilo';
+import { coresPregacao, estiloBloco, pontosDoQuadro } from '../../estilo';
 import { exportarPdf } from '../../lib/pdf';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
 import { cores } from '../../theme';
@@ -196,9 +196,11 @@ export default function EditorTela() {
                     style={[
                       estilos.textoChip,
                       { color: e.topo?.cor ?? e.cor, fontStyle: e.topo?.italico || e.italico ? 'italic' : 'normal' },
+                      // Texto (subtópico e pontos) em caixa alta e azul, como o Jildean pediu
+                      tipo === 'quadro' && { color: coresPregacao.frase, fontWeight: '800' },
                     ]}
                   >
-                    + {nomesBloco[tipo]}
+                    + {tipo === 'quadro' ? nomesBloco[tipo].toUpperCase() : nomesBloco[tipo]}
                   </Text>
                 </Pressable>
               );
