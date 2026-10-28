@@ -38,6 +38,8 @@ export type Sermao = {
   estudo?: string;
   // Anotações livres feitas na aba Bíblia e os temas sugeridos pela IA no estudo
   notasBiblia?: string;
+  // O que a pesquisa na biblioteca do Drive (pelo claude.ai) trouxe sobre o texto
+  notasBiblioteca?: string;
   temas?: string[];
   // Enquanto a IA escreve o objetivo e a introdução de um sermão novo, e o erro se não der certo
   iaPreparando?: boolean;
@@ -54,7 +56,7 @@ const CHAVE_ESTUDO = 'estudo:v1';
 // ele vai junto para o sermão
 export type DadosEstudo = Pick<
   Sermao,
-  'textoBase' | 'genero' | 'respostas' | 'anotacoes' | 'estudo' | 'notasBiblia' | 'temas'
+  'textoBase' | 'genero' | 'respostas' | 'anotacoes' | 'estudo' | 'notasBiblia' | 'notasBiblioteca' | 'temas'
 >;
 
 // Etapas antigas (versão 1: Leitura...Pregação; versão 2: Bíblia, Leitura...Pregação) viram as quatro de agora

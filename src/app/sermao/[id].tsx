@@ -74,7 +74,8 @@ export default function EditorTela() {
       const nota = (sermao.anotacoes?.[e] ?? (e === 'observacao' ? sermao.estudo : '') ?? '').trim();
       return { nome: nomesEstudo[e], texto: [...respostas, nota].filter(Boolean).join('\n') };
     })
-    .filter((a) => a.texto);
+    .filter((a) => a.texto)
+    .concat(sermao.notasBiblioteca?.trim() ? [{ nome: 'Biblioteca', texto: sermao.notasBiblioteca.trim() }] : []);
 
   return (
     <>

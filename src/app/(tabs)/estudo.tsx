@@ -35,6 +35,11 @@ export default function EstudoAba() {
       ) : (
         <ScrollView key={aba} contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
           <AjudaIA estudo={estudo} mudar={mudarEstudo} />
+          <Botao
+            titulo="Pesquisar na minha biblioteca"
+            variante="contorno"
+            onPress={() => router.push('/biblioteca')}
+          />
           <ParteDoEstudo sermao={estudo} mudar={mudarEstudo} parte={aba} nome={nomesEstudo[aba]} />
           {aba === 'aplicacao' && estudo.textoBase ? (
             <Botao titulo="Criar sermão" onPress={() => router.push('/novo')} />
