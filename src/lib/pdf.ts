@@ -2,7 +2,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { modelos } from '../data/modelos';
-import { coresPregacao, dividirDestaques, dividirQuadro, estiloBloco, linhasDoBloco, rotuloVisivel } from '../estilo';
+import { coresPregacao, destacarTudo, dividirDestaques, dividirQuadro, estiloBloco, linhasParaMostrar, rotuloVisivel } from '../estilo';
 import { minutosEstimados, type Bloco, type Sermao } from '../store/sermoes';
 
 function escapar(texto: string) {
@@ -37,17 +37,19 @@ function blocoHtml(b: Bloco) {
   if (e.quadro) {
     const { subtopico, pontos } = dividirQuadro(b.texto);
     const estiloItens = e.itens ? ` style="color:${e.itens.cor};${e.itens.italico ? 'font-style:italic' : ''}"` : '';
-    const linhas = pontos.map((l) => `<tr><td${estiloItens}>• ${comDestaques(l)}</td></tr>`).join('');
-    return `<table class="quadro"><tr><th>➔ ${comDestaques(subtopico, coresPregacao.frase)}</th></tr>${linhas}</table>`;
+    const linhas = pontos.map((l) => `<tr><td${estiloItens}>• ${comDestaques(e.autoDestaque ? destacarTudo(l) : l)}</td></tr>`).join('');
+    return `<table class="quadro"><tr><th><span class="seta">➔</span>${comDestaques(subtopico, coresPregacao.frase)}</th></tr>${linhas}</table>`;
   }
+  const { cabecalho, linhas } = linhasParaMostrar(b.tipo, b.texto);
   if (e.lista) {
-    const itens = linhasDoBloco(b.texto).map((l) => `<li>${comDestaques(l)}</li>`).join('');
+    const itens = linhas.map((l) => `<li>${comDestaques(l)}</li>`).join('');
     return `${rotulo ? `<p>${rotulo}</p>` : ''}<ul style="${estilo}">${itens}</ul>`;
   }
   if (e.fundo) {
     return `<p class="topico"><span style="${estilo};background:${e.fundo}">${comDestaques(b.texto)}</span></p>`;
   }
-  return `<p style="${estilo}">${rotulo}${e.seta ? '➔ ' : ''}${comDestaques(b.texto)}</p>`;
+  const topo = cabecalho ? `${comDestaques(cabecalho)}<br>` : '';
+  return `<p style="${estilo}">${rotulo}${topo}${e.seta ? '➔ ' : ''}${comDestaques(linhas.join('\n'))}</p>`;
 }
 
 export function htmlDoSermao(s: Sermao) {
@@ -70,7 +72,8 @@ export function htmlDoSermao(s: Sermao) {
   .topico span { padding: 1pt 4pt; }
   .quadro { width: 100%; border-collapse: collapse; border: 1.5pt solid #000; margin: 8pt 0; }
   .quadro th { text-align: left; font-weight: normal; background: #F1EFE9; border-bottom: 1.5pt solid #000; padding: 4pt 8pt; }
-  .quadro td { border-top: 0.5pt solid #999; padding: 4pt 8pt; }
+  .quadro td { border-top: 0.5pt solid #999; padding: 4pt 8pt 4pt calc(8pt + 1.5em); }
+  .quadro .seta { display: inline-block; width: 1.5em; }
   .rotulo { font-size: 9pt; font-weight: bold; color: #5B6470; text-transform: uppercase; letter-spacing: 0.5pt; }
 </style></head>
 <body>

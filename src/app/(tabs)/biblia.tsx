@@ -178,7 +178,7 @@ export default function BibliaTela() {
                 <Botao
                   titulo="Inserir versículo no sermão"
                   variante="contorno"
-                  onPress={() => inserir('versiculo', texto ? `${ref(ver)}: ${texto}` : ref(ver))}
+                  onPress={() => inserir('versiculo', texto ? `${ref(ver)} - ${texto}` : ref(ver))}
                 />
               )}
             </Cartao>

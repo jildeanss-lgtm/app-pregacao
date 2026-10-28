@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, type TextStyle } from 'react-native';
 import type { TipoBloco } from '../data/modelos';
-import { coresPregacao, dividirDestaques, dividirQuadro, estiloBloco, linhasDoBloco } from '../estilo';
+import { coresPregacao, destacarTudo, dividirDestaques, dividirQuadro, estiloBloco, linhasParaMostrar } from '../estilo';
 import { fonteBiblia } from '../theme';
 
 type Props = {
@@ -33,26 +33,39 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }
 
   if (e.quadro) {
     const { subtopico, pontos } = dividirQuadro(texto);
+    // Os pontos começam embaixo da primeira letra do subtópico, depois da seta
+    const recuo = Math.round(tamanho * 1.2);
     const itens: TextStyle | undefined = e.itens && { color: e.itens.cor, fontStyle: e.itens.italico ? 'italic' : 'normal' };
     return (
       <View style={semMoldura ? { gap: 2 } : estilos.quadro}>
-        <View style={!semMoldura && estilos.quadroTopo}>
-          <Text style={base}>➔ {linha(subtopico, coresPregacao.frase)}</Text>
+        <View style={[estilos.item, { paddingLeft: 0 }, !semMoldura && estilos.quadroTopo]}>
+          <Text style={[base, { width: recuo }]}>➔</Text>
+          <Text style={[base, { flex: 1 }]}>{linha(subtopico, coresPregacao.frase)}</Text>
         </View>
         {pontos.map((l, i) => (
-          <View key={i} style={[estilos.item, !semMoldura && estilos.quadroLinha, !semMoldura && i > 0 && estilos.divisoria]}>
+          <View
+            key={i}
+            style={[
+              estilos.item,
+              !semMoldura && estilos.quadroLinha,
+              { paddingLeft: recuo + 8 + (semMoldura ? 0 : 10) },
+              !semMoldura && i > 0 && estilos.divisoria,
+            ]}
+          >
             <Text style={[base, itens, estilos.marcador]}>•</Text>
-            <Text style={[base, itens, { flex: 1 }]}>{linha(l)}</Text>
+            <Text style={[base, itens, { flex: 1 }]}>{linha(e.autoDestaque ? destacarTudo(l) : l)}</Text>
           </View>
         ))}
       </View>
     );
   }
 
+  const { cabecalho, linhas } = linhasParaMostrar(tipo, texto);
+
   if (e.lista) {
     return (
       <View style={{ gap: 2 }}>
-        {linhasDoBloco(texto).map((l, i) => (
+        {linhas.map((l, i) => (
           <View key={i} style={estilos.item}>
             <Text style={[base, estilos.marcador]}>•</Text>
             <Text style={[base, { flex: 1 }]}>{linha(l)}</Text>
@@ -64,8 +77,9 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }
 
   const conteudo = (
     <Text style={base}>
+      {cabecalho ? <>{linha(cabecalho)}{'\n'}</> : null}
       {e.seta ? '➔ ' : ''}
-      {linha(texto)}
+      {linha(linhas.join('\n'))}
     </Text>
   );
 
@@ -80,7 +94,7 @@ const estilos = StyleSheet.create({
   item: { flexDirection: 'row', gap: 8, paddingLeft: 8 },
   marcador: { fontStyle: 'normal' },
   quadro: { borderWidth: 1.5, borderColor: '#000000', borderRadius: 6, overflow: 'hidden' },
-  quadroTopo: { backgroundColor: '#F1EFE9', paddingHorizontal: 10, paddingVertical: 6, borderBottomWidth: 1.5, borderColor: '#000000' },
+  quadroTopo: { backgroundColor: '#F1EFE9', paddingLeft: 10, paddingRight: 10, paddingVertical: 6, borderBottomWidth: 1.5, borderColor: '#000000' },
   quadroLinha: { paddingHorizontal: 10, paddingVertical: 6 },
   divisoria: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#999999' },
   faixa: { alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2 },
