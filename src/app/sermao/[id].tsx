@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
+import { Fragment, useRef, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { TextoFormatado } from '../../components/TextoFormatado';
 import { BarraAbas } from '../../components/BarraAbas';
@@ -32,6 +32,9 @@ export default function EditorTela() {
   const { atualizar, adicionarBloco, remover, mudarEstudo } = useSermoes();
   const [vendoEstudo, setVendoEstudo] = useState(true);
   const largo = useWindowDimensions().width >= 900;
+  // Altura de cada parte da folha e largura da folha, medidas na tela, para separar as páginas A4
+  const [alturas, setAlturas] = useState<Record<string, number>>({});
+  const [larguraFolha, setLarguraFolha] = useState(0);
 
   if (!sermao) {
     return (
@@ -127,86 +130,83 @@ export default function EditorTela() {
           </Cartao>
         )}
 
-        {/* O sermão é escrito numa folha A4, como no Google Docs: sem caixas, o texto corrido */}
-        <View style={[estilos.folha, largo && estilos.folhaLarga]}>
-          <View style={estilos.linhaMeta}>
-            <TextInput
-              accessibilityLabel="Culto"
-              value={sermao.culto ?? ''}
-              onChangeText={(culto) => atualizar(sermao.id, (s) => ({ ...s, culto }))}
-              placeholder="Culto (ex.: Santa Ceia)"
-              placeholderTextColor={cores.textoSuave}
-              style={[estilos.entradaMeta, { flex: 2 }]}
-            />
-            <TextInput
-              accessibilityLabel="Data"
-              value={sermao.data ?? ''}
-              onChangeText={(data) => atualizar(sermao.id, (s) => ({ ...s, data }))}
-              placeholder="dd/mm/aaaa"
-              placeholderTextColor={cores.textoSuave}
-              style={[estilos.entradaMeta, { flex: 1, textAlign: 'right' }]}
-            />
-          </View>
-          <TextInput
-            accessibilityLabel="Título do sermão"
-            value={sermao.titulo}
-            onChangeText={(titulo) => atualizar(sermao.id, (s) => ({ ...s, titulo }))}
-            placeholder="Título do sermão"
-            placeholderTextColor="#B0B5BD"
-            style={estilos.entradaTitulo}
-          />
-          <TextInput
-            accessibilityLabel="Texto referência"
-            value={sermao.textoBase}
-            onChangeText={(textoBase) => atualizar(sermao.id, (s) => ({ ...s, textoBase }))}
-            placeholder="Texto referência (ex.: João 3:16)"
-            placeholderTextColor={cores.textoSuave}
-            style={estilos.entradaBase}
-          />
-          <View style={estilos.separador} />
-
-          {sermao.blocos.map((bloco, i) => (
-            <BlocoEditor
-              key={bloco.id}
-              bloco={bloco}
-              rotulo={bloco.rotulo ?? (bloco.tipo === 'topico' ? `Tópico ${numerosTopico[i]}` : nomesBloco[bloco.tipo])}
-              onMudar={(t) => mudarBloco(bloco.id, t)}
-              onSubir={() => mover(i, -1)}
-              onDescer={() => mover(i, 1)}
-              onApagar={() => apagarBloco(bloco.id)}
-            />
-          ))}
-
-          <View style={estilos.inserir}>
-            <Text style={estilos.meta}>Inserir</Text>
-            <View style={estilos.linha}>
-              {tiposParaAdicionar.map((tipo) => {
-                const e = estiloBloco[tipo];
-                return (
-                  <Pressable
-                    key={tipo}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Adicionar ${nomesBloco[tipo]}`}
-                    onPress={() => adicionarBloco(sermao.id, tipo)}
-                    style={[estilos.chipBloco, e.fundo ? { backgroundColor: e.fundo, borderColor: e.fundo } : null]}
-                  >
-                    <Text
-                      style={[
-                        estilos.textoChip,
-                        { color: e.topo?.cor ?? e.cor, fontStyle: e.topo?.italico || e.italico ? 'italic' : 'normal' },
-                        // Texto (subtópico e pontos) em caixa alta e azul, como o Jildean pediu
-                        tipo === 'quadro' && { color: coresPregacao.frase, fontWeight: '800' },
-                      ]}
-                    >
-                      + {tipo === 'quadro' ? nomesBloco[tipo].toUpperCase() : nomesBloco[tipo]}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
+        {/* O sermão é escrito em folhas A4, como no Google Docs: sem caixas, o texto corrido. Cada página tem o tamanho de uma folha A4 e, como no Google Docs, a parte que não cabe vai para a próxima */}
+        <View
+          style={[estilos.folha, largo && estilos.folhaLarga]}
+          onLayout={(e) => setLarguraFolha(e.nativeEvent.layout.width)}
+        >
+          {paginas(
+            [
+              {
+                id: 'cabecalho',
+                conteudo: (
+                  <>
+                    <View style={estilos.linhaMeta}>
+                      <TextInput
+                        accessibilityLabel="Culto"
+                        value={sermao.culto ?? ''}
+                        onChangeText={(culto) => atualizar(sermao.id, (s) => ({ ...s, culto }))}
+                        placeholder="Culto (ex.: Santa Ceia)"
+                        placeholderTextColor={cores.textoSuave}
+                        style={[estilos.entradaMeta, { flex: 2 }]}
+                      />
+                      <TextInput
+                        accessibilityLabel="Data"
+                        value={sermao.data ?? ''}
+                        onChangeText={(data) => atualizar(sermao.id, (s) => ({ ...s, data }))}
+                        placeholder="dd/mm/aaaa"
+                        placeholderTextColor={cores.textoSuave}
+                        style={[estilos.entradaMeta, { flex: 1, textAlign: 'right' }]}
+                      />
+                    </View>
+                    <TextInput
+                      accessibilityLabel="Título do sermão"
+                      value={sermao.titulo}
+                      onChangeText={(titulo) => atualizar(sermao.id, (s) => ({ ...s, titulo }))}
+                      placeholder="Título do sermão"
+                      placeholderTextColor="#B0B5BD"
+                      style={estilos.entradaTitulo}
+                    />
+                    <TextInput
+                      accessibilityLabel="Texto referência"
+                      value={sermao.textoBase}
+                      onChangeText={(textoBase) => atualizar(sermao.id, (s) => ({ ...s, textoBase }))}
+                      placeholder="Texto referência (ex.: João 3:16)"
+                      placeholderTextColor={cores.textoSuave}
+                      style={estilos.entradaBase}
+                    />
+                    <View style={estilos.separador} />
+                  </>
+                ),
+              },
+              ...sermao.blocos.map((bloco, i) => ({
+                id: bloco.id,
+                conteudo: (
+                  <BlocoEditor
+                    bloco={bloco}
+                    rotulo={
+                      bloco.rotulo ?? (bloco.tipo === 'topico' ? `Tópico ${numerosTopico[i]}` : nomesBloco[bloco.tipo])
+                    }
+                    onMudar={(t) => mudarBloco(bloco.id, t)}
+                    onSubir={() => mover(i, -1)}
+                    onDescer={() => mover(i, 1)}
+                    onApagar={() => apagarBloco(bloco.id)}
+                    onInserir={(tipo) => adicionarBloco(sermao.id, tipo, '', bloco.id)}
+                  />
+                ),
+              })),
+            ],
+            alturas,
+            larguraFolha,
+            largo,
+            (id, altura) => setAlturas((h) => (h[id] === altura ? h : { ...h, [id]: altura })),
+          )}
         </View>
 
+        <View style={estilos.inserir}>
+          <Text style={estilos.meta}>Inserir</Text>
+          <ChipsInserir onEscolher={(tipo) => adicionarBloco(sermao.id, tipo)} />
+        </View>
         <View style={estilos.acoesSermao}>
           <Botao titulo="Pregar" onPress={() => router.push(`/pregar/${sermao.id}`)} style={estilos.acaoSermao} />
           <Botao
@@ -241,6 +241,37 @@ export default function EditorTela() {
   );
 }
 
+// Os tipos de bloco para inserir, com a cor de cada um: no fim do sermão e no "Inserir" de cada bloco
+function ChipsInserir({ onEscolher }: { onEscolher: (tipo: TipoBloco) => void }) {
+  return (
+    <View style={estilos.linha}>
+      {tiposParaAdicionar.map((tipo) => {
+        const e = estiloBloco[tipo];
+        return (
+          <Pressable
+            key={tipo}
+            accessibilityRole="button"
+            accessibilityLabel={`Adicionar ${nomesBloco[tipo]}`}
+            onPress={() => onEscolher(tipo)}
+            style={[estilos.chipBloco, e.fundo ? { backgroundColor: e.fundo, borderColor: e.fundo } : null]}
+          >
+            <Text
+              style={[
+                estilos.textoChip,
+                { color: e.topo?.cor ?? e.cor, fontStyle: e.topo?.italico || e.italico ? 'italic' : 'normal' },
+                // Texto (subtópico e pontos) em caixa alta e azul, como o Jildean pediu
+                tipo === 'quadro' && { color: coresPregacao.frase, fontWeight: '800' },
+              ]}
+            >
+              + {tipo === 'quadro' ? nomesBloco[tipo].toUpperCase() : nomesBloco[tipo]}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 type BlocoEditorProps = {
   bloco: Bloco;
   rotulo: string;
@@ -248,6 +279,7 @@ type BlocoEditorProps = {
   onSubir: () => void;
   onDescer: () => void;
   onApagar: () => void;
+  onInserir: (tipo: TipoBloco) => void;
 };
 
 const dicas: Partial<Record<TipoBloco, string>> = {
@@ -255,13 +287,15 @@ const dicas: Partial<Record<TipoBloco, string>> = {
   versiculo: 'Ex.: 1 Tessalonicenses 5:21 - *Examinai* *tudo*. *Retende* o *bem*',
 };
 
-function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: BlocoEditorProps) {
+function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar, onInserir }: BlocoEditorProps) {
   const [editando, setEditando] = useState(!bloco.texto.trim());
   const [selecao, setSelecao] = useState({ start: 0, end: 0 });
   const [campo, setCampo] = useState(0);
   // Ferramentas e fundo cinza só enquanto um campo do bloco está com o cursor; ao sair, o bloco volta a
   // mostrar o texto formatado, como num doc
   const [focado, setFocado] = useState(false);
+  // "Inserir" abre os tipos de bloco ali mesmo, para não precisar descer até o fim de um sermão grande
+  const [inserindo, setInserindo] = useState(false);
   const saida = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const entrar = (i: number) => {
     clearTimeout(saida.current);
@@ -314,10 +348,21 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
 
   return (
     <View style={[estilos.bloco, focado && estilos.blocoEditando]}>
-      {focado ? (
+      {focado || inserindo ? (
         <View style={estilos.cabecalhoBloco}>
           <Text style={estilos.rotuloBloco}>{rotulo}</Text>
-          <View style={{ flexDirection: 'row' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Inserir bloco abaixo"
+              onPress={() => {
+                clearTimeout(saida.current);
+                setInserindo((v) => !v);
+              }}
+              style={[estilos.botaoInserir, inserindo && estilos.botaoInserirAberto]}
+            >
+              <Text style={[estilos.textoInserir, inserindo && { color: '#FFFFFF' }]}>+ INSERIR</Text>
+            </Pressable>
             <Acao rotulo="Subir bloco" simbolo="↑" onPress={onSubir} />
             <Acao rotulo="Descer bloco" simbolo="↓" onPress={onDescer} />
             <Acao rotulo="Apagar bloco" simbolo="×" onPress={onApagar} />
@@ -328,6 +373,18 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
       ) : rotuloVisivel(bloco) && bloco.tipo !== 'aplicacao' ? (
         <Text style={estilos.rotuloBloco}>{rotulo}</Text>
       ) : null}
+      {inserindo && (
+        <View style={estilos.menuInserir}>
+          <Text style={estilos.meta}>Inserir abaixo deste bloco</Text>
+          <ChipsInserir
+            onEscolher={(tipo) => {
+              setInserindo(false);
+              setFocado(false);
+              onInserir(tipo);
+            }}
+          />
+        </View>
+      )}
       {editando ? (
         <>
           {ehQuadro ? (
@@ -431,6 +488,60 @@ function Acao({ rotulo, simbolo, onPress }: { rotulo: string; simbolo: string; o
   );
 }
 
+// Folha A4: 210 x 297 mm (794 x 1123 px). As margens de cima e de baixo e o espaço entre as partes
+const proporcaoA4 = 1123 / 794;
+const margemVertical = { larga: 64, estreita: 28 };
+const margemLateral = { larga: 72, estreita: 20 };
+const espacoEntrePartes = 10;
+
+type Parte = { id: string; conteudo: ReactNode };
+
+// Distribui as partes do sermão em páginas do tamanho de uma folha A4. Uma parte que não cabe no resto da página
+// começa na página seguinte, com o espaço cinza entre as folhas, como no Google Docs
+function paginas(
+  partes: Parte[],
+  alturas: Record<string, number>,
+  larguraFolha: number,
+  largo: boolean,
+  medir: (id: string, altura: number) => void,
+) {
+  const margem = largo ? margemVertical.larga : margemVertical.estreita;
+  const lateral = largo ? margemLateral.larga : margemLateral.estreita;
+  const util = larguraFolha * proporcaoA4 - 2 * margem;
+  let usado = 0;
+  const elementos = partes.map((parte, i) => {
+    const altura = alturas[parte.id] ?? 0;
+    const espaco = i > 0 && usado > 0 ? espacoEntrePartes : 0;
+    const quebra = larguraFolha > 0 && usado > 0 && usado + espaco + altura > util;
+    const resto = util - usado;
+    usado = quebra ? altura : usado + espaco + altura;
+    return (
+      <Fragment key={parte.id}>
+        {quebra && (
+          <View style={{ marginHorizontal: -lateral }}>
+            <View style={{ height: resto + margem, backgroundColor: '#FFFFFF' }} />
+            <View style={estilos.entreFolhas} />
+            <View style={{ height: margem, backgroundColor: '#FFFFFF' }} />
+          </View>
+        )}
+        <View
+          style={[estilos.parte, { marginTop: quebra ? 0 : espaco }]}
+          onLayout={(e) => medir(parte.id, Math.round(e.nativeEvent.layout.height))}
+        >
+          {parte.conteudo}
+        </View>
+      </Fragment>
+    );
+  });
+  // A última página vai até o fim da folha
+  return (
+    <>
+      {elementos}
+      {larguraFolha > 0 && usado < util ? <View style={{ height: util - usado }} /> : null}
+    </>
+  );
+}
+
 const estilos = StyleSheet.create({
   // Mesa cinza do Google Docs em volta da folha
   mesa: { backgroundColor: '#F1F3F4' },
@@ -449,11 +560,20 @@ const estilos = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#DADCE0',
-    paddingHorizontal: 20,
-    paddingVertical: 28,
-    gap: 10,
+    paddingHorizontal: margemLateral.estreita,
+    paddingVertical: margemVertical.estreita,
   },
-  folhaLarga: { paddingHorizontal: 72, paddingVertical: 64, minHeight: 1123 },
+  folhaLarga: { paddingHorizontal: margemLateral.larga, paddingVertical: margemVertical.larga },
+  parte: { gap: espacoEntrePartes },
+  // Espaço cinza entre uma folha e a próxima, com a borda das duas folhas
+  entreFolhas: {
+    height: 20,
+    backgroundColor: '#F1F3F4',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#DADCE0',
+    marginHorizontal: -1,
+  },
   linhaMeta: { flexDirection: 'row', gap: 12 },
   entradaMeta: {
     fontSize: 13,
@@ -497,7 +617,7 @@ const estilos = StyleSheet.create({
     justifyContent: 'center',
   },
   textoFerramenta: { fontSize: 13, fontWeight: '600', color: cores.texto },
-  inserir: { gap: 8, marginTop: 24, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#E8EAED' },
+  inserir: { gap: 8, marginTop: 4 },
   acoesSermao: { flexDirection: 'row', gap: 8 },
   acaoSermao: { flex: 1 },
   chipBloco: {
@@ -518,5 +638,17 @@ const estilos = StyleSheet.create({
   marcador: { fontSize: 12, color: '#000000' },
   tituloEstudo: { fontSize: 13, fontWeight: '700', color: cores.apoioTexto },
   textoEstudo: { fontSize: 15, lineHeight: 21, color: cores.texto },
+  botaoInserir: {
+    minHeight: 32,
+    paddingHorizontal: 10,
+    marginRight: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: cores.destaque,
+    justifyContent: 'center',
+  },
+  botaoInserirAberto: { backgroundColor: cores.destaque },
+  textoInserir: { fontSize: 12, fontWeight: '800', color: cores.destaque, letterSpacing: 0.4 },
+  menuInserir: { gap: 8, paddingVertical: 8 },
   acao: { width: 36, height: 32, alignItems: 'center', justifyContent: 'center' },
 });
