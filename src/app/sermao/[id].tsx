@@ -75,7 +75,8 @@ export default function EditorTela() {
       return { nome: nomesEstudo[e], texto: [...respostas, nota].filter(Boolean).join('\n') };
     })
     .filter((a) => a.texto)
-    .concat(sermao.notasBiblioteca?.trim() ? [{ nome: 'Biblioteca', texto: sermao.notasBiblioteca.trim() }] : []);
+    .concat(sermao.notasBiblioteca?.trim() ? [{ nome: 'Biblioteca', texto: sermao.notasBiblioteca.trim() }] : [])
+    .concat(sermao.resumo?.trim() ? [{ nome: 'Resumo do estudo', texto: sermao.resumo.trim() }] : []);
 
   return (
     <>

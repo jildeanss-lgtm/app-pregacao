@@ -59,7 +59,12 @@ export default function NovoSermaoTela() {
       etapa: ETAPA_MONTAGEM,
       // O estudo feito para este texto vai junto e aparece em "Seu estudo" na montagem
       ...(doEstudo
-        ? { respostas: estudo.respostas, anotacoes: estudo.anotacoes, notasBiblioteca: estudo.notasBiblioteca }
+        ? {
+            respostas: estudo.respostas,
+            anotacoes: estudo.anotacoes,
+            notasBiblioteca: estudo.notasBiblioteca,
+            resumo: estudo.resumo,
+          }
         : {}),
       blocos: montarBlocos({ modelo, textoBase, objetivo, tipoObjetivo, versos, introducao, comSaudacao }),
     });
