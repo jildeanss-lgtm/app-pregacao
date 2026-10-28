@@ -11,6 +11,7 @@ import {
   type OpcaoIntroducao,
 } from '../data/modelos';
 import { generos, sugerirGenero, type Genero } from '../data/roteiro';
+import { ETAPA_MONTAGEM } from '../data/etapas';
 import { useSermoes } from '../store/sermoes';
 import { cores } from '../theme';
 
@@ -20,11 +21,12 @@ function hoje() {
 }
 
 export default function NovoSermaoTela() {
-  const { criar } = useSermoes();
+  const { criar, estudo } = useSermoes();
   const [culto, setCulto] = useState('');
   const [data, setData] = useState(hoje);
   const [titulo, setTitulo] = useState('');
-  const [textoBase, setTextoBase] = useState('');
+  // O texto estudado nas abas Bíblia e Estudo já vem preenchido
+  const [textoBase, setTextoBase] = useState(estudo.textoBase);
   const [modelo, setModelo] = useState<Modelo>('expositivo');
   const [objetivo, setObjetivo] = useState('');
   const [introducao, setIntroducao] = useState<OpcaoIntroducao>('citacoes');
@@ -48,10 +50,12 @@ export default function NovoSermaoTela() {
       culto,
       data,
       genero,
-      etapa: 0,
+      etapa: ETAPA_MONTAGEM,
+      // O estudo feito para este texto vai junto e aparece em "Seu estudo" na montagem
+      ...(textoBase === estudo.textoBase ? { respostas: estudo.respostas, anotacoes: estudo.anotacoes } : {}),
       blocos: montarBlocos({ modelo, textoBase, objetivo, introducao, comSaudacao }),
     });
-    router.replace(`/estudo/${s.id}`);
+    router.replace(`/sermao/${s.id}`);
   };
 
   return (
@@ -95,7 +99,7 @@ export default function NovoSermaoTela() {
           accessibilityLabel="Texto referência"
           value={textoBase}
           onChangeText={setTextoBase}
-          placeholder="Ex.: Êxodo 8 (ou escolha na Bíblia, na próxima tela)"
+          placeholder="Ex.: Êxodo 8 (ou toque no versículo na aba Bíblia)"
           placeholderTextColor={cores.textoSuave}
           style={estilos.entrada}
         />
@@ -104,7 +108,13 @@ export default function NovoSermaoTela() {
       <Cartao style={{ gap: 8 }}>
         <Rotulo>Tipo de sermão</Rotulo>
         {modelos.map((m) => (
-          <Escolha key={m.id} ativo={modelo === m.id} titulo={m.nome} descricao={m.descricao} onPress={() => setModelo(m.id)} />
+          <Escolha
+            key={m.id}
+            ativo={modelo === m.id}
+            titulo={m.nome}
+            descricao={m.descricao}
+            onPress={() => setModelo(m.id)}
+          />
         ))}
       </Cartao>
 
@@ -178,7 +188,17 @@ export default function NovoSermaoTela() {
   );
 }
 
-function Escolha({ ativo, titulo, descricao, onPress }: { ativo: boolean; titulo: string; descricao: string; onPress: () => void }) {
+function Escolha({
+  ativo,
+  titulo,
+  descricao,
+  onPress,
+}: {
+  ativo: boolean;
+  titulo: string;
+  descricao: string;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       accessibilityRole="radio"

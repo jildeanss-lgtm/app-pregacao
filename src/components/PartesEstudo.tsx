@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { EtapaEstudo } from '../data/etapas';
 import { generos, perguntasDaEtapa, sentidoFigurado, sugerirGenero } from '../data/roteiro';
-import { useSermoes, type Sermao } from '../store/sermoes';
+import type { DadosEstudo } from '../store/sermoes';
 import { cores } from '../theme';
 import { Botao, Cartao, Rotulo } from './ui';
 
@@ -17,12 +17,24 @@ const dicasAnotacao: Record<EtapaEstudo, string> = {
   aplicacao: 'Verdade central, onde ela toca a vida hoje, perguntas para a igreja...',
 };
 
-// Perguntas de uma parte do estudo, cada uma com sua resposta, e as anotações da parte
-export function ParteDoEstudo({ sermao, parte, nome }: { sermao: Sermao; parte: EtapaEstudo; nome: string }) {
-  const { atualizar } = useSermoes();
+type Mudar = (mudar: (d: DadosEstudo) => DadosEstudo) => void;
+
+// Perguntas de uma parte do estudo, cada uma com sua resposta, e as anotações da parte. Serve para o estudo
+// em andamento (aba Estudo) e para o estudo guardado num sermão
+export function ParteDoEstudo({
+  sermao,
+  mudar,
+  parte,
+  nome,
+}: {
+  sermao: DadosEstudo;
+  mudar: Mudar;
+  parte: EtapaEstudo;
+  nome: string;
+}) {
   return (
     <>
-      {parte === 'observacao' && <Genero sermao={sermao} />}
+      {parte === 'observacao' && <Genero sermao={sermao} mudar={mudar} />}
       {perguntasDaEtapa(parte, sermao.textoBase, sermao.genero).map((g) => (
         <Cartao key={g.titulo} style={{ gap: 10 }}>
           <Rotulo>{g.titulo}</Rotulo>
@@ -33,9 +45,7 @@ export function ParteDoEstudo({ sermao, parte, nome }: { sermao: Sermao; parte: 
               <TextInput
                 accessibilityLabel={q.pergunta}
                 value={sermao.respostas?.[q.pergunta] ?? q.padrao ?? ''}
-                onChangeText={(texto) =>
-                  atualizar(sermao.id, (s) => ({ ...s, respostas: { ...s.respostas, [q.pergunta]: texto } }))
-                }
+                onChangeText={(texto) => mudar((s) => ({ ...s, respostas: { ...s.respostas, [q.pergunta]: texto } }))}
                 multiline
                 placeholder="Sua resposta"
                 placeholderTextColor={cores.textoSuave}
@@ -52,13 +62,22 @@ export function ParteDoEstudo({ sermao, parte, nome }: { sermao: Sermao; parte: 
           <Botao titulo="Consultar a biblioteca" variante="contorno" onPress={() => router.push('/biblioteca')} />
         </Cartao>
       )}
-      <Anotacoes sermao={sermao} etapa={parte} nome={nome} />
+      <Anotacoes sermao={sermao} mudar={mudar} etapa={parte} nome={nome} />
     </>
   );
 }
 
-export function Anotacoes({ sermao, etapa, nome }: { sermao: Sermao; etapa: EtapaEstudo; nome: string }) {
-  const { atualizar } = useSermoes();
+export function Anotacoes({
+  sermao,
+  mudar,
+  etapa,
+  nome,
+}: {
+  sermao: DadosEstudo;
+  mudar: Mudar;
+  etapa: EtapaEstudo;
+  nome: string;
+}) {
   const anotacao = sermao.anotacoes?.[etapa] ?? (etapa === 'observacao' ? sermao.estudo : undefined) ?? '';
   return (
     <Cartao style={{ gap: 8 }}>
@@ -66,7 +85,7 @@ export function Anotacoes({ sermao, etapa, nome }: { sermao: Sermao; etapa: Etap
       <TextInput
         accessibilityLabel={`Anotações da ${nome}`}
         value={anotacao}
-        onChangeText={(texto) => atualizar(sermao.id, (s) => ({ ...s, anotacoes: { ...s.anotacoes, [etapa]: texto } }))}
+        onChangeText={(texto) => mudar((s) => ({ ...s, anotacoes: { ...s.anotacoes, [etapa]: texto } }))}
         multiline
         placeholder={dicasAnotacao[etapa]}
         placeholderTextColor={cores.textoSuave}
@@ -76,8 +95,7 @@ export function Anotacoes({ sermao, etapa, nome }: { sermao: Sermao; etapa: Etap
   );
 }
 
-function Genero({ sermao }: { sermao: Sermao }) {
-  const { atualizar } = useSermoes();
+function Genero({ sermao, mudar }: { sermao: DadosEstudo; mudar: Mudar }) {
   const sugerido = sugerirGenero(sermao.textoBase);
   const generoAtual = sermao.genero ?? sugerido;
   const genero = generos.find((g) => g.id === generoAtual);
@@ -96,7 +114,7 @@ function Genero({ sermao }: { sermao: Sermao }) {
               texto={g.nome}
               ativa={generoAtual === g.id}
               onPress={() => {
-                atualizar(sermao.id, (s) => ({ ...s, genero: g.id }));
+                mudar((s) => ({ ...s, genero: g.id }));
                 setTrocando(false);
               }}
             />

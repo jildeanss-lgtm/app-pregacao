@@ -1,8 +1,8 @@
 import { useLocalSearchParams } from 'expo-router';
-import { LeitorBiblia } from '../../components/LeitorBiblia';
+import { BibliaComum } from '../../components/BibliaComum';
 
-// Aba Bíblia: leitura simples em português
+// Aba Bíblia: leitura em texto corrido e escolha do texto do estudo
 export default function BibliaTela() {
   const { sermao } = useLocalSearchParams<{ sermao?: string }>();
-  return <LeitorBiblia comOriginal={false} sermaoId={sermao} />;
+  return <BibliaComum sermaoId={sermao} />;
 }
