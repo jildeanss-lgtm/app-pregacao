@@ -1,7 +1,8 @@
 import * as Clipboard from 'expo-clipboard';
-import { useState } from 'react';
-import { Linking, StyleSheet, Text, TextInput, View } from 'react-native';
-import { lerTrechos, montarPedidoBiblioteca } from '../ia/estudo';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { buscarNaBiblioteca, ID_CLIENTE_GOOGLE, prepararLogin } from '../ia/drive';
+import { lerTrechos, montarPedidoBiblioteca, useChave } from '../ia/estudo';
 import type { DadosEstudo } from '../store/sermoes';
 import { cores } from '../theme';
 import { CampoCrescente } from './CampoCrescente';
@@ -17,7 +18,29 @@ export function PesquisaBiblioteca({ estudo, mudar }: { estudo: DadosEstudo; mud
   const [colando, setColando] = useState(false);
   const [colado, setColado] = useState('');
   const [aviso, setAviso] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const chave = useChave();
   const trechos = estudo.trechosBiblioteca ?? [];
+  // Com a chave da Anthropic e o login do Google, a busca é automática; sem eles, vai pelo claude.ai
+  const automatica = Platform.OS === 'web' && !!ID_CLIENTE_GOOGLE && !!chave;
+
+  useEffect(() => {
+    if (automatica) prepararLogin().catch(() => {});
+  }, [automatica]);
+
+  const buscarSozinho = async () => {
+    if (ocupado) return;
+    setOcupado(true);
+    try {
+      const novos = await buscarNaBiblioteca(chave, estudo, assunto, setAviso);
+      mudar((e) => ({ ...e, trechosBiblioteca: [...(e.trechosBiblioteca ?? []), ...novos] }));
+      setAviso(`Pronto: ${novos.length} trecho${novos.length === 1 ? '' : 's'} da sua biblioteca.`);
+    } catch (e) {
+      setAviso(e instanceof Error ? e.message : 'Não deu certo. Tente de novo.');
+    } finally {
+      setOcupado(false);
+    }
+  };
 
   const buscar = async () => {
     await Clipboard.setStringAsync(montarPedidoBiblioteca(estudo, assunto));
@@ -44,7 +67,10 @@ export function PesquisaBiblioteca({ estudo, mudar }: { estudo: DadosEstudo; mud
 
   return (
     <>
-      <Botao titulo="Buscar na Biblioteca" onPress={buscar} />
+      <Botao
+        titulo={ocupado ? 'Buscando...' : 'Buscar na Biblioteca'}
+        onPress={() => (automatica ? buscarSozinho() : buscar())}
+      />
       <TextInput
         accessibilityLabel="Assunto da busca"
         value={assunto}
@@ -73,6 +99,7 @@ export function PesquisaBiblioteca({ estudo, mudar }: { estudo: DadosEstudo; mud
           <Botao titulo="Trazer para o app" onPress={trazer} />
         </View>
       )}
+      {ocupado && <ActivityIndicator color={cores.destaque} />}
       {aviso ? <Text style={estilos.aviso}>{aviso}</Text> : null}
 
       {trechos.length > 0 && (
