@@ -108,7 +108,8 @@ type Contexto = {
   criar: (dados: NovoSermao) => Sermao;
   atualizar: (id: string, mudar: (s: Sermao) => Sermao) => void;
   remover: (id: string) => void;
-  adicionarBloco: (id: string, tipo: TipoBloco, texto?: string) => void;
+  // Sem depoisDe, o bloco vai para o fim do sermão
+  adicionarBloco: (id: string, tipo: TipoBloco, texto?: string, depoisDe?: string) => void;
 };
 
 const SermoesContexto = createContext<Contexto | null>(null);
@@ -161,8 +162,13 @@ export function SermoesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const adicionarBloco = useCallback(
-    (id: string, tipo: TipoBloco, texto = '') => {
-      atualizar(id, (s) => ({ ...s, blocos: [...s.blocos, { id: novoId(), tipo, texto }] }));
+    (id: string, tipo: TipoBloco, texto = '', depoisDe?: string) => {
+      atualizar(id, (s) => {
+        const blocos = [...s.blocos];
+        const posicao = depoisDe ? blocos.findIndex((b) => b.id === depoisDe) + 1 : 0;
+        blocos.splice(posicao > 0 ? posicao : blocos.length, 0, { id: novoId(), tipo, texto });
+        return { ...s, blocos };
+      });
     },
     [atualizar],
   );
