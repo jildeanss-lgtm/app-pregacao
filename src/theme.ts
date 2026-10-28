@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 export const cores = {
   fundo: '#F6F5F1',
   cartao: '#FFFFFF',
@@ -20,3 +22,10 @@ export const cores = {
 };
 
 export const fonteBiblia = 'Georgia';
+
+// Georgia não tem os acentos do grego politônico (os acentos ficavam soltos, como "προ`ς"); no navegador
+// usamos fontes que têm grego e hebraico completos
+export const fonteOriginal = Platform.select({
+  web: '"Times New Roman", "Palatino Linotype", "Noto Serif", "SBL Greek", "Ezra SIL", serif',
+  default: undefined,
+});

@@ -1,7 +1,8 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Etapas } from '../../components/Etapas';
+import { Anotacoes, Lista, ParteDoEstudo, Pilula, partesDoEstudo } from '../../components/PartesEstudo';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
 import {
   ETAPA_BIBLIA,
@@ -14,26 +15,10 @@ import {
 } from '../../data/etapas';
 import { pericopeDe } from '../../data/pericope';
 import { carregarTexto, livros, type CodigoLivro } from '../../data/portugues';
-import {
-  generos,
-  leitura,
-  perguntasDaEtapa,
-  referenciaDoTexto,
-  sentidoFigurado,
-  sugerirGenero,
-} from '../../data/roteiro';
+import { leitura, referenciaDoTexto, sugerirGenero } from '../../data/roteiro';
 import { useSermao, useSermoes, type Sermao } from '../../store/sermoes';
 import { coresPregacao } from '../../estilo';
 import { cores, fonteBiblia } from '../../theme';
-
-const dicasAnotacao: Record<EtapaEstudo, string> = {
-  leitura: 'O que chamou sua atenção na leitura? Palavras que se repetem, frases fortes...',
-  observacao: 'O que você observou: contexto, repetições, contrastes, palavras-chave...',
-  interpretacao: 'O que o autor quis dizer? Significado das palavras, outros textos que confirmam...',
-  aplicacao: 'Verdade central, onde ela toca a vida hoje, perguntas para a igreja...',
-};
-
-const partesDoEstudo: EtapaEstudo[] = ['observacao', 'interpretacao', 'aplicacao'];
 
 // Telas Bíblia (escolha e leitura do texto) e Estudo (Observação, Interpretação e Aplicação) do sermão
 export default function EstudoTela() {
@@ -105,42 +90,17 @@ export default function EstudoTela() {
 
         {indice === ETAPA_ESTUDO && (
           <>
-            <Genero sermao={sermao} />
             <View style={estilos.linha}>
               {partesDoEstudo.map((p) => (
                 <Pilula key={p} texto={nomesEstudo[p]} ativa={parte === p} onPress={() => setParte(p)} />
               ))}
             </View>
-            {perguntasDaEtapa(parte, sermao.textoBase, sermao.genero).map((g) => (
-              <Cartao key={g.titulo} style={{ gap: 10 }}>
-                <Rotulo>{g.titulo}</Rotulo>
-                {g.dica ? <Text style={estilos.chave}>{g.dica}</Text> : null}
-                {g.perguntas.map((q) => (
-                  <View key={q.pergunta} style={{ gap: 2 }}>
-                    <Text style={estilos.pergunta}>{q.pergunta}</Text>
-                    <TextInput
-                      accessibilityLabel={q.pergunta}
-                      value={sermao.respostas?.[q.pergunta] ?? q.padrao ?? ''}
-                      onChangeText={(texto) =>
-                        atualizar(sermao.id, (s) => ({ ...s, respostas: { ...s.respostas, [q.pergunta]: texto } }))
-                      }
-                      multiline
-                      placeholder="Sua resposta"
-                      placeholderTextColor={cores.textoSuave}
-                      style={estilos.resposta}
-                    />
-                  </View>
-                ))}
-              </Cartao>
-            ))}
-            {parte === 'interpretacao' && (
-              <Cartao style={{ gap: 8 }}>
-                <Rotulo>Literal ou figurado?</Rotulo>
-                <Lista itens={sentidoFigurado} />
-                <Botao titulo="Consultar a biblioteca" variante="contorno" onPress={() => router.push('/biblioteca')} />
-              </Cartao>
-            )}
-            <Anotacoes sermao={sermao} etapa={parte} nome={nomesEstudo[parte]} />
+            <ParteDoEstudo sermao={sermao} parte={parte} nome={nomesEstudo[parte]} />
+            <Botao
+              titulo="Estudar as palavras no hebraico e grego"
+              variante="contorno"
+              onPress={() => router.push({ pathname: '/estudo', params: { sermao: sermao.id } })}
+            />
           </>
         )}
 
@@ -150,25 +110,6 @@ export default function EstudoTela() {
         </View>
       </ScrollView>
     </>
-  );
-}
-
-function Anotacoes({ sermao, etapa, nome }: { sermao: Sermao; etapa: EtapaEstudo; nome: string }) {
-  const { atualizar } = useSermoes();
-  const anotacao = sermao.anotacoes?.[etapa] ?? (etapa === 'observacao' ? sermao.estudo : undefined) ?? '';
-  return (
-    <Cartao style={{ gap: 8 }}>
-      <Rotulo>Suas anotações</Rotulo>
-      <TextInput
-        accessibilityLabel={`Anotações da ${nome}`}
-        value={anotacao}
-        onChangeText={(texto) => atualizar(sermao.id, (s) => ({ ...s, anotacoes: { ...s.anotacoes, [etapa]: texto } }))}
-        multiline
-        placeholder={dicasAnotacao[etapa]}
-        placeholderTextColor={cores.textoSuave}
-        style={estilos.entrada}
-      />
-    </Cartao>
   );
 }
 
@@ -321,78 +262,12 @@ function Leitura({ sermao }: { sermao: Sermao }) {
           </>
         )}
         <Botao
-          titulo="Abrir na Bíblia com grego e hebraico"
+          titulo="Estudar no hebraico e grego"
           variante="contorno"
-          onPress={() => router.push({ pathname: '/biblia', params: { sermao: sermao.id } })}
+          onPress={() => router.push({ pathname: '/estudo', params: { sermao: sermao.id } })}
         />
       </Cartao>
     </>
-  );
-}
-
-function Pilula({ texto, ativa, onPress }: { texto: string; ativa: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: ativa }}
-      onPress={onPress}
-      style={[estilos.pilula, ativa && estilos.pilulaAtiva]}
-    >
-      <Text style={[estilos.textoPilula, ativa && { color: '#FFFFFF' }]}>{texto}</Text>
-    </Pressable>
-  );
-}
-
-function Genero({ sermao }: { sermao: Sermao }) {
-  const { atualizar } = useSermoes();
-  const sugerido = sugerirGenero(sermao.textoBase);
-  const generoAtual = sermao.genero ?? sugerido;
-  const genero = generos.find((g) => g.id === generoAtual);
-  const [trocando, setTrocando] = useState(false);
-
-  return (
-    <Cartao style={{ gap: 8 }}>
-      <Rotulo>Gênero literário</Rotulo>
-      <Text style={estilos.genero}>{genero?.nome ?? 'Não definido'}</Text>
-      {genero && generoAtual === sugerido ? <Text style={estilos.suave}>Definido pelo livro do texto.</Text> : null}
-      {trocando || !genero ? (
-        <View style={estilos.linha}>
-          {generos.map((g) => (
-            <Pressable
-              key={g.id}
-              accessibilityRole="button"
-              accessibilityState={{ selected: generoAtual === g.id }}
-              onPress={() => {
-                atualizar(sermao.id, (s) => ({ ...s, genero: g.id }));
-                setTrocando(false);
-              }}
-              style={[estilos.pilula, generoAtual === g.id && estilos.pilulaAtiva]}
-            >
-              <Text style={[estilos.textoPilula, generoAtual === g.id && { color: '#FFFFFF' }]}>{g.nome}</Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : (
-        <Botao
-          titulo="Trocar gênero"
-          variante="contorno"
-          onPress={() => setTrocando(true)}
-          style={{ alignSelf: 'flex-start' }}
-        />
-      )}
-    </Cartao>
-  );
-}
-
-function Lista({ itens }: { itens: string[] }) {
-  return (
-    <View style={{ gap: 4 }}>
-      {itens.map((t) => (
-        <Text key={t} style={estilos.item}>
-          • {t}
-        </Text>
-      ))}
-    </View>
   );
 }
 
