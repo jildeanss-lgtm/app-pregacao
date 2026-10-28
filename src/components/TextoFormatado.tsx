@@ -55,8 +55,10 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }
               !semMoldura && i > 0 && estilos.divisoria,
             ]}
           >
-            <Text style={[base, estilos.marcador]}>•</Text>
-            <Text style={[base, { flex: 1 }]}>{linha(e.autoDestaque ? destacarTudo(l) : l)}</Text>
+            <Text style={[base, e.itensComoTopo && topo, estilos.marcador]}>•</Text>
+            <Text style={[base, e.itensComoTopo && topo, { flex: 1 }]}>
+              {linha(e.autoDestaque ? destacarTudo(l) : l, e.itensComoTopo ? e.topo?.corChave : undefined)}
+            </Text>
           </View>
         ))}
       </View>
@@ -78,6 +80,16 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }
     );
   }
 
+  // Com seta, as linhas de baixo começam embaixo da primeira letra, depois da seta
+  if (e.seta) {
+    return (
+      <View style={estilos.comSeta}>
+        <Text style={[base, { width: Math.round(tamanho * 1.2) }]}>➔</Text>
+        <Text style={[base, { flex: 1 }]}>{linha(linhas.join('\n'))}</Text>
+      </View>
+    );
+  }
+
   const conteudo = (
     <Text style={base}>
       {cabecalho ? (
@@ -86,7 +98,6 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }
           {'\n'}
         </>
       ) : null}
-      {e.seta ? '➔ ' : ''}
       {linha(linhas.join('\n'))}
     </Text>
   );
@@ -101,6 +112,7 @@ const estilos = StyleSheet.create({
   chave: { fontWeight: '700', textDecorationLine: 'underline' },
   item: { flexDirection: 'row', gap: 8, paddingLeft: 8 },
   marcador: { fontStyle: 'normal' },
+  comSeta: { flexDirection: 'row', gap: 8 },
   quadro: {
     borderWidth: 1.5,
     borderColor: '#000000',

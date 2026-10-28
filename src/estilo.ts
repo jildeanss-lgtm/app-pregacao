@@ -28,6 +28,8 @@ export type EstiloBloco = {
   // Linha de cima do quadro: cor, itálico e cor das palavras-chave
   topo?: { cor: string; italico?: boolean; corChave: string; nome: string };
   nomeItem?: string;
+  // Os pontos usam a mesma cor e ênfase da linha de cima
+  itensComoTopo?: boolean;
   // Sem destaque à mão, todas as palavras (menos conectivos) viram palavra-chave
   autoDestaque?: boolean;
   // Texto bíblico: livro e capítulo em cima, versículo e texto embaixo
@@ -49,6 +51,7 @@ export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
     quadro: true,
     topo: { cor: coresPregacao.pergunta, italico: true, corChave: coresPregacao.pergunta, nome: 'Pergunta' },
     nomeItem: 'Ponto',
+    itensComoTopo: true,
     autoDestaque: true,
   },
   frase: { cor: coresPregacao.frase, seta: true },

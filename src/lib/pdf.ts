@@ -37,7 +37,11 @@ function blocoHtml(b: Bloco) {
   if (e.quadro) {
     const { subtopico, pontos } = dividirQuadro(b.texto);
     const estiloTopo = e.topo ? ` style="color:${e.topo.cor};${e.topo.italico ? 'font-style:italic' : ''}"` : '';
-    const linhas = pontos.map((l) => `<tr><td>• ${comDestaques(e.autoDestaque ? destacarTudo(l) : l)}</td></tr>`).join('');
+    const estiloItens = e.itensComoTopo ? estiloTopo : '';
+    const corItens = e.itensComoTopo ? e.topo?.corChave : undefined;
+    const linhas = pontos
+      .map((l) => `<tr><td${estiloItens}>• ${comDestaques(e.autoDestaque ? destacarTudo(l) : l, corItens)}</td></tr>`)
+      .join('');
     return `<table class="quadro"><tr><th${estiloTopo}><span class="seta">➔</span>${comDestaques(subtopico, e.topo?.corChave)}</th></tr>${linhas}</table>`;
   }
   const { cabecalho, linhas } = linhasParaMostrar(b.tipo, b.texto);
@@ -49,7 +53,11 @@ function blocoHtml(b: Bloco) {
     return `<p class="topico"><span style="${estilo};background:${e.fundo}">${comDestaques(b.texto)}</span></p>`;
   }
   const topo = cabecalho ? `${comDestaques(cabecalho)}<br>` : '';
-  return `<p style="${estilo}">${rotulo}${topo}${e.seta ? '➔ ' : ''}${comDestaques(linhas.join('\n'))}</p>`;
+  if (e.seta) {
+    // Recuo deslocado: as linhas de baixo começam embaixo da primeira letra, depois da seta
+    return `${rotulo ? `<p>${rotulo}</p>` : ''}<p class="seta-bloco" style="${estilo}"><span class="seta">➔</span>${comDestaques(linhas.join('\n'))}</p>`;
+  }
+  return `<p style="${estilo}">${rotulo}${topo}${comDestaques(linhas.join('\n'))}</p>`;
 }
 
 export function htmlDoSermao(s: Sermao) {
@@ -73,7 +81,8 @@ export function htmlDoSermao(s: Sermao) {
   .quadro { width: 100%; border-collapse: collapse; border: 1.5pt solid #000; margin: 8pt 0; }
   .quadro th { text-align: left; font-weight: normal; background: #F1EFE9; border-bottom: 1.5pt solid #000; padding: 4pt 8pt; }
   .quadro td { border-top: 0.5pt solid #999; padding: 4pt 8pt 4pt calc(8pt + 1.5em); }
-  .quadro .seta { display: inline-block; width: 1.5em; }
+  .seta { display: inline-block; width: 1.5em; text-indent: 0; }
+  .seta-bloco { padding-left: 1.5em; text-indent: -1.5em; }
   .rotulo { font-size: 9pt; font-weight: bold; color: #5B6470; text-transform: uppercase; letter-spacing: 0.5pt; }
 </style></head>
 <body>
