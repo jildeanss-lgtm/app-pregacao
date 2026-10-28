@@ -1,16 +1,16 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { TextoFormatado } from '../../components/TextoFormatado';
 import { CampoCrescente } from '../../components/CampoCrescente';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
 import { etapasDeEstudo, nomesEstudo } from '../../data/etapas';
 import { perguntasDaEtapa } from '../../data/roteiro';
 import { modelos, nomesBloco, type TipoBloco } from '../../data/modelos';
-import { coresPregacao, estiloBloco, pontosDoQuadro, quebraNoTopo } from '../../estilo';
+import { coresPregacao, estiloBloco, pontosDoQuadro, quebraNoTopo, rotuloVisivel } from '../../estilo';
 import { exportarPdf } from '../../lib/pdf';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
-import { cores } from '../../theme';
+import { cores, fonteEsboco, larguraConteudo } from '../../theme';
 
 // Blocos sempre à vista para adicionar, na ordem do JILDEAN
 const tiposParaAdicionar: TipoBloco[] = [
@@ -29,6 +29,7 @@ export default function EditorTela() {
   const sermao = useSermao(id);
   const { atualizar, adicionarBloco, remover, mudarEstudo } = useSermoes();
   const [vendoEstudo, setVendoEstudo] = useState(true);
+  const largo = useWindowDimensions().width >= 900;
 
   if (!sermao) {
     return (
@@ -77,7 +78,7 @@ export default function EditorTela() {
   return (
     <>
       <Stack.Screen options={{ title: sermao.titulo || 'Novo sermão' }} />
-      <ScrollView contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
+      <ScrollView style={estilos.mesa} contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
         <Text style={estilos.meta}>
           {modelo?.nome} · cerca de {minutosEstimados(sermao)} min
         </Text>
@@ -122,91 +123,95 @@ export default function EditorTela() {
           </Cartao>
         )}
 
-        <Cartao style={{ gap: 8 }}>
-          <View style={estilos.linha}>
-            <View style={{ flex: 2, gap: 4 }}>
-              <Rotulo>Culto</Rotulo>
-              <TextInput
-                accessibilityLabel="Culto"
-                value={sermao.culto ?? ''}
-                onChangeText={(culto) => atualizar(sermao.id, (s) => ({ ...s, culto }))}
-                placeholder="Ex.: Culto de Santa Ceia"
-                placeholderTextColor={cores.textoSuave}
-                style={estilos.entrada}
-              />
-            </View>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Rotulo>Data</Rotulo>
-              <TextInput
-                accessibilityLabel="Data"
-                value={sermao.data ?? ''}
-                onChangeText={(data) => atualizar(sermao.id, (s) => ({ ...s, data }))}
-                placeholder="dd/mm/aaaa"
-                placeholderTextColor={cores.textoSuave}
-                style={estilos.entrada}
-              />
-            </View>
+        {/* O sermão é escrito numa folha A4, como no Google Docs: sem caixas, o texto corrido */}
+        <View style={[estilos.folha, largo && estilos.folhaLarga]}>
+          <View style={estilos.linhaMeta}>
+            <TextInput
+              accessibilityLabel="Culto"
+              value={sermao.culto ?? ''}
+              onChangeText={(culto) => atualizar(sermao.id, (s) => ({ ...s, culto }))}
+              placeholder="Culto (ex.: Santa Ceia)"
+              placeholderTextColor={cores.textoSuave}
+              style={[estilos.entradaMeta, { flex: 2 }]}
+            />
+            <TextInput
+              accessibilityLabel="Data"
+              value={sermao.data ?? ''}
+              onChangeText={(data) => atualizar(sermao.id, (s) => ({ ...s, data }))}
+              placeholder="dd/mm/aaaa"
+              placeholderTextColor={cores.textoSuave}
+              style={[estilos.entradaMeta, { flex: 1, textAlign: 'right' }]}
+            />
           </View>
-          <Rotulo>Título</Rotulo>
           <TextInput
             accessibilityLabel="Título do sermão"
             value={sermao.titulo}
             onChangeText={(titulo) => atualizar(sermao.id, (s) => ({ ...s, titulo }))}
-            placeholder="Ex.: O amor que salva"
-            placeholderTextColor={cores.textoSuave}
-            style={[estilos.entrada, estilos.entradaTitulo]}
+            placeholder="Título do sermão"
+            placeholderTextColor="#B0B5BD"
+            style={estilos.entradaTitulo}
           />
-          <Rotulo>Texto referência</Rotulo>
           <TextInput
             accessibilityLabel="Texto referência"
             value={sermao.textoBase}
             onChangeText={(textoBase) => atualizar(sermao.id, (s) => ({ ...s, textoBase }))}
-            placeholder="Ex.: João 3:16"
+            placeholder="Texto referência (ex.: João 3:16)"
             placeholderTextColor={cores.textoSuave}
-            style={estilos.entrada}
+            style={estilos.entradaBase}
           />
-        </Cartao>
+          <View style={estilos.separador} />
 
-        {sermao.blocos.map((bloco, i) => (
-          <BlocoEditor
-            key={bloco.id}
-            bloco={bloco}
-            rotulo={bloco.rotulo ?? (bloco.tipo === 'topico' ? `Tópico ${numerosTopico[i]}` : nomesBloco[bloco.tipo])}
-            onMudar={(t) => mudarBloco(bloco.id, t)}
-            onSubir={() => mover(i, -1)}
-            onDescer={() => mover(i, 1)}
-            onApagar={() => apagarBloco(bloco.id)}
-          />
-        ))}
+          {sermao.blocos.map((bloco, i) => (
+            <BlocoEditor
+              key={bloco.id}
+              bloco={bloco}
+              rotulo={bloco.rotulo ?? (bloco.tipo === 'topico' ? `Tópico ${numerosTopico[i]}` : nomesBloco[bloco.tipo])}
+              onMudar={(t) => mudarBloco(bloco.id, t)}
+              onSubir={() => mover(i, -1)}
+              onDescer={() => mover(i, 1)}
+              onApagar={() => apagarBloco(bloco.id)}
+            />
+          ))}
 
-        <Cartao style={{ gap: 8 }}>
-          <Rotulo>+ Bloco</Rotulo>
-          <View style={estilos.linha}>
-            {tiposParaAdicionar.map((tipo) => {
-              const e = estiloBloco[tipo];
-              return (
-                <Pressable
-                  key={tipo}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Adicionar ${nomesBloco[tipo]}`}
-                  onPress={() => adicionarBloco(sermao.id, tipo)}
-                  style={[estilos.chipBloco, e.fundo ? { backgroundColor: e.fundo, borderColor: e.fundo } : null]}
-                >
-                  <Text
-                    style={[
-                      estilos.textoChip,
-                      { color: e.topo?.cor ?? e.cor, fontStyle: e.topo?.italico || e.italico ? 'italic' : 'normal' },
-                      // Texto (subtópico e pontos) em caixa alta e azul, como o Jildean pediu
-                      tipo === 'quadro' && { color: coresPregacao.frase, fontWeight: '800' },
-                    ]}
+          <View style={estilos.inserir}>
+            <Text style={estilos.meta}>Inserir</Text>
+            <View style={estilos.linha}>
+              {tiposParaAdicionar.map((tipo) => {
+                const e = estiloBloco[tipo];
+                return (
+                  <Pressable
+                    key={tipo}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Adicionar ${nomesBloco[tipo]}`}
+                    onPress={() => adicionarBloco(sermao.id, tipo)}
+                    style={[estilos.chipBloco, e.fundo ? { backgroundColor: e.fundo, borderColor: e.fundo } : null]}
                   >
-                    + {tipo === 'quadro' ? nomesBloco[tipo].toUpperCase() : nomesBloco[tipo]}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <Text
+                      style={[
+                        estilos.textoChip,
+                        { color: e.topo?.cor ?? e.cor, fontStyle: e.topo?.italico || e.italico ? 'italic' : 'normal' },
+                        // Texto (subtópico e pontos) em caixa alta e azul, como o Jildean pediu
+                        tipo === 'quadro' && { color: coresPregacao.frase, fontWeight: '800' },
+                      ]}
+                    >
+                      + {tipo === 'quadro' ? nomesBloco[tipo].toUpperCase() : nomesBloco[tipo]}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
-        </Cartao>
+        </View>
+
+        <View style={estilos.acoesSermao}>
+          <Botao titulo="Pregar" onPress={() => router.push(`/pregar/${sermao.id}`)} style={estilos.acaoSermao} />
+          <Botao
+            titulo="Exportar PDF"
+            variante="contorno"
+            onPress={() => exportarPdf(sermao)}
+            style={estilos.acaoSermao}
+          />
+        </View>
         <Botao
           titulo="Estudar no hebraico e grego"
           variante="contorno"
@@ -218,8 +223,6 @@ export default function EditorTela() {
           }}
         />
 
-        <Botao titulo="Pregar" onPress={() => router.push(`/pregar/${sermao.id}`)} />
-        <Botao titulo="Exportar PDF" variante="contorno" onPress={() => exportarPdf(sermao)} />
         <Botao
           titulo="Apagar sermão"
           variante="perigo"
@@ -251,6 +254,21 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
   const [editando, setEditando] = useState(!bloco.texto.trim());
   const [selecao, setSelecao] = useState({ start: 0, end: 0 });
   const [campo, setCampo] = useState(0);
+  // Ferramentas e fundo cinza só enquanto um campo do bloco está com o cursor; ao sair, o bloco volta a
+  // mostrar o texto formatado, como num doc
+  const [focado, setFocado] = useState(false);
+  const saida = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const entrar = (i: number) => {
+    clearTimeout(saida.current);
+    setCampo(i);
+    setFocado(true);
+  };
+  const sair = () => {
+    saida.current = setTimeout(() => {
+      setFocado(false);
+      if (bloco.texto.trim()) setEditando(false);
+    }, 250);
+  };
 
   // O quadro é editado em linhas separadas: subtópico em cima e um campo por ponto
   const ehQuadro = !!estiloBloco[bloco.tipo].quadro;
@@ -276,16 +294,35 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
     mudarCampo(campo, `${t.slice(0, start)}*${t.slice(start, end)}*${t.slice(end)}`);
   };
 
+  // Na folha, as ferramentas do bloco só aparecem enquanto ele está sendo editado
+  const e = estiloBloco[bloco.tipo];
+  const visual = {
+    color: e.cor,
+    fontStyle: e.italico ? 'italic' : 'normal',
+    textAlign: e.centralizado ? 'center' : 'left',
+    fontFamily: fonteEsboco,
+  } as const;
+  const visualTopo = e.topo
+    ? ({ color: e.topo.cor, fontStyle: e.topo.italico ? 'italic' : 'normal', fontFamily: fonteEsboco } as const)
+    : visual;
+  const vazio = !bloco.texto.trim();
+
   return (
-    <Cartao style={{ gap: 6 }}>
-      <View style={estilos.cabecalhoBloco}>
-        <Rotulo>{rotulo}</Rotulo>
-        <View style={{ flexDirection: 'row' }}>
-          <Acao rotulo="Subir bloco" simbolo="↑" onPress={onSubir} />
-          <Acao rotulo="Descer bloco" simbolo="↓" onPress={onDescer} />
-          <Acao rotulo="Apagar bloco" simbolo="×" onPress={onApagar} />
+    <View style={[estilos.bloco, focado && estilos.blocoEditando]}>
+      {focado ? (
+        <View style={estilos.cabecalhoBloco}>
+          <Text style={estilos.rotuloBloco}>{rotulo}</Text>
+          <View style={{ flexDirection: 'row' }}>
+            <Acao rotulo="Subir bloco" simbolo="↑" onPress={onSubir} />
+            <Acao rotulo="Descer bloco" simbolo="↓" onPress={onDescer} />
+            <Acao rotulo="Apagar bloco" simbolo="×" onPress={onApagar} />
+          </View>
         </View>
-      </View>
+      ) : vazio && bloco.tipo !== 'topico' ? (
+        <Text style={estilos.rotuloBloco}>{rotulo}</Text>
+      ) : rotuloVisivel(bloco) && bloco.tipo !== 'aplicacao' ? (
+        <Text style={estilos.rotuloBloco}>{rotulo}</Text>
+      ) : null}
       {editando ? (
         <>
           {ehQuadro ? (
@@ -297,25 +334,29 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
                     accessibilityLabel={nomeTopo}
                     value={valor.split(quebraNoTopo).join('\n')}
                     onChangeText={(t) => mudarCampo(i, t)}
-                    onFocus={() => setCampo(i)}
-                    onSelectionChange={(e) => setSelecao(e.nativeEvent.selection)}
+                    onFocus={() => entrar(i)}
+                    onBlur={sair}
+                    onSelectionChange={(ev) => setSelecao(ev.nativeEvent.selection)}
                     placeholder={`${nomeTopo} (Enter para outra linha)`}
                     placeholderTextColor={cores.textoSuave}
-                    alturaMinima={40}
-                    style={[estilos.entrada, estilos.topoQuadro]}
+                    alturaMinima={36}
+                    style={[estilos.entrada, visualTopo, estilos.topoQuadro]}
                   />
                 ) : (
-                  <TextInput
-                    key={i}
-                    accessibilityLabel={i === 0 ? nomeTopo : `${nomeItem} ${i}`}
-                    value={valor}
-                    onChangeText={(t) => mudarCampo(i, t)}
-                    onFocus={() => setCampo(i)}
-                    onSelectionChange={(e) => setSelecao(e.nativeEvent.selection)}
-                    placeholder={i === 0 ? nomeTopo : `${nomeItem} ${i}`}
-                    placeholderTextColor={cores.textoSuave}
-                    style={[estilos.entrada, estilos.linhaQuadro, estilos.itemQuadro]}
-                  />
+                  <View key={i} style={estilos.itemQuadro}>
+                    <Text style={estilos.marcador}>●</Text>
+                    <TextInput
+                      accessibilityLabel={`${nomeItem} ${i}`}
+                      value={valor}
+                      onChangeText={(t) => mudarCampo(i, t)}
+                      onFocus={() => entrar(i)}
+                      onBlur={sair}
+                      onSelectionChange={(ev) => setSelecao(ev.nativeEvent.selection)}
+                      placeholder={`${nomeItem} ${i}`}
+                      placeholderTextColor={cores.textoSuave}
+                      style={[estilos.entrada, e.itensComoTopo ? visualTopo : { fontFamily: fonteEsboco }, { flex: 1 }]}
+                    />
+                  </View>
                 ),
               )}
             </View>
@@ -324,35 +365,56 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
               accessibilityLabel={rotulo}
               value={bloco.texto}
               onChangeText={onMudar}
-              onSelectionChange={(e) => setSelecao(e.nativeEvent.selection)}
+              onSelectionChange={(ev) => setSelecao(ev.nativeEvent.selection)}
               multiline
               autoFocus={!!bloco.texto}
+              onFocus={() => entrar(0)}
+              onBlur={sair}
+              alturaMinima={36}
               placeholder={
-                bloco.dica ?? dicas[bloco.tipo] ?? 'Escreva aqui. Use *asteriscos* para destacar palavras-chave'
+                bloco.tipo === 'topico'
+                  ? rotulo
+                  : (bloco.dica ?? dicas[bloco.tipo] ?? 'Escreva aqui. Use *asteriscos* para destacar palavras-chave')
               }
               placeholderTextColor={cores.textoSuave}
-              style={estilos.entrada}
+              style={[
+                estilos.entrada,
+                visual,
+                e.fundo ? [estilos.entradaComFundo, { backgroundColor: e.fundo }] : null,
+              ]}
             />
           )}
-          <View style={estilos.linha}>
-            <Botao titulo="Destacar seleção" variante="contorno" onPress={destacar} />
-            {ehQuadro && (
-              <Botao titulo={`+ ${nomeItem}`} variante="contorno" onPress={() => onMudar(`${campos.join('\n')}\n`)} />
-            )}
-            {bloco.texto.trim() ? <Botao titulo="Pronto" onPress={() => setEditando(false)} /> : null}
-          </View>
+          {focado && (
+            <View style={estilos.ferramentas}>
+              <Ferramenta titulo="Destacar seleção" onPress={destacar} />
+              {ehQuadro && <Ferramenta titulo={`+ ${nomeItem}`} onPress={() => onMudar(`${campos.join('\n')}\n`)} />}
+              {bloco.texto.trim() ? <Ferramenta titulo="Pronto" principal onPress={() => setEditando(false)} /> : null}
+            </View>
+          )}
         </>
       ) : (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Editar ${rotulo}`}
           onPress={() => setEditando(true)}
-          style={{ minHeight: 44, justifyContent: 'center' }}
+          style={({ pressed }) => [estilos.leitura, pressed && estilos.leituraHover]}
         >
           <TextoFormatado tipo={bloco.tipo} texto={bloco.texto} semMoldura />
         </Pressable>
       )}
-    </Cartao>
+    </View>
+  );
+}
+
+function Ferramenta({ titulo, onPress, principal }: { titulo: string; onPress: () => void; principal?: boolean }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={[estilos.ferramenta, principal && { backgroundColor: cores.destaque, borderColor: cores.destaque }]}
+    >
+      <Text style={[estilos.textoFerramenta, principal && { color: '#FFFFFF' }]}>{titulo}</Text>
+    </Pressable>
   );
 }
 
@@ -365,13 +427,74 @@ function Acao({ rotulo, simbolo, onPress }: { rotulo: string; simbolo: string; o
 }
 
 const estilos = StyleSheet.create({
+  // Mesa cinza do Google Docs em volta da folha
+  mesa: { backgroundColor: '#F1F3F4' },
   avisoIA: { gap: 8, borderColor: cores.destaque, borderWidth: 1 },
   textoAvisoIA: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: cores.destaqueEscuro },
-  conteudo: { padding: 20, gap: 12, paddingBottom: 48 },
+  conteudo: { padding: 20, gap: 12, paddingBottom: 48, ...larguraConteudo, maxWidth: 834 },
   meta: { fontSize: 13, color: cores.textoSuave },
-  entrada: { fontSize: 16, color: cores.texto, paddingVertical: 6 },
-  entradaTitulo: { fontSize: 20, fontWeight: '700' },
+  // Sem o contorno preto do navegador ao clicar: o fundo cinza do bloco já mostra onde se está
+  entrada: { fontSize: 16, color: cores.texto, paddingVertical: 4, outlineWidth: 0 },
   linha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  // Folha A4 (210 mm = 794 px) com margens de 2,5 cm na tela grande
+  folha: {
+    width: '100%',
+    maxWidth: 794,
+    alignSelf: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DADCE0',
+    paddingHorizontal: 20,
+    paddingVertical: 28,
+    gap: 10,
+  },
+  folhaLarga: { paddingHorizontal: 72, paddingVertical: 64, minHeight: 1123 },
+  linhaMeta: { flexDirection: 'row', gap: 12 },
+  entradaMeta: {
+    fontSize: 13,
+    color: cores.textoSuave,
+    paddingVertical: 2,
+    fontFamily: fonteEsboco,
+    minWidth: 0,
+    outlineWidth: 0,
+  },
+  entradaTitulo: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: cores.texto,
+    paddingVertical: 4,
+    fontFamily: fonteEsboco,
+    outlineWidth: 0,
+  },
+  entradaBase: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: coresPregacao.textoBiblico,
+    fontFamily: fonteEsboco,
+    outlineWidth: 0,
+  },
+  separador: { height: 1, backgroundColor: '#E8EAED', marginVertical: 8 },
+  bloco: { gap: 2, marginHorizontal: -8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  blocoEditando: { backgroundColor: '#F8F9FB' },
+  // Tópico com o realce verde só do tamanho do texto, não da linha toda
+  entradaComFundo: { alignSelf: 'flex-start', minWidth: 220, paddingHorizontal: 4, fontWeight: '700' },
+  rotuloBloco: { fontSize: 11, fontWeight: '600', letterSpacing: 0.6, color: '#9AA0A6', textTransform: 'uppercase' },
+  leitura: { minHeight: 28, justifyContent: 'center', borderRadius: 4 },
+  leituraHover: { backgroundColor: '#F8F9FB' },
+  ferramentas: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingTop: 4 },
+  ferramenta: {
+    minHeight: 32,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: cores.borda,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+  },
+  textoFerramenta: { fontSize: 13, fontWeight: '600', color: cores.texto },
+  inserir: { gap: 8, marginTop: 24, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#E8EAED' },
+  acoesSermao: { flexDirection: 'row', gap: 8 },
+  acaoSermao: { flex: 1 },
   chipBloco: {
     minHeight: 44,
     paddingHorizontal: 12,
@@ -384,11 +507,11 @@ const estilos = StyleSheet.create({
   textoChip: { fontSize: 15, fontWeight: '600' },
   cabecalhoBloco: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   // Corpo sem molduras: o subtópico em negrito e os pontos recuados embaixo
-  quadro: { gap: 2 },
-  linhaQuadro: { minHeight: 40 },
-  topoQuadro: { fontWeight: '700' },
-  itemQuadro: { paddingLeft: 16 },
+  quadro: { gap: 0 },
+  topoQuadro: { fontWeight: '400' },
+  itemQuadro: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 28 },
+  marcador: { fontSize: 12, color: '#000000' },
   tituloEstudo: { fontSize: 13, fontWeight: '700', color: cores.apoioTexto },
   textoEstudo: { fontSize: 15, lineHeight: 21, color: cores.texto },
-  acao: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  acao: { width: 36, height: 32, alignItems: 'center', justifyContent: 'center' },
 });
