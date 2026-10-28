@@ -34,7 +34,9 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }
   if (e.quadro) {
     const { subtopico, pontos } = dividirQuadro(texto);
     // Os pontos começam embaixo da primeira letra do subtópico, depois da seta
-    const recuo = Math.round(tamanho * 1.2);
+    // A aplicação não leva seta: os pontos começam logo embaixo da frase
+    const comSeta = !e.topo?.semSeta;
+    const recuo = comSeta ? Math.round(tamanho * 1.2) : 0;
     const topo: TextStyle = {
       color: e.topo?.cor,
       fontStyle: e.topo?.italico ? 'italic' : 'normal',
@@ -42,7 +44,7 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }
     return (
       <View style={semMoldura ? { gap: 2 } : estilos.quadro}>
         <View style={[estilos.item, { paddingLeft: 0 }, !semMoldura && estilos.quadroTopo]}>
-          <Text style={[base, { width: recuo }]}>➔</Text>
+          {comSeta && <Text style={[base, { width: recuo }]}>➔</Text>}
           <Text style={[base, topo, { flex: 1 }]}>{linha(subtopico, e.topo?.corChave)}</Text>
         </View>
         {pontos.map((l, i) => (

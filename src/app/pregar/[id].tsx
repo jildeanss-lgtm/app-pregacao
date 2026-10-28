@@ -44,7 +44,10 @@ export default function PulpitoTela() {
     return () => clearInterval(t);
   }, []);
 
-  const partes = useMemo(() => dividirEmPartes(sermao?.blocos ?? [], sermao?.titulo ?? ''), [sermao?.blocos, sermao?.titulo]);
+  const partes = useMemo(
+    () => dividirEmPartes(sermao?.blocos ?? [], sermao?.titulo ?? ''),
+    [sermao?.blocos, sermao?.titulo],
+  );
 
   if (!sermao) return null;
 
@@ -103,15 +106,18 @@ export default function PulpitoTela() {
             <Text style={estilos.titulo}>{parte?.titulo || 'Sem título'}</Text>
           )}
           {indice === 0 && sermao.textoBase ? <Text style={estilos.base}>{sermao.textoBase}</Text> : null}
-          {parte?.blocos.filter((b) => b.texto.trim()).map((b) => {
-            const rotulo = rotuloVisivel(b);
-            return (
-              <View key={b.id} style={{ gap: 4 }}>
-                {rotulo && rotulo !== parte.titulo && <Text style={estilos.rotulo}>{rotulo}</Text>}
-                <TextoFormatado tipo={b.tipo} texto={b.texto} tamanho={22} semMoldura />
-              </View>
-            );
-          })}
+          {parte?.blocos
+            .filter((b) => b.texto.trim())
+            .map((b) => {
+              // No púlpito a aplicação aparece sem o nome em cima, só pela cor
+              const rotulo = b.tipo === 'aplicacao' ? undefined : rotuloVisivel(b);
+              return (
+                <View key={b.id} style={{ gap: 4 }}>
+                  {rotulo && rotulo !== parte.titulo && <Text style={estilos.rotulo}>{rotulo}</Text>}
+                  <TextoFormatado tipo={b.tipo} texto={b.texto} tamanho={22} semMoldura />
+                </View>
+              );
+            })}
         </ScrollView>
       )}
 
