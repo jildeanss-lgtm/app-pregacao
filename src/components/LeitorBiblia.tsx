@@ -10,6 +10,8 @@ import { descreverMorfologiaHebraica } from '../data/hebraico/morfologia';
 import { carregarTexto, livros, type CodigoLivro } from '../data/portugues';
 import { referenciaDoTexto } from '../data/roteiro';
 import type { Lexico, PalavraOriginal } from '../data/tipos';
+import { useChave } from '../ia/estudo';
+import { explicacaoGuardada, explicarPalavra, type ExplicacaoPalavra } from '../ia/palavra';
 import { useSermoes } from '../store/sermoes';
 import { cores, fonteBiblia, fonteOriginal } from '../theme';
 import { Botao } from './ui';
@@ -200,6 +202,8 @@ export function LeitorBiblia() {
           lexico={carregado.lexico}
           glosas={carregado.glosas}
           hebraico={hebraico}
+          referencia={`${livro.nome} ${cap}:${selecao.ver}`}
+          versiculo={portugues[selecao.ver - 1] ?? ''}
           onFechar={() => setSelecao(null)}
           onIr={(r) => {
             const [c, capitulo, ver] = r.split('.');
@@ -217,6 +221,8 @@ function EstudoDaPalavra({
   lexico,
   glosas,
   hebraico,
+  referencia,
+  versiculo,
   onFechar,
   onIr,
 }: {
@@ -224,6 +230,8 @@ function EstudoDaPalavra({
   lexico: Lexico;
   glosas: Record<string, Glosa>;
   hebraico: boolean;
+  referencia: string;
+  versiculo: string;
   onFechar: () => void;
   onIr: (ref: string) => void;
 }) {
@@ -231,6 +239,59 @@ function EstudoDaPalavra({
   const glosa = palavra ? glosas[palavra[1]] : undefined;
   const prefixo = hebraico ? 'H' : 'G';
   const exemplos = useExemplos(glosa?.[2]);
+  const chave = useChave();
+  const morfologia = palavra
+    ? hebraico
+      ? descreverMorfologiaHebraica(palavra[2])
+      : descreverMorfologia(palavra[2])
+    : '';
+  const dados = palavra && {
+    strong: `${prefixo}${palavra[1]}`,
+    lema: verbete?.[0] ?? palavra[0],
+    transliteracao: verbete?.[1],
+    definicao: verbete?.[2],
+    kjv: verbete?.[3],
+    forma: palavra[0],
+    morfologia,
+    traducoes: glosa?.[0].map(([forma]) => forma).join(', ') ?? '',
+    referencia,
+    versiculo,
+    exemplos: (glosa?.[2] ?? []).map((r) => `${nomeRef(r)} ${exemplos[r] ?? ''}`.trim()),
+  };
+  const idPalavra = dados ? `${dados.strong}:${referencia}` : '';
+  // Explicação e erro valem só para a palavra em que foram pedidos
+  const [guardada, setGuardada] = useState<{ id: string; valor: ExplicacaoPalavra } | null>(null);
+  const [falha, setFalha] = useState<{ id: string; texto: string } | null>(null);
+  const [carregando, setCarregando] = useState(false);
+  const explicacao = guardada?.id === idPalavra ? guardada.valor : null;
+  const erro = falha?.id === idPalavra ? falha.texto : '';
+
+  // Ao trocar de palavra, mostra a explicação já guardada no aparelho, se houver
+  useEffect(() => {
+    if (!dados) return;
+    let ativo = true;
+    explicacaoGuardada(dados).then((valor) => {
+      if (ativo && valor) setGuardada({ id: idPalavra, valor });
+    });
+    return () => {
+      ativo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idPalavra]);
+
+  const explicar = async () => {
+    if (!dados) return;
+    const id = idPalavra;
+    setCarregando(true);
+    setFalha(null);
+    try {
+      setGuardada({ id, valor: await explicarPalavra(chave, dados) });
+    } catch (e) {
+      setFalha({ id, texto: e instanceof Error ? e.message : 'Não foi possível explicar a palavra.' });
+    } finally {
+      setCarregando(false);
+    }
+  };
 
   return (
     <View style={estilos.painel}>
@@ -259,10 +320,8 @@ function EstudoDaPalavra({
         </Pressable>
       </View>
       {palavra && (
-        <ScrollView style={{ maxHeight: 300 }} contentContainerStyle={{ gap: 6 }}>
-          <Text style={estilos.corpo}>
-            {hebraico ? descreverMorfologiaHebraica(palavra[2]) : descreverMorfologia(palavra[2])}
-          </Text>
+        <ScrollView style={{ maxHeight: 360 }} contentContainerStyle={{ gap: 6 }}>
+          <Text style={estilos.corpo}>{morfologia}</Text>
           <Text style={estilos.dica}>Forma no texto: {palavra[0]}</Text>
           {glosa && glosa[0].length > 0 && (
             <Text style={estilos.corpo}>
@@ -270,7 +329,33 @@ function EstudoDaPalavra({
               {glosa[0].map(([forma, n]) => `${forma} (${n}x)`).join(', ')}
             </Text>
           )}
-          {verbete && (
+          {explicacao ? (
+            <View style={estilos.explicacao}>
+              <Secao titulo="Significado" texto={explicacao.significado} />
+              <Secao titulo={`Em ${referencia}`} texto={explicacao.nesteVersiculo} />
+              <Secao titulo="No resto da Bíblia" texto={explicacao.naBiblia} />
+              <Secao titulo="Para o sermão" texto={explicacao.paraOSermao} />
+              <Text style={estilos.fraseEfeito}>{explicacao.fraseDeEfeito}</Text>
+            </View>
+          ) : chave ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={explicar}
+              disabled={carregando}
+              style={[estilos.botaoExplicar, carregando && { opacity: 0.6 }]}
+            >
+              {carregando && <ActivityIndicator color="#FFFFFF" size="small" />}
+              <Text style={estilos.textoBotaoExplicar}>
+                {carregando ? 'Explicando a palavra...' : 'Explicar palavra em português'}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text style={estilos.dica}>
+              Para a IA explicar esta palavra em português, coloque a sua chave no fim da aba Estudar.
+            </Text>
+          )}
+          {erro ? <Text style={estilos.erro}>{erro}</Text> : null}
+          {verbete && !explicacao && (
             <Text style={estilos.dica}>
               Definição de Strong (inglês): {verbete[2]}
               {verbete[3] ? ` · KJV: ${verbete[3]}` : ''}
@@ -293,6 +378,15 @@ function EstudoDaPalavra({
           )}
         </ScrollView>
       )}
+    </View>
+  );
+}
+
+function Secao({ titulo, texto }: { titulo: string; texto: string }) {
+  return (
+    <View style={{ gap: 2 }}>
+      <Text style={estilos.negrito}>{titulo}</Text>
+      <Text style={estilos.corpo}>{texto}</Text>
     </View>
   );
 }
@@ -347,7 +441,28 @@ const estilos = StyleSheet.create({
   refExemplo: { fontWeight: '700', color: cores.destaque },
   creditos: { fontSize: 12, color: cores.textoSuave, lineHeight: 18 },
   lema: { fontFamily: fonteOriginal, fontSize: 28, fontWeight: '600', color: cores.texto },
-  corpo: { fontSize: 15, color: cores.texto },
+  corpo: { fontSize: 15, lineHeight: 22, color: cores.texto },
+  explicacao: { gap: 10, paddingVertical: 8 },
+  fraseEfeito: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: coresPregacao.efeito,
+    textAlign: 'center',
+    paddingVertical: 6,
+  },
+  botaoExplicar: {
+    minHeight: 44,
+    borderRadius: 22,
+    backgroundColor: cores.destaque,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    marginVertical: 4,
+  },
+  textoBotaoExplicar: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  erro: { fontSize: 14, color: '#B91C1C' },
   painel: {
     backgroundColor: cores.cartao,
     borderTopWidth: 2,
