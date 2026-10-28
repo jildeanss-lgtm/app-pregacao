@@ -63,6 +63,7 @@ export default function NovoSermaoTela() {
             respostas: estudo.respostas,
             anotacoes: estudo.anotacoes,
             notasBiblioteca: estudo.notasBiblioteca,
+            trechosBiblioteca: estudo.trechosBiblioteca,
             resumo: estudo.resumo,
           }
         : {}),

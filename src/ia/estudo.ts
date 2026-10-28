@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { pericopeDe } from '../data/pericope';
 import { carregarTexto } from '../data/portugues';
 import { generos, perguntasDaEtapa, referenciaDoTexto } from '../data/roteiro';
-import type { DadosEstudo } from '../store/sermoes';
+import type { DadosEstudo, TrechoBiblioteca } from '../store/sermoes';
 
 // Respostas do estudo pela IA. Funciona de dois jeitos: com a chave da API guardada só no aparelho, o app chama
 // o Claude direto; sem chave, o pedido é copiado para colar no claude.ai e a resposta é colada de volta
@@ -235,7 +235,7 @@ export async function montarPedidoResumo(estudo: DadosEstudo) {
     .filter(Boolean);
   const extras = [
     estudo.notasBiblia?.trim() && `Anotações na leitura da Bíblia: ${estudo.notasBiblia.trim()}`,
-    estudo.notasBiblioteca?.trim() && `O que a minha biblioteca diz:\n${estudo.notasBiblioteca.trim()}`,
+    textoDaBiblioteca(estudo) && `O que a minha biblioteca diz:\n${textoDaBiblioteca(estudo)}`,
     estudo.temas?.length && `Temas sugeridos: ${estudo.temas.join('; ')}`,
   ].filter(Boolean);
 
@@ -279,4 +279,52 @@ export async function resumirComChave(chave: string, estudo: DadosEstudo) {
   const texto = await chamarClaude(chave, pedido, esquemaResumo);
   const dados = JSON.parse(texto.slice(texto.indexOf('{'), texto.lastIndexOf('}') + 1)) as { resumo?: string };
   return dados.resumo?.trim() ?? '';
+}
+
+// Biblioteca do Drive: o claude.ai (que tem o Drive conectado) busca trechos dos livros sobre o tema e devolve
+// em JSON; o app mostra cada trecho num cartão. Os livros nunca são copiados para o app
+export function montarPedidoBiblioteca(estudo: DadosEstudo, assunto: string) {
+  const tema = assunto.trim() || [estudo.textoBase, estudo.temas?.[0]].filter(Boolean).join(', ');
+  return `Use o meu Google Drive conectado. Pesquise na pasta "2 - Biblioteca" e nas subpastas dela (por exemplo "01 Bíblia e Estudo Bíblico", "02 Teologia Sistemática" e a "Enciclopédia Temática Shedd") o que os livros dizem sobre: ${tema || 'o texto do sermão'}.
+
+Traga até 8 trechos, de livros diferentes quando possível. Para cada trecho:
+- livro: título do livro
+- autor
+- local: capítulo ou página
+- trecho: citação curta, com as palavras do autor (até 4 frases)
+- comentario: em 1 ou 2 frases, como isso ajuda no sermão sobre ${estudo.textoBase || 'o texto'}
+
+Use só o que está nos livros da pasta, sem inventar citações. Responda em português do Brasil, só com este JSON:
+{"trechos": [{"livro": "", "autor": "", "local": "", "trecho": "", "comentario": ""}]}`;
+}
+
+// Lê os trechos colados do claude.ai. Se a resposta não vier em JSON, devolve null e o texto vai para as anotações
+export function lerTrechos(texto: string): TrechoBiblioteca[] | null {
+  const inicio = texto.indexOf('{');
+  const fim = texto.lastIndexOf('}');
+  if (inicio < 0 || fim < inicio) return null;
+  try {
+    const dados = JSON.parse(texto.slice(inicio, fim + 1)) as { trechos?: Partial<TrechoBiblioteca>[] };
+    const trechos = (dados.trechos ?? [])
+      .map((t) => ({
+        livro: t.livro?.trim() ?? '',
+        autor: t.autor?.trim() ?? '',
+        local: t.local?.trim() ?? '',
+        trecho: t.trecho?.trim() ?? '',
+        comentario: t.comentario?.trim() ?? '',
+      }))
+      .filter((t) => t.trecho || t.comentario);
+    return trechos.length ? trechos : null;
+  } catch {
+    return null;
+  }
+}
+
+// Trechos e anotações da biblioteca num texto só, para o resumo e para "Seu estudo" no sermão
+export function textoDaBiblioteca(estudo: Pick<DadosEstudo, 'trechosBiblioteca' | 'notasBiblioteca'>) {
+  const trechos = (estudo.trechosBiblioteca ?? []).map(
+    (t) =>
+      `${[t.livro, t.autor, t.local].filter(Boolean).join(', ')}: "${t.trecho}"${t.comentario ? ` ${t.comentario}` : ''}`,
+  );
+  return [...trechos, estudo.notasBiblioteca?.trim() ?? ''].filter(Boolean).join('\n');
 }

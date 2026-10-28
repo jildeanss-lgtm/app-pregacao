@@ -10,6 +10,7 @@ import { perguntasDaEtapa } from '../../data/roteiro';
 import { modelos, nomesBloco, type TipoBloco } from '../../data/modelos';
 import { coresPregacao, estiloBloco, pontosDoQuadro, quebraNoTopo, rotuloVisivel } from '../../estilo';
 import { exportarPdf } from '../../lib/pdf';
+import { textoDaBiblioteca } from '../../ia/estudo';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
 import { cores, fonteEsboco, larguraConteudo } from '../../theme';
 
@@ -75,7 +76,7 @@ export default function EditorTela() {
       return { nome: nomesEstudo[e], texto: [...respostas, nota].filter(Boolean).join('\n') };
     })
     .filter((a) => a.texto)
-    .concat(sermao.notasBiblioteca?.trim() ? [{ nome: 'Biblioteca', texto: sermao.notasBiblioteca.trim() }] : [])
+    .concat(textoDaBiblioteca(sermao) ? [{ nome: 'Biblioteca', texto: textoDaBiblioteca(sermao) }] : [])
     .concat(sermao.resumo?.trim() ? [{ nome: 'Resumo do estudo', texto: sermao.resumo.trim() }] : []);
 
   return (
