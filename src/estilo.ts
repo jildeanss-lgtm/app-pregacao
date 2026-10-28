@@ -15,6 +15,8 @@ export const coresPregacao = {
   // Sugestão para o subtópico: azul petróleo, distinto do azul das frases e do azul claro das perguntas
   subtopico: '#134F5C',
   fundoTopico: '#00FF00',
+  // Subtópico: letra preta em fundo verde claro, como no documento do Jildean
+  fundoSubtopico: '#B6D7A8',
 };
 
 export type EstiloBloco = {
@@ -24,6 +26,8 @@ export type EstiloBloco = {
   negrito?: boolean;
   fundo?: string;
   seta?: boolean;
+  // Seta própria (o subtópico usa ➢; o padrão é ➔)
+  simboloSeta?: string;
   lista?: boolean;
   // Caixa com o subtópico na linha de cima e os pontos embaixo
   quadro?: boolean;
@@ -40,7 +44,13 @@ export type EstiloBloco = {
 
 export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
   topico: { cor: coresPregacao.texto, fundo: coresPregacao.fundoTopico },
-  subtopico: { cor: coresPregacao.subtopico, seta: true },
+  subtopico: {
+    cor: coresPregacao.texto,
+    fundo: coresPregacao.fundoSubtopico,
+    seta: true,
+    simboloSeta: '➢',
+    autoDestaque: true,
+  },
   quadro: {
     cor: coresPregacao.texto,
     quadro: true,

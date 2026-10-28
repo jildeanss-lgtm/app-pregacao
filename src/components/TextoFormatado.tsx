@@ -84,8 +84,13 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }
   if (e.seta) {
     return (
       <View style={estilos.comSeta}>
-        <Text style={[base, { width: Math.round(tamanho * 1.2) }]}>➔</Text>
-        <Text style={[base, { flex: 1 }]}>{linha(linhas.join('\n'))}</Text>
+        <Text style={[base, { width: Math.round(tamanho * 1.2) }]}>{e.simboloSeta ?? '➔'}</Text>
+        <Text style={[base, { flex: 1 }]}>
+          {/* Com fundo, a cor fica só atrás das palavras, como o realce do documento */}
+          <Text style={e.fundo ? { backgroundColor: e.fundo } : undefined}>
+            {linha(e.autoDestaque ? destacarTudo(linhas.join('\n')) : linhas.join('\n'))}
+          </Text>
+        </Text>
       </View>
     );
   }
