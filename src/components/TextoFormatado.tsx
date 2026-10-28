@@ -10,9 +10,11 @@ type Props = {
   tamanho?: number;
   // No púlpito o quadro aparece sem a caixa: subtópico com ➔ e os pontos embaixo
   semMoldura?: boolean;
+  // Na folha larga a seta fica na margem e o texto começa alinhado com o tópico
+  setaNaMargem?: boolean;
 };
 
-export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }: Props) {
+export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false, setaNaMargem = false }: Props) {
   const e = estiloBloco[tipo];
   const base: TextStyle = {
     color: e.cor,
@@ -24,6 +26,9 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }
     textAlign: e.centralizado ? 'center' : 'left',
     fontFamily: fonteEsboco,
   };
+
+  const larguraSeta = Math.round(tamanho * 1.2);
+  const naMargem = setaNaMargem ? { marginLeft: -(larguraSeta + 8) } : null;
 
   const linha = (conteudo: string, corChave?: string) =>
     dividirDestaques(conteudo).map((p, i) => (
@@ -37,14 +42,14 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }
     // Os pontos começam embaixo da primeira letra do subtópico, depois da seta
     // A aplicação não leva seta: os pontos começam logo embaixo da frase
     const comSeta = !e.topo?.semSeta;
-    const recuo = comSeta ? Math.round(tamanho * 1.2) : 0;
+    const recuo = comSeta ? larguraSeta : 0;
     const topo: TextStyle = {
       color: e.topo?.cor,
       fontStyle: e.topo?.italico ? 'italic' : 'normal',
     };
     return (
       <View style={semMoldura ? { gap: 0 } : estilos.quadro}>
-        <View style={[estilos.item, { paddingLeft: 0 }, !semMoldura && estilos.quadroTopo]}>
+        <View style={[estilos.item, { paddingLeft: 0 }, !semMoldura && estilos.quadroTopo, comSeta && naMargem]}>
           {comSeta && <Text style={[base, { width: recuo }]}>➔</Text>}
           <Text style={[base, topo, { flex: 1 }]}>{linha(subtopico, e.topo?.corChave)}</Text>
         </View>
@@ -86,8 +91,8 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }
   // Com seta, as linhas de baixo começam embaixo da primeira letra, depois da seta
   if (e.seta) {
     return (
-      <View style={estilos.comSeta}>
-        <Text style={[base, { width: Math.round(tamanho * 1.2) }]}>{e.simboloSeta ?? '➔'}</Text>
+      <View style={[estilos.comSeta, naMargem]}>
+        <Text style={[base, { width: larguraSeta }]}>{e.simboloSeta ?? '➔'}</Text>
         <Text style={[base, { flex: 1 }]}>
           {/* Com fundo, a cor fica só atrás das palavras, como o realce do documento */}
           <Text style={e.fundo ? { backgroundColor: e.fundo } : undefined}>
@@ -120,7 +125,8 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }
 const estilos = StyleSheet.create({
   chave: { fontWeight: '700', textDecorationLine: 'underline' },
   item: { flexDirection: 'row', gap: 8, paddingLeft: 8 },
-  marcador: { fontStyle: 'normal' },
+  // As bolinhas são sempre pretas, como no documento
+  marcador: { fontStyle: 'normal', color: '#000000' },
   comSeta: { flexDirection: 'row', gap: 8 },
   linhas: { gap: 0 },
   quadro: {
