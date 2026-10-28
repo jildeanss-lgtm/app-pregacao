@@ -64,7 +64,14 @@ export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
   pergunta: { cor: coresPregacao.pergunta, italico: true, seta: true },
   palavra: { cor: coresPregacao.texto },
   saudacao: { cor: coresPregacao.texto },
-  objetivo: { cor: coresPregacao.texto },
+  // Objetivo no mesmo estilo do corpo: a frase em cima e os três objetivos embaixo
+  objetivo: {
+    cor: coresPregacao.texto,
+    quadro: true,
+    topo: { cor: coresPregacao.texto, corChave: coresPregacao.frase, nome: 'O objetivo deste sermão é' },
+    nomeItem: 'Objetivo',
+    autoDestaque: true,
+  },
   explicacao: { cor: coresPregacao.texto },
   exemplo: { cor: coresPregacao.texto },
   introducao: { cor: coresPregacao.texto },
@@ -76,7 +83,16 @@ export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
 
 // Blocos sem cor própria levam um rótulo pequeno no púlpito e no PDF (ex.: "Ilustração")
 const semCorPropria = new Set<TipoBloco>([
-  'saudacao', 'objetivo', 'introducao', 'explicacao', 'exemplo', 'ilustracao', 'aplicacao', 'conclusao', 'apelo', 'palavra',
+  'saudacao',
+  'objetivo',
+  'introducao',
+  'explicacao',
+  'exemplo',
+  'ilustracao',
+  'aplicacao',
+  'conclusao',
+  'apelo',
+  'palavra',
 ]);
 
 export function rotuloVisivel(b: { tipo: TipoBloco; rotulo?: string }) {

@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { TextoFormatado } from '../../components/TextoFormatado';
+import { CampoCrescente } from '../../components/CampoCrescente';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
 import { etapasDeEstudo, nomesEstudo } from '../../data/etapas';
 import { perguntasDaEtapa } from '../../data/roteiro';
@@ -80,6 +81,23 @@ export default function EditorTela() {
         <Text style={estilos.meta}>
           {modelo?.nome} · cerca de {minutosEstimados(sermao)} min
         </Text>
+
+        {sermao.iaPreparando ? (
+          <Cartao style={estilos.avisoIA}>
+            <Text style={estilos.textoAvisoIA}>
+              A IA está escrevendo o objetivo e a introdução a partir do seu estudo. Isso leva cerca de 1 minuto.
+            </Text>
+          </Cartao>
+        ) : sermao.iaErro ? (
+          <Cartao style={estilos.avisoIA}>
+            <Text style={estilos.textoAvisoIA}>{sermao.iaErro}</Text>
+            <Botao
+              titulo="Fechar aviso"
+              variante="contorno"
+              onPress={() => atualizar(sermao.id, (x) => ({ ...x, iaErro: undefined }))}
+            />
+          </Cartao>
+        ) : null}
 
         {anotacoes.length > 0 && (
           <Cartao style={{ gap: 8, backgroundColor: cores.apoioFundo }}>
@@ -284,7 +302,7 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
               ))}
             </View>
           ) : (
-            <TextInput
+            <CampoCrescente
               accessibilityLabel={rotulo}
               value={bloco.texto}
               onChangeText={onMudar}
@@ -295,7 +313,7 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
                 bloco.dica ?? dicas[bloco.tipo] ?? 'Escreva aqui. Use *asteriscos* para destacar palavras-chave'
               }
               placeholderTextColor={cores.textoSuave}
-              style={[estilos.entrada, { minHeight: 44 }]}
+              style={estilos.entrada}
             />
           )}
           <View style={estilos.linha}>
@@ -313,7 +331,7 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
           onPress={() => setEditando(true)}
           style={{ minHeight: 44, justifyContent: 'center' }}
         >
-          <TextoFormatado tipo={bloco.tipo} texto={bloco.texto} />
+          <TextoFormatado tipo={bloco.tipo} texto={bloco.texto} semMoldura />
         </Pressable>
       )}
     </Cartao>
@@ -329,6 +347,8 @@ function Acao({ rotulo, simbolo, onPress }: { rotulo: string; simbolo: string; o
 }
 
 const estilos = StyleSheet.create({
+  avisoIA: { gap: 8, borderColor: cores.destaque, borderWidth: 1 },
+  textoAvisoIA: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: cores.destaqueEscuro },
   conteudo: { padding: 20, gap: 12, paddingBottom: 48 },
   meta: { fontSize: 13, color: cores.textoSuave },
   entrada: { fontSize: 16, color: cores.texto, paddingVertical: 6 },
