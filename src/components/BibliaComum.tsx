@@ -253,7 +253,7 @@ const estilos = StyleSheet.create({
   seletor: {
     minHeight: 44,
     paddingHorizontal: 14,
-    borderRadius: 22,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: cores.bordaForte,
     backgroundColor: cores.cartao,
@@ -300,7 +300,7 @@ const estilos = StyleSheet.create({
     minHeight: 44,
     minWidth: 48,
     paddingHorizontal: 14,
-    borderRadius: 22,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: cores.bordaForte,
     backgroundColor: cores.cartao,

@@ -16,15 +16,16 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#FFFFFF',
-        tabBarInactiveTintColor: cores.textoSuave,
-        // A aba atual fica num bloco colorido, para ver de longe onde se está
-        tabBarActiveBackgroundColor: cores.destaque,
-        tabBarLabelStyle: { fontSize: 13, fontWeight: '700' },
+        // A aba atual fica em preto e as outras em cinza claro, sem fundo
+        tabBarActiveTintColor: cores.destaque,
+        tabBarInactiveTintColor: '#A3A3A3',
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         tabBarLabelPosition: 'below-icon',
-        tabBarItemStyle: { borderRadius: 14, marginHorizontal: 4, marginVertical: 4 },
-        tabBarStyle: { height: 72, paddingTop: 2, paddingBottom: 2, borderTopColor: cores.borda },
-        headerStyle: { backgroundColor: cores.fundo },
+        tabBarStyle: { height: 64, backgroundColor: cores.cartao, borderTopColor: cores.borda },
+        headerStyle: { backgroundColor: cores.cartao },
+        headerShadowVisible: false,
+        headerTitleStyle: { fontSize: 20, fontWeight: '700' },
+        headerTitleAlign: 'left',
         headerTintColor: cores.texto,
         sceneStyle: { backgroundColor: cores.fundo },
       }}

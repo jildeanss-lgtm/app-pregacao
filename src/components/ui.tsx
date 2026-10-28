@@ -28,7 +28,9 @@ export function Botao({ titulo, onPress, variante = 'principal', style, acessive
       <Text
         style={[
           estilos.textoBotao,
-          variante === 'principal' ? { color: '#FFFFFF' } : { color: variante === 'perigo' ? '#A33A2B' : cores.destaque },
+          variante === 'principal'
+            ? { color: '#FFFFFF' }
+            : { color: variante === 'perigo' ? '#A33A2B' : cores.destaque },
         ]}
       >
         {titulo}
@@ -48,13 +50,13 @@ export function Rotulo({ children }: { children: ReactNode }) {
 const estilos = StyleSheet.create({
   botao: {
     minHeight: 44,
-    paddingHorizontal: 16,
-    borderRadius: 22,
+    paddingHorizontal: 18,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   principal: { backgroundColor: cores.destaque },
-  contorno: { borderWidth: 1, borderColor: cores.destaque, backgroundColor: cores.cartao },
+  contorno: { borderWidth: 1, borderColor: cores.borda, backgroundColor: cores.cartao },
   perigo: { borderWidth: 1, borderColor: '#E4B4AC', backgroundColor: cores.cartao },
   textoBotao: { fontSize: 15, fontWeight: '600' },
   cartao: {
@@ -62,12 +64,12 @@ const estilos = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: cores.borda,
-    padding: 14,
+    padding: 16,
   },
   rotulo: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     color: cores.textoSuave,
     textTransform: 'uppercase',
   },

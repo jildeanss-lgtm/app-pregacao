@@ -27,10 +27,10 @@ export function BarraAbas({ atual = '/' }: { atual?: (typeof abas)[number]['cami
             accessibilityState={{ selected: ativa }}
             accessibilityLabel={a.titulo}
             onPress={() => router.navigate(a.caminho)}
-            style={[estilos.aba, ativa && { backgroundColor: cores.destaque }]}
+            style={estilos.aba}
           >
-            <Ionicons name={a.icone} size={24} color={ativa ? '#FFFFFF' : cores.textoSuave} />
-            <Text style={[estilos.texto, { color: ativa ? '#FFFFFF' : cores.textoSuave }]}>{a.titulo}</Text>
+            <Ionicons name={a.icone} size={24} color={ativa ? cores.destaque : '#A3A3A3'} />
+            <Text style={[estilos.texto, { color: ativa ? cores.destaque : '#A3A3A3' }]}>{a.titulo}</Text>
           </Pressable>
         );
       })}
@@ -41,12 +41,12 @@ export function BarraAbas({ atual = '/' }: { atual?: (typeof abas)[number]['cami
 const estilos = StyleSheet.create({
   barra: {
     flexDirection: 'row',
-    height: 72,
+    height: 64,
     paddingVertical: 4,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: cores.borda,
   },
   aba: { flex: 1, marginHorizontal: 4, borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  texto: { fontSize: 13, fontWeight: '700' },
+  texto: { fontSize: 11, fontWeight: '600' },
 });
