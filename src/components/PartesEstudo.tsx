@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { EtapaEstudo } from '../data/etapas';
@@ -60,7 +59,6 @@ export function ParteDoEstudo({
         <Cartao style={{ gap: 8 }}>
           <Rotulo>Literal ou figurado?</Rotulo>
           <Lista itens={sentidoFigurado} />
-          <Botao titulo="Consultar a biblioteca" variante="contorno" onPress={() => router.push('/biblioteca')} />
         </Cartao>
       )}
       <Anotacoes sermao={sermao} mudar={mudar} etapa={parte} nome={nome} />
