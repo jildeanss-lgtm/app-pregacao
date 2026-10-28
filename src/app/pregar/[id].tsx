@@ -1,7 +1,17 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+  type ScrollViewInstance,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TextoFormatado } from '../../components/TextoFormatado';
 import { nomesBloco } from '../../data/modelos';
@@ -28,6 +38,63 @@ function dividirEmPartes(blocos: Bloco[], tituloAbertura: string) {
 const larguraA4 = 794;
 const tamanhoLetra = 15;
 
+// Rolagem automática: velocidades em pixels da tela por segundo, da mais lenta à mais rápida
+const velocidades = [8, 12, 16, 22, 30, 40, 55, 75];
+const CHAVE_VELOCIDADE = 'pregar:velocidade';
+
+// Rola a folha sozinha enquanto está ligada. Se o pregador rolar com o dedo, a rolagem continua de onde ele parou
+function useRolagemAutomatica(rolagem: RefObject<ScrollViewInstance | null>) {
+  const [rolando, setRolando] = useState(false);
+  const [nivel, setNivel] = useState(2);
+  const posicao = useRef(0);
+  const alturas = useRef({ tela: 0, conteudo: 0 });
+
+  useEffect(() => {
+    AsyncStorage.getItem(CHAVE_VELOCIDADE).then((v) => {
+      if (v !== null && velocidades[Number(v)]) setNivel(Number(v));
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!rolando) return;
+    let quadro = 0;
+    let antes = 0;
+    const passo = (agora: number) => {
+      if (antes) {
+        const limite = Math.max(0, alturas.current.conteudo - alturas.current.tela);
+        posicao.current = Math.min(limite, posicao.current + (velocidades[nivel] * (agora - antes)) / 1000);
+        rolagem.current?.scrollTo({ y: posicao.current, animated: false });
+        // No fim da folha a rolagem para sozinha
+        if (posicao.current >= limite) return setRolando(false);
+      }
+      antes = agora;
+      quadro = requestAnimationFrame(passo);
+    };
+    quadro = requestAnimationFrame(passo);
+    return () => cancelAnimationFrame(quadro);
+  }, [rolando, nivel, rolagem]);
+
+  const mudarVelocidade = (delta: number) =>
+    setNivel((n) => {
+      const novo = Math.max(0, Math.min(velocidades.length - 1, n + delta));
+      AsyncStorage.setItem(CHAVE_VELOCIDADE, String(novo));
+      return novo;
+    });
+
+  return {
+    rolando,
+    nivel,
+    alternar: () => setRolando((v) => !v),
+    mudarVelocidade,
+    // A tela avisa onde a folha está; um salto maior que 2 px é o dedo do pregador
+    aoRolar: (y: number) => {
+      if (Math.abs(y - posicao.current) > 2) posicao.current = y;
+    },
+    medirTela: (altura: number) => (alturas.current.tela = altura),
+    medirConteudo: (altura: number) => (alturas.current.conteudo = altura),
+  };
+}
+
 function relogio(segundos: number) {
   const m = Math.floor(segundos / 60);
   const s = segundos % 60;
@@ -45,6 +112,8 @@ export default function PulpitoTela() {
   const [segundos, setSegundos] = useState(0);
   const [terminando, setTerminando] = useState(false);
   const [local, setLocal] = useState('');
+  const rolagem = useRef<ScrollViewInstance>(null);
+  const auto = useRolagemAutomatica(rolagem);
 
   useEffect(() => {
     const t = setInterval(() => setSegundos((s) => s + 1), 1000);
@@ -106,7 +175,15 @@ export default function PulpitoTela() {
         </View>
       ) : (
         // O sermão inteiro numa folha A4, como no Google Docs. No celular a folha toda é reduzida para caber na tela
-        <ScrollView style={estilos.mesa} contentContainerStyle={estilos.mesaConteudo}>
+        <ScrollView
+          ref={rolagem}
+          style={estilos.mesa}
+          contentContainerStyle={estilos.mesaConteudo}
+          scrollEventThrottle={16}
+          onScroll={(e) => auto.aoRolar(e.nativeEvent.contentOffset.y)}
+          onLayout={(e) => auto.medirTela(e.nativeEvent.layout.height)}
+          onContentSizeChange={(_, altura) => auto.medirConteudo(altura)}
+        >
           <View style={{ width: larguraA4 * escala, height: alturaFolha * escala }}>
             <View
               onLayout={(e) => setAlturaFolha(e.nativeEvent.layout.height)}
@@ -145,6 +222,39 @@ export default function PulpitoTela() {
           </View>
         </ScrollView>
       )}
+      {!terminando && (
+        <View style={estilos.controles}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Mais devagar"
+            onPress={() => auto.mudarVelocidade(-1)}
+            style={estilos.controle}
+          >
+            <Text style={estilos.textoControle}>−</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={auto.rolando ? 'Pausar rolagem' : 'Rolar sozinho'}
+            onPress={auto.alternar}
+            style={[estilos.controle, estilos.controlePrincipal]}
+          >
+            <Text style={[estilos.textoControle, { color: '#FFFFFF', fontSize: 15 }]}>
+              {auto.rolando ? '❚❚ Pausar' : '▶ Rolar'}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Mais rápido"
+            onPress={() => auto.mudarVelocidade(1)}
+            style={estilos.controle}
+          >
+            <Text style={estilos.textoControle}>+</Text>
+          </Pressable>
+          <Text style={estilos.velocidade}>
+            {auto.nivel + 1}/{velocidades.length}
+          </Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -173,6 +283,32 @@ const estilos = StyleSheet.create({
     paddingVertical: 72,
     gap: 18,
   },
+  // Botões da rolagem automática, flutuando no canto de baixo, longe do texto
+  controles: {
+    position: 'absolute',
+    right: 16,
+    bottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    padding: 6,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderWidth: 1,
+    borderColor: '#DADCE0',
+  },
+  controle: {
+    minWidth: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    backgroundColor: '#F1F3F4',
+  },
+  controlePrincipal: { backgroundColor: cores.destaque, paddingHorizontal: 16 },
+  textoControle: { fontSize: 20, fontWeight: '700', color: cores.texto },
+  velocidade: { fontSize: 12, color: cores.textoSuave, paddingRight: 6 },
   sair: { minHeight: 44, justifyContent: 'center' },
   relogio: { fontSize: 28, fontWeight: '700', color: cores.texto },
   suave: { fontSize: 15, color: cores.textoSuave },
