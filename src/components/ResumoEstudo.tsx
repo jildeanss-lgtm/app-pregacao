@@ -6,7 +6,7 @@ import { montarPedidoResumo, resumirComChave, useChave } from '../ia/estudo';
 import type { DadosEstudo } from '../store/sermoes';
 import { cores, fonteEsboco } from '../theme';
 import { CampoCrescente } from './CampoCrescente';
-import { Botao, Cartao, Rotulo } from './ui';
+import { Botao } from './ui';
 
 type Mudar = (mudar: (d: DadosEstudo) => DadosEstudo) => void;
 
@@ -16,6 +16,7 @@ export function ResumoEstudo({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mu
   const chave = useChave();
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState('');
+  const [copiado, setCopiado] = useState(false);
 
   if (!estudo.textoBase) {
     return <Text style={estilos.dica}>Escolha um texto na aba Bíblia para fazer o resumo do estudo.</Text>;
@@ -42,27 +43,25 @@ export function ResumoEstudo({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mu
 
   const copiar = async () => {
     await Clipboard.setStringAsync(await montarPedidoResumo(estudo));
+    setCopiado(true);
     setAviso('Pedido copiado. Cole no claude.ai, espere a resposta, copie tudo e cole no campo abaixo.');
   };
 
   return (
     <>
-      <Cartao style={estilos.cartao}>
-        <Rotulo>Resumo do estudo</Rotulo>
-        <Text style={estilos.dica}>
-          Junta tudo o que você estudou em {estudo.textoBase} num rascunho já em forma de sermão: tema, ideia central,
-          objetivo, introdução, três tópicos, conclusão e chamado. Serve de base para você montar o seu.
-        </Text>
-        {chave ? <Botao titulo={ocupado ? 'Resumindo...' : 'Gerar resumo com IA'} onPress={gerar} /> : null}
-        <Botao titulo="Copiar pedido para o Claude" variante={chave ? 'contorno' : 'principal'} onPress={copiar} />
-        <Botao
-          titulo="Abrir o claude.ai"
-          variante="contorno"
-          onPress={() => Linking.openURL('https://claude.ai/new')}
-        />
+      {/* Só o botão no topo: com a chave a IA resume no app; sem chave, copia o pedido para o claude.ai */}
+      <View style={estilos.topo}>
+        <Botao titulo={ocupado ? 'Resumindo...' : 'Gerar resumo'} onPress={() => (chave ? gerar() : copiar())} />
+        {copiado && (
+          <Botao
+            titulo="Abrir o claude.ai"
+            variante="contorno"
+            onPress={() => Linking.openURL('https://claude.ai/new')}
+          />
+        )}
         {ocupado && <ActivityIndicator color={cores.destaque} />}
         {aviso ? <Text style={estilos.aviso}>{aviso}</Text> : null}
-      </Cartao>
+      </View>
 
       <View style={estilos.folha}>
         <CampoCrescente
@@ -82,7 +81,7 @@ export function ResumoEstudo({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mu
 }
 
 const estilos = StyleSheet.create({
-  cartao: { gap: 10, borderColor: cores.destaque, borderWidth: 1 },
+  topo: { gap: 10 },
   dica: { fontSize: 14, lineHeight: 20, color: cores.textoSuave },
   aviso: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: cores.destaqueEscuro },
   // Folha branca, como um documento, com o rascunho do sermão
