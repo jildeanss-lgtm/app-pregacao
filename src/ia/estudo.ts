@@ -123,7 +123,7 @@ export function lerResultado(estudo: DadosEstudo, texto: string): ResultadoIA {
 }
 
 // Uma chamada ao Claude com a resposta presa ao esquema JSON; devolve o texto da resposta
-async function chamarClaude(chave: string, pedido: string, schema: Record<string, unknown>) {
+export async function chamarClaude(chave: string, pedido: string, schema: Record<string, unknown>) {
   const cliente = new Anthropic({ apiKey: chave, dangerouslyAllowBrowser: true });
   let resposta;
   try {
