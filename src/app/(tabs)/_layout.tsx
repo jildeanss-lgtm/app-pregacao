@@ -30,7 +30,10 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="biblia" options={{ title: 'Bíblia', tabBarIcon: icone('book', 'book-outline') }} />
-      <Tabs.Screen name="estudo" options={{ title: 'Estudar', tabBarIcon: icone('school', 'school-outline') }} />
+      <Tabs.Screen
+        name="estudo"
+        options={{ title: 'Estudar', headerShown: false, tabBarIcon: icone('school', 'school-outline') }}
+      />
       <Tabs.Screen name="index" options={{ title: 'Sermão', tabBarIcon: icone('create', 'create-outline') }} />
       <Tabs.Screen name="pregar" options={{ title: 'Pregar', tabBarIcon: icone('mic', 'mic-outline') }} />
     </Tabs>

@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, Text, TextInput, View } from 'react-native';
-import { guardarChave, lerChave, lerResultado, montarPedido, responderComChave, type ResultadoIA } from '../ia/estudo';
+import { guardarChave, lerResultado, montarPedido, responderComChave, useChave, type ResultadoIA } from '../ia/estudo';
 import type { DadosEstudo } from '../store/sermoes';
 import { cores } from '../theme';
 import { Botao, Cartao, Rotulo } from './ui';
@@ -15,17 +15,11 @@ type Mudar = (mudar: (d: DadosEstudo) => DadosEstudo) => void;
 // Anthropic, direto no app; sem chave, copiando o pedido para o claude.ai e colando a resposta de volta.
 // Só preenche as perguntas que ainda estão em branco
 export function AjudaIA({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mudar }) {
-  const [chave, setChave] = useState('');
-  const [editandoChave, setEditandoChave] = useState(false);
-  const [novaChave, setNovaChave] = useState('');
+  const chave = useChave();
   const [colando, setColando] = useState(false);
   const [colado, setColado] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState('');
-
-  useEffect(() => {
-    lerChave().then(setChave);
-  }, []);
 
   const aplicar = (r: ResultadoIA) => {
     let novas = 0;
@@ -82,14 +76,14 @@ export function AjudaIA({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mudar }
 
   return (
     <Cartao style={estilos.cartao}>
-      <Rotulo>Responder com IA</Rotulo>
+      <Rotulo>Responder Perguntas</Rotulo>
       <Text style={estilos.dica}>
         A IA responde todas as perguntas de Observação, Interpretação e Aplicação sobre {estudo.textoBase}, usando a
         perícope, o livro e a Bíblia como contexto, e sugere 4 temas para o sermão.
       </Text>
 
       {chave ? (
-        <Botao titulo={ocupado ? 'Estudando...' : 'Responder com IA'} onPress={() => !ocupado && responder()} />
+        <Botao titulo={ocupado ? 'Estudando...' : 'Responder Perguntas'} onPress={() => !ocupado && responder()} />
       ) : null}
       <Botao titulo="Copiar pedido para o Claude" variante={chave ? 'contorno' : 'principal'} onPress={copiar} />
       {ocupado && <ActivityIndicator color={cores.destaque} />}
@@ -115,7 +109,19 @@ export function AjudaIA({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mudar }
       )}
 
       {aviso ? <Text style={estilos.aviso}>{aviso}</Text> : null}
+    </Cartao>
+  );
+}
 
+// Chave da Anthropic, no fim da página: guardar, trocar ou remover. Fica só neste aparelho
+export function ChaveIA() {
+  const chave = useChave();
+  const [editandoChave, setEditandoChave] = useState(false);
+  const [novaChave, setNovaChave] = useState('');
+  const [aviso, setAviso] = useState('');
+
+  return (
+    <View style={estilos.chave}>
       {editandoChave ? (
         <View style={{ gap: 8 }}>
           <Text style={estilos.dica}>
@@ -145,7 +151,6 @@ export function AjudaIA({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mudar }
                   setAviso('Isso não parece uma chave da Anthropic: ela começa com sk-ant-. Copie de novo no console.');
                   return;
                 }
-                setChave(c);
                 guardarChave(c);
                 setNovaChave('');
                 setEditandoChave(false);
@@ -158,7 +163,6 @@ export function AjudaIA({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mudar }
                 titulo="Remover"
                 variante="perigo"
                 onPress={() => {
-                  setChave('');
                   guardarChave('');
                   setNovaChave('');
                   setEditandoChave(false);
@@ -182,7 +186,8 @@ export function AjudaIA({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mudar }
             : 'Tenho uma chave da Anthropic (opcional)'}
         </Text>
       )}
-    </Cartao>
+      {aviso ? <Text style={estilos.aviso}>{aviso}</Text> : null}
+    </View>
   );
 }
 
@@ -201,5 +206,6 @@ const estilos = StyleSheet.create({
     backgroundColor: cores.fundo,
     textAlignVertical: 'top',
   },
+  chave: { gap: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: cores.borda },
   link: { fontSize: 14, fontWeight: '600', color: cores.destaque, paddingVertical: 6 },
 });
