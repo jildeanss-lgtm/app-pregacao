@@ -179,7 +179,7 @@ const estilos = StyleSheet.create({
   pilula: {
     minHeight: 44,
     paddingHorizontal: 12,
-    borderRadius: 22,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: cores.borda,
     backgroundColor: cores.cartao,

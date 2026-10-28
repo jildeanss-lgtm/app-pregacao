@@ -14,7 +14,7 @@ import { generos, sugerirGenero, type Genero } from '../data/roteiro';
 import { ETAPA_MONTAGEM } from '../data/etapas';
 import { lerChave, prepararSermao, textoDosVersiculos } from '../ia/estudo';
 import { useSermoes } from '../store/sermoes';
-import { cores } from '../theme';
+import { cores, larguraConteudo } from '../theme';
 
 function hoje() {
   const d = new Date();
@@ -271,7 +271,7 @@ function Escolha({
 }
 
 const estilos = StyleSheet.create({
-  conteudo: { padding: 20, gap: 12, paddingBottom: 48 },
+  conteudo: { padding: 20, gap: 12, paddingBottom: 48, ...larguraConteudo },
   entrada: { fontSize: 16, color: cores.texto, paddingVertical: 6 },
   linha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   titulo: { fontSize: 16, fontWeight: '600', color: cores.texto },
@@ -281,7 +281,7 @@ const estilos = StyleSheet.create({
   pilula: {
     minHeight: 44,
     paddingHorizontal: 12,
-    borderRadius: 22,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: cores.borda,
     justifyContent: 'center',

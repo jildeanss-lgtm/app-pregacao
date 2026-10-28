@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { modelos } from '../data/modelos';
 import { minutosEstimados, useSermoes, type Sermao } from '../store/sermoes';
-import { cores } from '../theme';
+import { cores, larguraConteudo } from '../theme';
 import { Botao, Cartao } from './ui';
 
 // Lista de sermões usada nas abas Estudo, Sermões e Pregar; cada aba decide o que abrir
@@ -65,7 +65,7 @@ export function ListaSermoes({
 }
 
 const estilos = StyleSheet.create({
-  lista: { padding: 20 },
+  lista: { padding: 20, ...larguraConteudo },
   titulo: { fontSize: 17, fontWeight: '600', color: cores.texto },
   etapa: { fontSize: 13, fontWeight: '600', color: cores.destaque, marginTop: 4 },
   suave: { fontSize: 14, color: cores.textoSuave, marginTop: 2 },

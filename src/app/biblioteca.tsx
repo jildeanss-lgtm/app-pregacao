@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { Cartao, Rotulo } from '../components/ui';
 import { useSermoes } from '../store/sermoes';
-import { cores } from '../theme';
+import { cores, larguraConteudo } from '../theme';
 
 // Pastas da biblioteca pessoal no Google Drive. A leitura e a busca nos livros
 // entram quando a conexão com o Google for implementada; os livros nunca são
@@ -46,7 +46,7 @@ export default function BibliotecaTela() {
 }
 
 const estilos = StyleSheet.create({
-  conteudo: { padding: 20, gap: 10, paddingBottom: 48 },
+  conteudo: { padding: 20, gap: 10, paddingBottom: 48, ...larguraConteudo },
   titulo: { fontSize: 16, fontWeight: '600', color: cores.texto },
   suave: { fontSize: 14, color: cores.textoSuave, marginTop: 2 },
 });
