@@ -7,7 +7,6 @@ import { carregarLexicoGrego, carregarLivroGrego, livrosNT, type CodigoLivroNT }
 import { descreverMorfologia } from '../data/grego/morfologia';
 import { carregarLexicoHebraico, carregarLivroHebraico, livrosAT, type CodigoLivroAT } from '../data/hebraico';
 import { descreverMorfologiaHebraica } from '../data/hebraico/morfologia';
-import { pericopeDe } from '../data/pericope';
 import { carregarTexto, livros, type CodigoLivro } from '../data/portugues';
 import { referenciaDoTexto } from '../data/roteiro';
 import type { Lexico, PalavraOriginal } from '../data/tipos';
@@ -53,8 +52,7 @@ const nomeRef = (r: string) => {
   return `${livros.find((l) => l.codigo === c)?.nome ?? c} ${cap}:${ver}`;
 };
 
-// Aba Estudo: o texto escolhido na aba Bíblia, dentro da sua perícope (escolhido em vermelho), com o
-// hebraico ou grego embaixo. Tocar numa palavra do português leva à palavra original
+// Aba Estudo: só o texto escolhido na aba Bíblia, com o hebraico ou grego embaixo. Tocar numa palavra do português leva à palavra original
 export function LeitorBiblia() {
   const { estudo } = useSermoes();
   const escolhido = referenciaDoTexto(estudo.textoBase);
@@ -95,10 +93,7 @@ export function LeitorBiblia() {
   const total = Math.max(portugues.length, original.length);
   const de = outro ? undefined : escolhido.de;
   const ate = outro ? undefined : (escolhido.ate ?? escolhido.de);
-  const pericope = de && total ? pericopeDe(codigo, cap, de, ate ?? de, total) : undefined;
-  const versos = Array.from({ length: total }, (_, i) => i + 1).filter(
-    (v) => !pericope || (v >= pericope.de && v <= pericope.ate),
-  );
+  const versos = Array.from({ length: total }, (_, i) => i + 1).filter((v) => !de || (v >= de && v <= (ate ?? de)));
 
   const palavra = selecao && selecao.original >= 0 ? original[selecao.ver - 1]?.[selecao.original] : undefined;
   const nomeLingua = hebraico ? 'hebraico' : 'grego';
@@ -117,14 +112,12 @@ export function LeitorBiblia() {
             }}
           />
         ) : null}
-        <Text style={estilos.titulo}>
-          {pericope ? `Perícope: ${livro.nome} ${cap}:${pericope.de}-${pericope.ate}` : `${livro.nome} ${cap}`}
-        </Text>
+        <Text style={estilos.titulo}>{de ? estudo.textoBase : `${livro.nome} ${cap}`}</Text>
         {original.length > 0 && (
           <View style={{ gap: 4 }}>
             <Text style={estilos.dica}>
               Toque numa palavra em português para ver a palavra original no {nomeLingua}, o significado e onde mais ela
-              aparece.{pericope ? ' Em vermelho, o texto escolhido.' : ''}
+              aparece.
             </Text>
             <Pressable
               accessibilityRole="switch"

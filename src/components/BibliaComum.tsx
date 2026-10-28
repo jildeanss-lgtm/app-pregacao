@@ -1,6 +1,15 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { coresPregacao } from '../estilo';
 import { carregarTexto, livros, type CodigoLivro } from '../data/portugues';
 import { referenciaDoTexto, sugerirGenero } from '../data/roteiro';
@@ -23,6 +32,7 @@ export function BibliaComum({ sermaoId }: { sermaoId?: string }) {
   const [testamento, setTestamento] = useState<Testamento>(livro.testamento);
   const [versos, setVersos] = useState<{ chave: string; lista: string[] }>();
   const [aviso, setAviso] = useState('');
+  const largo = useWindowDimensions().width >= 900;
 
   useEffect(() => {
     let ativo = true;
@@ -56,6 +66,21 @@ export function BibliaComum({ sermaoId }: { sermaoId?: string }) {
           .map((t, i) => `${de + i} ${t}`)
           .join(' ')
       : '';
+
+  const notas = (
+    <View style={[estilos.notas, largo && estilos.notasLado]}>
+      <Text style={estilos.tituloNotas}>Anotações</Text>
+      <TextInput
+        accessibilityLabel="Anotações da leitura"
+        multiline
+        placeholder="Escreva aqui o que chamou sua atenção na leitura..."
+        placeholderTextColor={cores.textoSuave}
+        value={estudo.notasBiblia ?? ''}
+        onChangeText={(t) => mudarEstudo((e) => ({ ...e, notasBiblia: t }))}
+        style={[estilos.campoNotas, largo && { flex: 1 }]}
+      />
+    </View>
+  );
 
   return (
     <View style={{ flex: 1 }}>
@@ -127,37 +152,45 @@ export function BibliaComum({ sermaoId }: { sermaoId?: string }) {
           )}
         </ScrollView>
       ) : (
-        <ScrollView key={`${codigo}-${cap}`} contentContainerStyle={estilos.conteudo}>
-          <Text style={estilos.titulo}>
-            {livro.nome} {cap}
-          </Text>
-          {!lista ? (
-            <ActivityIndicator color={cores.destaque} />
-          ) : (
-            <Text style={estilos.texto}>
-              {lista.map((t, i) => {
-                const n = i + 1;
-                const marcado = !!de && !!ate && n >= de && n <= ate;
-                return (
-                  <Text
-                    key={n}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Versículo ${n}`}
-                    onPress={() => escolherVerso(n)}
-                    style={marcado ? estilos.marcado : undefined}
-                  >
-                    <Text style={estilos.numero}>{n} </Text>
-                    {t}{' '}
-                  </Text>
-                );
-              })}
+        <View style={[{ flex: 1 }, largo && estilos.colunas]}>
+          <ScrollView
+            key={`${codigo}-${cap}`}
+            style={largo ? estilos.colunaTexto : undefined}
+            contentContainerStyle={[estilos.conteudo, largo && estilos.conteudoLado]}
+          >
+            <Text style={estilos.titulo}>
+              {livro.nome} {cap}
             </Text>
-          )}
-          <Text style={estilos.creditos}>
-            Toque num versículo para estudá-lo; toque em outro depois dele para escolher o trecho. Texto: Bíblia Livre
-            (BLIVRE), © Diego Santos, Mario Sérgio e Marco Teles, 2018, licença CC BY 4.0 Brasil.
-          </Text>
-        </ScrollView>
+            {!lista ? (
+              <ActivityIndicator color={cores.destaque} />
+            ) : (
+              <Text style={estilos.texto}>
+                {lista.map((t, i) => {
+                  const n = i + 1;
+                  const marcado = !!de && !!ate && n >= de && n <= ate;
+                  return (
+                    <Text
+                      key={n}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Versículo ${n}`}
+                      onPress={() => escolherVerso(n)}
+                      style={marcado ? estilos.marcado : undefined}
+                    >
+                      <Text style={estilos.numero}>{n} </Text>
+                      {t}{' '}
+                    </Text>
+                  );
+                })}
+              </Text>
+            )}
+            <Text style={estilos.creditos}>
+              Toque num versículo para estudá-lo; toque em outro depois dele para escolher o trecho. Texto: Bíblia Livre
+              (BLIVRE), © Diego Santos, Mario Sérgio e Marco Teles, 2018, licença CC BY 4.0 Brasil.
+            </Text>
+            {!largo && notas}
+          </ScrollView>
+          {largo && notas}
+        </View>
       )}
 
       {de && !escolhendo ? (
@@ -230,6 +263,24 @@ const estilos = StyleSheet.create({
   grade: { padding: 20, gap: 12 },
   linha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   conteudo: { padding: 20, gap: 12, paddingBottom: 48, maxWidth: 760, width: '100%', alignSelf: 'center' },
+  colunas: { flexDirection: 'row' },
+  colunaTexto: { width: '62%', flexGrow: 0 },
+  conteudoLado: { maxWidth: undefined, alignSelf: 'stretch' },
+  notas: { gap: 8, marginTop: 16 },
+  notasLado: { width: '38%', marginTop: 0, padding: 20, borderLeftWidth: 1, borderLeftColor: cores.borda },
+  tituloNotas: { fontSize: 16, fontWeight: '700', color: cores.texto },
+  campoNotas: {
+    minHeight: 200,
+    borderWidth: 1,
+    borderColor: cores.bordaForte,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 16,
+    lineHeight: 24,
+    color: cores.texto,
+    backgroundColor: cores.cartao,
+    textAlignVertical: 'top',
+  },
   titulo: { fontSize: 22, fontWeight: '700', color: cores.texto },
   texto: { fontFamily: fonteBiblia, fontSize: 19, lineHeight: 32, color: cores.texto },
   numero: { fontSize: 12, fontWeight: '700', color: cores.destaque },

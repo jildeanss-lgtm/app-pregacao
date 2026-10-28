@@ -279,11 +279,7 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
                   onSelectionChange={(e) => setSelecao(e.nativeEvent.selection)}
                   placeholder={i === 0 ? nomeTopo : `${nomeItem} ${i}`}
                   placeholderTextColor={cores.textoSuave}
-                  style={[
-                    estilos.entrada,
-                    estilos.linhaQuadro,
-                    i === 0 ? estilos.topoQuadro : i > 1 && estilos.divisoria,
-                  ]}
+                  style={[estilos.entrada, estilos.linhaQuadro, i === 0 ? estilos.topoQuadro : estilos.itemQuadro]}
                 />
               ))}
             </View>
@@ -349,10 +345,11 @@ const estilos = StyleSheet.create({
   },
   textoChip: { fontSize: 15, fontWeight: '600' },
   cabecalhoBloco: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  quadro: { borderWidth: 1.5, borderColor: '#000000', borderRadius: 6, overflow: 'hidden' },
-  linhaQuadro: { paddingHorizontal: 10, minHeight: 44 },
-  topoQuadro: { backgroundColor: '#F1EFE9', borderBottomWidth: 1.5, borderColor: '#000000' },
-  divisoria: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#999999' },
+  // Corpo sem molduras: o subtópico em negrito e os pontos recuados embaixo
+  quadro: { gap: 2 },
+  linhaQuadro: { minHeight: 40 },
+  topoQuadro: { fontWeight: '700' },
+  itemQuadro: { paddingLeft: 16 },
   tituloEstudo: { fontSize: 13, fontWeight: '700', color: cores.apoioTexto },
   textoEstudo: { fontSize: 15, lineHeight: 21, color: cores.texto },
   acao: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
