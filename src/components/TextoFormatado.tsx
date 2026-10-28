@@ -50,7 +50,7 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false, 
     return (
       <View style={semMoldura ? { gap: 0 } : estilos.quadro}>
         <View style={[estilos.item, { paddingLeft: 0 }, !semMoldura && estilos.quadroTopo, comSeta && naMargem]}>
-          {comSeta && <Text style={[base, { width: recuo }]}>➔</Text>}
+          {comSeta && <Text style={[base, estilos.seta, { width: recuo }]}>➔</Text>}
           <Text style={[base, topo, { flex: 1 }]}>{linha(subtopico, e.topo?.corChave)}</Text>
         </View>
         {pontos.map((l, i) => (
@@ -92,7 +92,7 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false, 
   if (e.seta) {
     return (
       <View style={[estilos.comSeta, naMargem]}>
-        <Text style={[base, { width: larguraSeta }]}>{e.simboloSeta ?? '➔'}</Text>
+        <Text style={[base, estilos.seta, { width: larguraSeta }]}>{e.simboloSeta ?? '➔'}</Text>
         <Text style={[base, { flex: 1 }]}>
           {/* Com fundo, a cor fica só atrás das palavras, como o realce do documento */}
           <Text style={e.fundo ? { backgroundColor: e.fundo } : undefined}>
@@ -127,6 +127,8 @@ const estilos = StyleSheet.create({
   item: { flexDirection: 'row', gap: 8, paddingLeft: 8 },
   // As bolinhas são sempre pretas, como no documento
   marcador: { fontStyle: 'normal', color: '#000000' },
+  // As setas são pretas e em negrito
+  seta: { fontStyle: 'normal', fontWeight: '700', color: '#000000' },
   comSeta: { flexDirection: 'row', gap: 8 },
   linhas: { gap: 0 },
   quadro: {

@@ -61,9 +61,9 @@ export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
   quadroPerguntas: {
     cor: coresPregacao.texto,
     quadro: true,
+    // Só a pergunta fica em azul claro; os pontos embaixo são pretos, como no Texto
     topo: { cor: coresPregacao.pergunta, italico: true, corChave: coresPregacao.pergunta, nome: 'Pergunta' },
     nomeItem: 'Ponto',
-    itensComoTopo: true,
     autoDestaque: true,
   },
   frase: { cor: coresPregacao.frase, seta: true },
@@ -148,9 +148,19 @@ export function linhasDoBloco(texto: string) {
 // Quadro: 1ª linha é o subtópico, as demais são os pontos
 export const pontosDoQuadro = 3;
 
+// O subtópico pode ter mais de uma linha (Enter): elas ficam juntas na 1ª linha, separadas por este caractere
+export const quebraNoTopo = '\u2028';
+
 export function dividirQuadro(texto: string) {
   const [subtopico = '', ...resto] = texto.split('\n');
-  return { subtopico: subtopico.trim(), pontos: linhasDoBloco(resto.join('\n')) };
+  return {
+    subtopico: subtopico
+      .split(quebraNoTopo)
+      .map((l) => l.trim())
+      .join('\n')
+      .trim(),
+    pontos: linhasDoBloco(resto.join('\n')),
+  };
 }
 
 // Palavras em MAIÚSCULAS (2 letras ou mais) já viram palavra-chave, sem precisar de asteriscos

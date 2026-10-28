@@ -81,7 +81,7 @@ export function htmlDoSermao(s: Sermao) {
   .quadro { width: 100%; border-collapse: collapse; border: 1.5pt solid #000; margin: 8pt 0; }
   .quadro th { text-align: left; font-weight: normal; background: #F1EFE9; border-bottom: 1.5pt solid #000; padding: 4pt 8pt; }
   .quadro td { border-top: 0.5pt solid #999; padding: 4pt 8pt 4pt calc(8pt + 1.5em); }
-  .seta { display: inline-block; width: 1.5em; text-indent: 0; }
+  .seta { display: inline-block; width: 1.5em; text-indent: 0; font-weight: bold; font-style: normal; color: #000; }
   .seta-bloco { padding-left: 1.5em; text-indent: -1.5em; }
   .rotulo { font-size: 9pt; font-weight: bold; color: #5B6470; text-transform: uppercase; letter-spacing: 0.5pt; }
 </style></head>

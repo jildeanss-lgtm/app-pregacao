@@ -7,7 +7,7 @@ import { Botao, Cartao, Rotulo } from '../../components/ui';
 import { etapasDeEstudo, nomesEstudo } from '../../data/etapas';
 import { perguntasDaEtapa } from '../../data/roteiro';
 import { modelos, nomesBloco, type TipoBloco } from '../../data/modelos';
-import { coresPregacao, estiloBloco, pontosDoQuadro } from '../../estilo';
+import { coresPregacao, estiloBloco, pontosDoQuadro, quebraNoTopo } from '../../estilo';
 import { exportarPdf } from '../../lib/pdf';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
 import { cores } from '../../theme';
@@ -263,7 +263,8 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
   const mudarCampo = (i: number, texto: string) => {
     if (!ehQuadro) return onMudar(texto);
     const novos = [...campos];
-    novos[i] = texto.replace(/\n/g, ' ');
+    // No subtópico o Enter abre outra linha; nos pontos não
+    novos[i] = i === 0 ? texto.replace(/\n/g, quebraNoTopo) : texto.replace(/\n/g, ' ');
     onMudar(novos.join('\n'));
   };
 
@@ -289,19 +290,34 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
         <>
           {ehQuadro ? (
             <View style={estilos.quadro}>
-              {campos.map((valor, i) => (
-                <TextInput
-                  key={i}
-                  accessibilityLabel={i === 0 ? nomeTopo : `${nomeItem} ${i}`}
-                  value={valor}
-                  onChangeText={(t) => mudarCampo(i, t)}
-                  onFocus={() => setCampo(i)}
-                  onSelectionChange={(e) => setSelecao(e.nativeEvent.selection)}
-                  placeholder={i === 0 ? nomeTopo : `${nomeItem} ${i}`}
-                  placeholderTextColor={cores.textoSuave}
-                  style={[estilos.entrada, estilos.linhaQuadro, i === 0 ? estilos.topoQuadro : estilos.itemQuadro]}
-                />
-              ))}
+              {campos.map((valor, i) =>
+                i === 0 ? (
+                  <CampoCrescente
+                    key={i}
+                    accessibilityLabel={nomeTopo}
+                    value={valor.split(quebraNoTopo).join('\n')}
+                    onChangeText={(t) => mudarCampo(i, t)}
+                    onFocus={() => setCampo(i)}
+                    onSelectionChange={(e) => setSelecao(e.nativeEvent.selection)}
+                    placeholder={`${nomeTopo} (Enter para outra linha)`}
+                    placeholderTextColor={cores.textoSuave}
+                    alturaMinima={40}
+                    style={[estilos.entrada, estilos.topoQuadro]}
+                  />
+                ) : (
+                  <TextInput
+                    key={i}
+                    accessibilityLabel={i === 0 ? nomeTopo : `${nomeItem} ${i}`}
+                    value={valor}
+                    onChangeText={(t) => mudarCampo(i, t)}
+                    onFocus={() => setCampo(i)}
+                    onSelectionChange={(e) => setSelecao(e.nativeEvent.selection)}
+                    placeholder={i === 0 ? nomeTopo : `${nomeItem} ${i}`}
+                    placeholderTextColor={cores.textoSuave}
+                    style={[estilos.entrada, estilos.linhaQuadro, estilos.itemQuadro]}
+                  />
+                ),
+              )}
             </View>
           ) : (
             <CampoCrescente
