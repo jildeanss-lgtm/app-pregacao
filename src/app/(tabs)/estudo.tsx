@@ -1,12 +1,12 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AjudaIA, ChaveIA } from '../../components/AjudaIA';
+import { etapasEstudar } from '../../components/BarraAbas';
 import { LeitorBiblia } from '../../components/LeitorBiblia';
 import { PesquisaBiblioteca } from '../../components/PesquisaBiblioteca';
 import { ResumoEstudo } from '../../components/ResumoEstudo';
-import { ParteDoEstudo, partesDoEstudo } from '../../components/PartesEstudo';
+import { ParteDoEstudo } from '../../components/PartesEstudo';
 import { generos, sugerirGenero } from '../../data/roteiro';
 import { nomesEstudo, type EtapaEstudo } from '../../data/etapas';
 import { Botao } from '../../components/ui';
@@ -19,47 +19,27 @@ type Aba = 'texto' | EtapaEstudo | 'biblioteca' | 'resumo';
 // (que a IA pode responder) e, no fim, o botão que cria o sermão
 export default function EstudoAba() {
   const { estudo, mudarEstudo } = useSermoes();
-  const [aba, setAba] = useState<Aba>('texto');
+  // A etapa vem da barra de baixo (/estudo?etapa=observacao)
+  const { etapa } = useLocalSearchParams<{ etapa?: Aba }>();
+  const aba: Aba = etapasEstudar.some((e) => e.id === etapa) ? etapa! : 'texto';
+  const numero = etapasEstudar.findIndex((e) => e.id === aba) + 1;
   const insets = useSafeAreaInsets();
   const genero = estudo.textoBase
     ? generos.find((g) => g.id === (estudo.genero ?? sugerirGenero(estudo.textoBase)))?.nome
     : undefined;
-  const abas: { id: Aba; nome: string }[] = [
-    { id: 'texto', nome: 'Texto' },
-    ...partesDoEstudo.map((p) => ({ id: p, nome: nomesEstudo[p] })),
-    { id: 'biblioteca', nome: 'Biblioteca' },
-    { id: 'resumo', nome: 'Resumo' },
-  ];
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Cabeçalho: o texto em estudo em destaque e as etapas numeradas logo abaixo */}
+      {/* Cabeçalho: a etapa atual e o texto em estudo em destaque; as etapas ficam na barra de baixo */}
       <View style={[estilos.cabecalho, { paddingTop: insets.top + 18 }]}>
-        <Text style={estilos.sobretitulo}>ESTUDO BÍBLICO</Text>
+        <Text style={estilos.sobretitulo}>
+          ETAPA {numero} · {etapasEstudar[numero - 1].titulo.toUpperCase()}
+        </Text>
         <View style={estilos.linhaTitulo}>
           <Text style={estilos.titulo}>{estudo.textoBase || 'Escolha um texto na Bíblia'}</Text>
         </View>
         {genero ? <Text style={estilos.subtitulo}>{genero}</Text> : null}
       </View>
-      <View style={estilos.etapas}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={estilos.linha}>
-          {abas.map((a, i) => (
-            <Pressable
-              key={a.id}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: aba === a.id }}
-              onPress={() => setAba(a.id)}
-              style={[estilos.etapa, aba === a.id && estilos.etapaAtiva]}
-            >
-              <View style={[estilos.numero, aba === a.id && estilos.numeroAtivo]}>
-                <Text style={[estilos.textoNumero, aba === a.id && { color: '#FFFFFF' }]}>{i + 1}</Text>
-              </View>
-              <Text style={[estilos.textoEtapa, aba === a.id && estilos.textoEtapaAtiva]}>{a.nome}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
-
       {aba === 'texto' ? (
         <LeitorBiblia />
       ) : aba === 'biblioteca' ? (
@@ -91,29 +71,5 @@ const estilos = StyleSheet.create({
   linhaTitulo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   titulo: { fontSize: 26, fontWeight: '700', color: cores.texto, flexShrink: 1 },
   subtitulo: { fontSize: 14, color: cores.textoSuave },
-  etapas: { backgroundColor: cores.cartao, borderBottomWidth: 1, borderBottomColor: cores.borda },
-  linha: { flexDirection: 'row', gap: 4, paddingHorizontal: 12 },
-  etapa: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 10,
-    minHeight: 48,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  etapaAtiva: { borderBottomColor: cores.destaque },
-  numero: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: cores.neutroFundo,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  numeroAtivo: { backgroundColor: cores.destaque },
-  textoNumero: { fontSize: 12, fontWeight: '700', color: cores.textoSuave },
-  textoEtapa: { fontSize: 15, fontWeight: '600', color: cores.textoSuave },
-  textoEtapaAtiva: { color: cores.destaque },
   conteudo: { padding: 20, gap: 12, paddingBottom: 48, maxWidth: 760, width: '100%', alignSelf: 'center' },
 });

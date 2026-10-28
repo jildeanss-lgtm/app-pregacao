@@ -33,7 +33,7 @@ export default function BibliotecaTela() {
           ))
         )}
       </ScrollView>
-      <BarraAbas atual="/estudo" />
+      <BarraAbas atual="/estudo" etapa="biblioteca" />
     </View>
   );
 }
