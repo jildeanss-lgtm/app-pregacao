@@ -25,8 +25,8 @@ export type EstiloBloco = {
   lista?: boolean;
   // Caixa com o subtópico na linha de cima e os pontos embaixo
   quadro?: boolean;
-  // Cor e ênfase das linhas de baixo do quadro, quando diferem do subtópico
-  itens?: { cor: string; italico?: boolean };
+  // Linha de cima do quadro: cor, itálico e cor das palavras-chave
+  topo?: { cor: string; italico?: boolean; corChave: string; nome: string };
   nomeItem?: string;
   // Sem destaque à mão, todas as palavras (menos conectivos) viram palavra-chave
   autoDestaque?: boolean;
@@ -37,12 +37,19 @@ export type EstiloBloco = {
 export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
   topico: { cor: coresPregacao.texto, fundo: coresPregacao.fundoTopico },
   subtopico: { cor: coresPregacao.texto, seta: true },
-  quadro: { cor: coresPregacao.texto, quadro: true, nomeItem: 'Ponto', autoDestaque: true },
+  quadro: {
+    cor: coresPregacao.texto,
+    quadro: true,
+    topo: { cor: coresPregacao.texto, corChave: coresPregacao.frase, nome: 'Subtópico' },
+    nomeItem: 'Ponto',
+    autoDestaque: true,
+  },
   quadroPerguntas: {
     cor: coresPregacao.texto,
     quadro: true,
-    itens: { cor: coresPregacao.pergunta, italico: true },
-    nomeItem: 'Pergunta',
+    topo: { cor: coresPregacao.pergunta, italico: true, corChave: coresPregacao.pergunta, nome: 'Pergunta' },
+    nomeItem: 'Ponto',
+    autoDestaque: true,
   },
   frase: { cor: coresPregacao.frase, seta: true },
   pontos: { cor: coresPregacao.texto, lista: true, autoDestaque: true },
@@ -103,7 +110,11 @@ export function dividirQuadro(texto: string) {
 
 // Palavras em MAIÚSCULAS (2 letras ou mais) já viram palavra-chave, sem precisar de asteriscos
 export function marcarMaiusculas(texto: string) {
-  return texto.replace(/(?<![\p{L}*])(\p{Lu}{2,})(?![\p{L}*])/gu, '*$1*');
+  // Trechos já entre asteriscos (ex.: *PAZ DO SENHOR*) ficam como estão
+  return texto
+    .split(/(\*[^*\n]+\*)/)
+    .map((parte, i) => (i % 2 ? parte : parte.replace(/(?<!\p{L})(\p{Lu}{2,})(?!\p{L})/gu, '*$1*')))
+    .join('');
 }
 
 // Palavras pequenas que ficam fora do destaque automático

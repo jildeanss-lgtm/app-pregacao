@@ -17,7 +17,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="novo" options={{ title: 'Novo sermão' }} />
         <Stack.Screen name="sermao/[id]" options={{ title: 'Sermão' }} />
-        <Stack.Screen name="estudo/[id]" options={{ title: 'Roteiro de estudo' }} />
+        <Stack.Screen name="estudo/[id]" options={{ title: 'Estudo' }} />
         <Stack.Screen name="pregar/[id]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
       </Stack>
     </SermoesProvider>

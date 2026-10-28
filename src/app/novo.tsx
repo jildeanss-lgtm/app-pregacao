@@ -48,9 +48,10 @@ export default function NovoSermaoTela() {
       culto,
       data,
       genero,
+      etapa: 0,
       blocos: montarBlocos({ modelo, textoBase, objetivo, introducao, comSaudacao }),
     });
-    router.replace(`/sermao/${s.id}`);
+    router.replace(`/estudo/${s.id}`);
   };
 
   return (
@@ -156,7 +157,7 @@ export default function NovoSermaoTela() {
             </Pressable>
           ))}
         </View>
-        <Text style={estilos.suave}>Usado no roteiro de estudo do sermão (observação e interpretação).</Text>
+        <Text style={estilos.suave}>Usado no estudo do texto, na etapa de observação.</Text>
       </Cartao>
 
       <Cartao style={[estilos.linha, { alignItems: 'center', justifyContent: 'space-between' }]}>

@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { BlocoInicial, Modelo, TipoBloco } from '../data/modelos';
+import type { EtapaEstudo } from '../data/etapas';
 import type { Genero } from '../data/roteiro';
 
 export type Bloco = {
@@ -26,7 +27,10 @@ export type Sermao = {
   culto?: string;
   data?: string;
   genero?: Genero;
-  // Anotações do roteiro de estudo (observação e interpretação)
+  // Etapa em que o sermão parou (ver data/etapas) e as anotações de cada etapa do estudo
+  etapa?: number;
+  anotacoes?: Partial<Record<EtapaEstudo, string>>;
+  // Anotações da versão antiga do roteiro, mostradas na observação
   estudo?: string;
   blocos: Bloco[];
   pregacoes: Pregacao[];
@@ -46,6 +50,7 @@ export type NovoSermao = {
   culto: string;
   data: string;
   genero?: Genero;
+  etapa?: number;
   blocos: BlocoInicial[];
 };
 
