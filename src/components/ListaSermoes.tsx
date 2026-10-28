@@ -1,6 +1,5 @@
 import { router } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { etapaAtual, etapas } from '../data/etapas';
 import { modelos } from '../data/modelos';
 import { minutosEstimados, useSermoes, type Sermao } from '../store/sermoes';
 import { cores } from '../theme';
@@ -64,8 +63,6 @@ export function ListaSermoes({
     />
   );
 }
-
-export const nomeDaEtapa = (s: Sermao) => etapas[etapaAtual(s.etapa)].nome;
 
 const estilos = StyleSheet.create({
   lista: { padding: 20 },

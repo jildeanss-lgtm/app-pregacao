@@ -1,65 +1,37 @@
-import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LeitorBiblia } from '../../components/LeitorBiblia';
 import { ParteDoEstudo, Pilula, partesDoEstudo } from '../../components/PartesEstudo';
-import { Botao } from '../../components/ui';
 import { nomesEstudo, type EtapaEstudo } from '../../data/etapas';
 import { useSermoes } from '../../store/sermoes';
+import { coresPregacao } from '../../estilo';
 import { cores } from '../../theme';
 
-type Aba = 'palavras' | EtapaEstudo;
+type Aba = 'texto' | EtapaEstudo;
 
-// Aba Estudo: Bíblia com hebraico e grego (palavra por palavra) e as partes do estudo do sermão escolhido
+// Aba Estudo: o texto escolhido na aba Bíblia, com hebraico e grego, mais Observação, Interpretação e Aplicação
 export default function EstudoAba() {
-  const params = useLocalSearchParams<{ sermao?: string }>();
-  const { sermoes } = useSermoes();
-  const [aba, setAba] = useState<Aba>('palavras');
-  const [escolhido, setEscolhido] = useState<string>();
-  const sermao = sermoes.find((s) => s.id === (escolhido ?? params.sermao)) ?? sermoes[0];
+  const { estudo, mudarEstudo } = useSermoes();
+  const [aba, setAba] = useState<Aba>('texto');
 
   return (
     <View style={{ flex: 1 }}>
       <View style={estilos.topo}>
+        {estudo.textoBase ? <Text style={estilos.base}>{estudo.textoBase}</Text> : null}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={estilos.linha}>
-          <Pilula texto="Palavras (hebraico e grego)" ativa={aba === 'palavras'} onPress={() => setAba('palavras')} />
+          <Pilula texto="Texto (hebraico e grego)" ativa={aba === 'texto'} onPress={() => setAba('texto')} />
           {partesDoEstudo.map((p) => (
             <Pilula key={p} texto={nomesEstudo[p]} ativa={aba === p} onPress={() => setAba(p)} />
           ))}
         </ScrollView>
-        {sermoes.length > 1 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={estilos.linha}>
-            <Text style={estilos.rotulo}>Sermão:</Text>
-            {sermoes.map((s) => (
-              <Pilula
-                key={s.id}
-                texto={s.titulo || s.textoBase || 'Sem título'}
-                ativa={s.id === sermao?.id}
-                onPress={() => setEscolhido(s.id)}
-              />
-            ))}
-          </ScrollView>
-        )}
       </View>
 
-      {aba === 'palavras' ? (
-        <LeitorBiblia key={sermao?.id ?? 'livre'} comOriginal sermaoId={sermao?.id} />
-      ) : sermao ? (
-        <ScrollView
-          key={`${sermao.id}-${aba}`}
-          contentContainerStyle={estilos.conteudo}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text style={estilos.base}>{sermao.textoBase || 'Sem texto escolhido'}</Text>
-          <ParteDoEstudo sermao={sermao} parte={aba} nome={nomesEstudo[aba]} />
-        </ScrollView>
+      {aba === 'texto' ? (
+        <LeitorBiblia />
       ) : (
-        <View style={estilos.conteudo}>
-          <Text style={estilos.suave}>
-            Observação, interpretação e aplicação ficam guardadas em cada sermão. Crie um para começar.
-          </Text>
-          <Botao titulo="+ Novo sermão" onPress={() => router.push('/novo')} />
-        </View>
+        <ScrollView key={aba} contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
+          <ParteDoEstudo sermao={estudo} mudar={mudarEstudo} parte={aba} nome={nomesEstudo[aba]} />
+        </ScrollView>
       )}
     </View>
   );
@@ -68,8 +40,6 @@ export default function EstudoAba() {
 const estilos = StyleSheet.create({
   topo: { paddingTop: 10, paddingBottom: 10, gap: 8, borderBottomWidth: 1, borderBottomColor: cores.borda },
   linha: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, alignItems: 'center' },
-  rotulo: { fontSize: 13, fontWeight: '600', color: cores.textoSuave },
-  conteudo: { padding: 20, gap: 12, paddingBottom: 48 },
-  base: { fontSize: 20, fontWeight: '700', color: cores.texto },
-  suave: { fontSize: 14, color: cores.textoSuave },
+  base: { fontSize: 18, fontWeight: '700', color: coresPregacao.textoBiblico, paddingHorizontal: 20 },
+  conteudo: { padding: 20, gap: 12, paddingBottom: 48, maxWidth: 760, width: '100%', alignSelf: 'center' },
 });

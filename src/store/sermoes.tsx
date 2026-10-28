@@ -42,6 +42,11 @@ export type Sermao = {
 };
 
 const CHAVE = 'sermoes:v1';
+const CHAVE_ESTUDO = 'estudo:v1';
+
+// Estudo em andamento nas abas Bíblia e Estudo: o texto escolhido e as respostas. Ao criar um sermão,
+// ele vai junto para o sermão
+export type DadosEstudo = Pick<Sermao, 'textoBase' | 'genero' | 'respostas' | 'anotacoes' | 'estudo'>;
 
 // Etapas antigas (versão 1: Leitura...Pregação; versão 2: Bíblia, Leitura...Pregação) viram as quatro de agora
 const etapaV2: Record<number, number> = { 0: 0, 1: 0, 2: 1, 3: 1, 4: 1, 5: 2, 6: 3 };
@@ -64,11 +69,15 @@ export type NovoSermao = {
   data: string;
   genero?: Genero;
   etapa?: number;
+  respostas?: Record<string, string>;
+  anotacoes?: Partial<Record<EtapaEstudo, string>>;
   blocos: BlocoInicial[];
 };
 
 type Contexto = {
   carregado: boolean;
+  estudo: DadosEstudo;
+  mudarEstudo: (mudar: (e: DadosEstudo) => DadosEstudo) => void;
   sermoes: Sermao[];
   criar: (dados: NovoSermao) => Sermao;
   atualizar: (id: string, mudar: (s: Sermao) => Sermao) => void;
@@ -81,11 +90,13 @@ const SermoesContexto = createContext<Contexto | null>(null);
 export function SermoesProvider({ children }: { children: ReactNode }) {
   const [sermoes, setSermoes] = useState<Sermao[]>([]);
   const [carregado, setCarregado] = useState(false);
+  const [estudo, setEstudo] = useState<DadosEstudo>({ textoBase: '' });
 
   useEffect(() => {
-    AsyncStorage.getItem(CHAVE)
-      .then((salvo) => {
+    Promise.all([AsyncStorage.getItem(CHAVE), AsyncStorage.getItem(CHAVE_ESTUDO)])
+      .then(([salvo, estudoSalvo]) => {
         if (salvo) setSermoes((JSON.parse(salvo) as Sermao[]).map(migrar));
+        if (estudoSalvo) setEstudo(JSON.parse(estudoSalvo));
       })
       .finally(() => setCarregado(true));
   }, []);
@@ -93,6 +104,12 @@ export function SermoesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (carregado) AsyncStorage.setItem(CHAVE, JSON.stringify(sermoes));
   }, [sermoes, carregado]);
+
+  useEffect(() => {
+    if (carregado) AsyncStorage.setItem(CHAVE_ESTUDO, JSON.stringify(estudo));
+  }, [estudo, carregado]);
+
+  const mudarEstudo = useCallback((mudar: (e: DadosEstudo) => DadosEstudo) => setEstudo(mudar), []);
 
   const atualizar = useCallback((id: string, mudar: (s: Sermao) => Sermao) => {
     setSermoes((lista) =>
@@ -125,8 +142,8 @@ export function SermoesProvider({ children }: { children: ReactNode }) {
   );
 
   const valor = useMemo(
-    () => ({ carregado, sermoes, criar, atualizar, remover, adicionarBloco }),
-    [carregado, sermoes, criar, atualizar, remover, adicionarBloco],
+    () => ({ carregado, estudo, mudarEstudo, sermoes, criar, atualizar, remover, adicionarBloco }),
+    [carregado, estudo, mudarEstudo, sermoes, criar, atualizar, remover, adicionarBloco],
   );
 
   return <SermoesContexto.Provider value={valor}>{children}</SermoesContexto.Provider>;

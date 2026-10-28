@@ -1,10 +1,9 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Etapas } from '../../components/Etapas';
 import { TextoFormatado } from '../../components/TextoFormatado';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
-import { ETAPA_MONTAGEM, etapasDeEstudo, nomesEstudo } from '../../data/etapas';
+import { etapasDeEstudo, nomesEstudo } from '../../data/etapas';
 import { perguntasDaEtapa } from '../../data/roteiro';
 import { modelos, nomesBloco, type TipoBloco } from '../../data/modelos';
 import { estiloBloco, pontosDoQuadro } from '../../estilo';
@@ -27,7 +26,7 @@ const tiposParaAdicionar: TipoBloco[] = [
 export default function EditorTela() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const sermao = useSermao(id);
-  const { atualizar, adicionarBloco, remover } = useSermoes();
+  const { atualizar, adicionarBloco, remover, mudarEstudo } = useSermoes();
   const [vendoEstudo, setVendoEstudo] = useState(true);
 
   if (!sermao) {
@@ -78,7 +77,6 @@ export default function EditorTela() {
     <>
       <Stack.Screen options={{ title: sermao.titulo || 'Novo sermão' }} />
       <ScrollView contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
-        <Etapas sermaoId={sermao.id} atual={ETAPA_MONTAGEM} />
         <Text style={estilos.meta}>
           {modelo?.nome} · cerca de {minutosEstimados(sermao)} min
         </Text>
@@ -192,7 +190,12 @@ export default function EditorTela() {
         <Botao
           titulo="Estudar no hebraico e grego"
           variante="contorno"
-          onPress={() => router.push({ pathname: '/estudo', params: { sermao: sermao.id } })}
+          onPress={() => {
+            mudarEstudo((e) =>
+              e.textoBase === sermao.textoBase ? e : { textoBase: sermao.textoBase, genero: sermao.genero },
+            );
+            router.push('/estudo');
+          }}
         />
 
         <Botao titulo="Pregar" onPress={() => router.push(`/pregar/${sermao.id}`)} />
