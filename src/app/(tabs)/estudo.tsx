@@ -10,20 +10,15 @@ import { ResumoEstudo } from '../../components/ResumoEstudo';
 import { ParteDoEstudo } from '../../components/PartesEstudo';
 import { generos, sugerirGenero } from '../../data/roteiro';
 import { nomesEstudo, type EtapaEstudo } from '../../data/etapas';
-import { Botao } from '../../components/ui';
 import { useSermoes } from '../../store/sermoes';
 import { cores } from '../../theme';
 
 type Aba = 'texto' | EtapaEstudo | 'biblioteca' | 'resumo';
 
-// PRÉVIA: localStorage "passo" = a | b | c escolhe o desenho das etapas
-const variante = typeof localStorage !== 'undefined' ? (localStorage.getItem('passo') ?? 'a') : 'a';
-
-function Rolagem({ children, fim }: { children: ReactNode; fim: ReactNode }) {
+function Rolagem({ children }: { children: ReactNode }) {
   return (
     <ScrollView contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
       {children}
-      {fim}
     </ScrollView>
   );
 }
@@ -46,14 +41,6 @@ export default function EstudoAba() {
     ? generos.find((g) => g.id === (estudo.genero ?? sugerirGenero(estudo.textoBase)))?.nome
     : undefined;
 
-  const botaoFim =
-    variante === 'b' ? (
-      <Botao
-        titulo={proxima ? `Concluir ${atual.titulo} e ir para ${proxima.titulo} →` : 'Concluir e criar o sermão →'}
-        onPress={avancar}
-      />
-    ) : null;
-
   return (
     <View style={{ flex: 1 }}>
       {/* Cabeçalho: o nome da etapa em destaque e o caminho das 6 etapas, em ordem */}
@@ -62,113 +49,54 @@ export default function EstudoAba() {
           {estudo.textoBase || 'Escolha um texto na Bíblia'}
           {genero ? ` · ${genero}` : ''}
         </Text>
-        {variante === 'a' && (
-          <>
-            <View style={estilos.progresso}>
-              {etapasEstudar.map((e, i) => (
-                <Pressable
-                  key={e.id}
-                  accessibilityRole="tab"
-                  accessibilityLabel={e.titulo}
-                  accessibilityState={{ selected: i === indice }}
-                  onPress={() => irPara(e.id)}
-                  style={[estilos.segmento, i <= indice && estilos.segmentoFeito]}
-                />
-              ))}
+        <View style={estilos.trilha}>
+          {etapasEstudar.map((e, i) => (
+            <View key={e.id} style={[estilos.passoTrilha, i === 0 && { flex: 0 }]}>
+              {i > 0 && <View style={[estilos.linhaTrilha, i <= indice && estilos.linhaFeita]} />}
+              <Pressable
+                accessibilityRole="tab"
+                accessibilityLabel={e.titulo}
+                accessibilityState={{ selected: i === indice }}
+                onPress={() => irPara(e.id)}
+                style={[estilos.bolinha, i < indice && estilos.bolinhaFeita, i === indice && estilos.bolinhaAtual]}
+              >
+                <Text style={[estilos.numeroBolinha, i <= indice && { color: '#FFFFFF' }]}>
+                  {i < indice ? '✓' : i + 1}
+                </Text>
+              </Pressable>
             </View>
-            <Text style={estilos.contador}>
-              ETAPA {indice + 1} DE {etapasEstudar.length}
-            </Text>
+          ))}
+        </View>
+        <View style={estilos.capitulo}>
+          <Text style={estilos.numeroGrande}>{String(indice + 1).padStart(2, '0')}</Text>
+          <View style={{ flex: 1, gap: 2 }}>
             <Text style={estilos.nomeEtapa}>{atual.titulo}</Text>
             <Text style={estilos.dica}>{atual.dica}</Text>
-          </>
-        )}
-        {variante === 'b' && (
-          <>
-            <View style={estilos.trilha}>
-              {etapasEstudar.map((e, i) => (
-                <View key={e.id} style={estilos.passoTrilha}>
-                  {i > 0 && <View style={[estilos.linhaTrilha, i <= indice && estilos.linhaFeita]} />}
-                  <Pressable
-                    accessibilityRole="tab"
-                    accessibilityLabel={e.titulo}
-                    accessibilityState={{ selected: i === indice }}
-                    onPress={() => irPara(e.id)}
-                    style={[estilos.bolinha, i < indice && estilos.bolinhaFeita, i === indice && estilos.bolinhaAtual]}
-                  >
-                    <Text style={[estilos.numeroBolinha, i <= indice && { color: '#FFFFFF' }]}>
-                      {i < indice ? '✓' : i + 1}
-                    </Text>
-                  </Pressable>
-                </View>
-              ))}
-            </View>
-            <Text style={estilos.nomeEtapa}>{atual.titulo}</Text>
-            <Text style={estilos.dica}>{atual.dica}</Text>
-          </>
-        )}
-        {variante === 'c' && (
-          <View style={estilos.capitulo}>
-            <Text style={estilos.numeroGrande}>{String(indice + 1).padStart(2, '0')}</Text>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={estilos.nomeEtapa}>{atual.titulo}</Text>
-              <Text style={estilos.dica}>{atual.dica}</Text>
-              <View style={estilos.pontos}>
-                {etapasEstudar.map((e, i) => (
-                  <Pressable
-                    key={e.id}
-                    accessibilityRole="tab"
-                    accessibilityLabel={e.titulo}
-                    accessibilityState={{ selected: i === indice }}
-                    onPress={() => irPara(e.id)}
-                    style={[estilos.ponto, i === indice && estilos.pontoAtual]}
-                  />
-                ))}
-              </View>
-            </View>
           </View>
-        )}
+        </View>
       </View>
 
       {aba === 'texto' ? (
         <LeitorBiblia />
       ) : aba === 'biblioteca' ? (
-        <Rolagem fim={botaoFim}>
+        <Rolagem>
           <PesquisaBiblioteca estudo={estudo} mudar={mudarEstudo} />
         </Rolagem>
       ) : aba === 'resumo' ? (
-        <Rolagem fim={botaoFim}>
+        <Rolagem>
           <ResumoEstudo estudo={estudo} mudar={mudarEstudo} />
           <ChaveIA />
         </Rolagem>
       ) : (
-        <Rolagem fim={botaoFim}>
+        <Rolagem>
           <AjudaIA estudo={estudo} mudar={mudarEstudo} />
           <ParteDoEstudo sermao={estudo} mudar={mudarEstudo} parte={aba} nome={nomesEstudo[aba]} />
           <ChaveIA />
         </Rolagem>
       )}
 
-      {/* Botão fixo embaixo (opções A e C; na B fica no fim da página, menos na leitura do texto) */}
-      {variante === 'a' && (
-        <View style={estilos.rodape}>
-          {indice > 0 ? (
-            <Botao
-              titulo="←"
-              variante="contorno"
-              onPress={() => irPara(etapasEstudar[indice - 1].id)}
-              acessivel="Etapa anterior"
-            />
-          ) : null}
-          <Botao titulo={`${textoProximo} →`} onPress={avancar} style={{ flex: 1 }} />
-        </View>
-      )}
-      {variante === 'b' && aba === 'texto' && (
-        <View style={estilos.rodape}>
-          <Botao titulo={`Concluir e ir para ${proxima?.titulo} →`} onPress={avancar} style={{ flex: 1 }} />
-        </View>
-      )}
-      {variante === 'c' && (
+      {/* Botão flutuante que leva à próxima etapa; na última, cria o sermão */}
+      {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={textoProximo}
@@ -177,7 +105,7 @@ export default function EstudoAba() {
         >
           <Text style={estilos.textoFlutuante}>{proxima ? proxima.titulo : 'Criar sermão'} →</Text>
         </Pressable>
-      )}
+      }
     </View>
   );
 }
@@ -194,10 +122,6 @@ const estilos = StyleSheet.create({
   referencia: { fontSize: 13, fontWeight: '600', color: cores.textoSuave },
   nomeEtapa: { fontSize: 28, fontWeight: '800', color: cores.texto, letterSpacing: -0.5 },
   dica: { fontSize: 14, color: cores.textoSuave },
-  contador: { fontSize: 11, fontWeight: '700', letterSpacing: 1.2, color: cores.textoSuave, marginTop: 4 },
-  progresso: { flexDirection: 'row', gap: 4, marginTop: 6 },
-  segmento: { flex: 1, height: 5, borderRadius: 3, backgroundColor: cores.neutroFundo },
-  segmentoFeito: { backgroundColor: cores.destaque },
   trilha: { flexDirection: 'row', alignItems: 'center', marginVertical: 8 },
   passoTrilha: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   linhaTrilha: { flex: 1, height: 2, backgroundColor: cores.borda },
@@ -217,18 +141,6 @@ const estilos = StyleSheet.create({
   numeroBolinha: { fontSize: 12, fontWeight: '700', color: cores.textoSuave },
   capitulo: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 6 },
   numeroGrande: { fontSize: 64, fontWeight: '800', color: '#E5E5E5', letterSpacing: -3, lineHeight: 68 },
-  pontos: { flexDirection: 'row', gap: 6, marginTop: 6 },
-  ponto: { width: 8, height: 8, borderRadius: 4, backgroundColor: cores.borda },
-  pontoAtual: { width: 22, backgroundColor: cores.destaque },
-  rodape: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: cores.borda,
-    backgroundColor: cores.cartao,
-  },
   flutuante: {
     position: 'absolute',
     right: 16,
