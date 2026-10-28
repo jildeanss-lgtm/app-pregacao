@@ -76,7 +76,15 @@ export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
   exemplo: { cor: coresPregacao.texto },
   introducao: { cor: coresPregacao.texto },
   ilustracao: { cor: coresPregacao.texto },
-  aplicacao: { cor: coresPregacao.aplicacao, italico: true },
+  // Aplicação no estilo do corpo: a frase em cima e três pontos embaixo, em roxo itálico
+  aplicacao: {
+    cor: coresPregacao.aplicacao,
+    italico: true,
+    quadro: true,
+    topo: { cor: coresPregacao.aplicacao, italico: true, corChave: coresPregacao.aplicacao, nome: 'Aplicação' },
+    nomeItem: 'Ponto',
+    itensComoTopo: true,
+  },
   conclusao: { cor: coresPregacao.texto },
   apelo: { cor: coresPregacao.texto },
 };
