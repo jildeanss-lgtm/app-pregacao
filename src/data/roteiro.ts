@@ -81,15 +81,67 @@ export const generos: { id: Genero; nome: string; chave: string; perguntas: stri
 // Gênero mais comum de cada livro, usado como sugestão
 const generoDoLivro: Record<string, Genero> = {};
 const grupos: [Genero, string[]][] = [
-  ['narrativa', ['GEN', 'EXO', 'LEV', 'NUM', 'DEU', 'JOS', 'JDG', 'RUT', '1SA', '2SA', '1KI', '2KI', '1CH', '2CH', 'EZR', 'NEH', 'EST', 'MAT', 'MAR', 'LUK', 'JOH', 'ACT']],
+  [
+    'narrativa',
+    [
+      'GEN',
+      'EXO',
+      'LEV',
+      'NUM',
+      'DEU',
+      'JOS',
+      'JDG',
+      'RUT',
+      '1SA',
+      '2SA',
+      '1KI',
+      '2KI',
+      '1CH',
+      '2CH',
+      'EZR',
+      'NEH',
+      'EST',
+      'MAT',
+      'MAR',
+      'LUK',
+      'JOH',
+      'ACT',
+    ],
+  ],
   ['poesia', ['PSA', 'SNG', 'LAM']],
   ['sabedoria', ['JOB', 'PRO', 'ECC']],
-  ['profecia', ['ISA', 'JER', 'EZK', 'DAN', 'HOS', 'JOL', 'AMO', 'OBA', 'JON', 'MIC', 'NAM', 'HAB', 'ZEP', 'HAG', 'ZEC', 'MAL', 'REV']],
+  [
+    'profecia',
+    [
+      'ISA',
+      'JER',
+      'EZK',
+      'DAN',
+      'HOS',
+      'JOL',
+      'AMO',
+      'OBA',
+      'JON',
+      'MIC',
+      'NAM',
+      'HAB',
+      'ZEP',
+      'HAG',
+      'ZEC',
+      'MAL',
+      'REV',
+    ],
+  ],
 ];
 for (const [g, codigos] of grupos) for (const c of codigos) generoDoLivro[c] = g;
 
 const normalizar = (t: string) =>
-  t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  t
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
 
 // "Êxodo 8" -> 'EXO'; o nome mais longo vence, para "1 João" não virar "João"
 export function livroDoTexto(texto: string) {
@@ -149,7 +201,10 @@ export const observacao = {
 export const interpretacao = [
   { nome: 'Conteúdo', texto: 'Termos-chave, estrutura gramatical e literária, gênero e atmosfera do texto.' },
   { nome: 'Contexto', texto: 'Versículos vizinhos, momento histórico, cultura, geografia e teologia da época.' },
-  { nome: 'Comparação', texto: 'Escritura interpreta Escritura: que outras passagens falam deste assunto ou personagem?' },
+  {
+    nome: 'Comparação',
+    texto: 'Escritura interpreta Escritura: que outras passagens falam deste assunto ou personagem?',
+  },
   { nome: 'Cultura', texto: 'O que isso significava para eles? O que é verdade eterna e o que é prática da época?' },
   { nome: 'Consulta', texto: 'Só depois do texto: dicionários, atlas, comentários e a sua biblioteca.' },
 ];
@@ -184,16 +239,28 @@ export function perguntasDaEtapa(etapa: EtapaEstudo, textoBase: string, generoEs
       {
         titulo: 'Contexto do livro',
         dica: intro ? 'Respostas de partida do app. Confira e complete.' : undefined,
-        perguntas: observacao.contexto.map((pergunta, i) => ({ pergunta, padrao: padroes[i] })),
+        perguntas: [
+          // A primeira pergunta é o gênero literário, que muda as perguntas mais abaixo
+          { pergunta: 'Qual o gênero literário do texto?', padrao: genero?.nome },
+          ...observacao.contexto.map((pergunta, i) => ({ pergunta, padrao: padroes[i] })),
+        ],
       },
       ...(genero
-        ? [{ titulo: `Perguntas para ${genero.nome.toLowerCase()}`, dica: genero.chave, perguntas: genero.perguntas.map((pergunta) => ({ pergunta })) }]
+        ? [
+            {
+              titulo: `Perguntas para ${genero.nome.toLowerCase()}`,
+              dica: genero.chave,
+              perguntas: genero.perguntas.map((pergunta) => ({ pergunta })),
+            },
+          ]
         : []),
       { titulo: 'Seis pistas no texto', perguntas: observacao.pistas.map((pergunta) => ({ pergunta })) },
     ];
   }
   if (etapa === 'interpretacao') {
-    return [{ titulo: 'As cinco chaves', perguntas: interpretacao.map((c) => ({ pergunta: `${c.nome}: ${c.texto}` })) }];
+    return [
+      { titulo: 'As cinco chaves', perguntas: interpretacao.map((c) => ({ pergunta: `${c.nome}: ${c.texto}` })) },
+    ];
   }
   if (etapa === 'aplicacao') {
     return [{ titulo: 'Perguntas para a aplicação', perguntas: perguntasAplicacao.map((pergunta) => ({ pergunta })) }];

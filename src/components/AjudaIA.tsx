@@ -34,7 +34,9 @@ export function AjudaIA({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mudar }
       return { ...e, respostas, temas: r.temas.length ? r.temas : e.temas };
     });
     setAviso(
-      `Pronto: ${novas || 'nenhuma'} resposta${novas === 1 ? '' : 's'} preenchida${novas === 1 ? '' : 's'}` +
+      (novas
+        ? `Pronto: ${novas} resposta${novas === 1 ? '' : 's'} preenchida${novas === 1 ? '' : 's'}`
+        : 'Pronto: nenhuma resposta preenchida') +
         (r.temas.length ? ` e ${r.temas.length} temas sugeridos para o sermão.` : '.') +
         ' Respostas que você já tinha escrito ficaram como estavam.',
     );

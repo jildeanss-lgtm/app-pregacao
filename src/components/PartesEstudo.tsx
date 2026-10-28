@@ -1,11 +1,10 @@
-import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { EtapaEstudo } from '../data/etapas';
-import { generos, perguntasDaEtapa, sentidoFigurado, sugerirGenero } from '../data/roteiro';
+import { perguntasDaEtapa, sentidoFigurado } from '../data/roteiro';
 import type { DadosEstudo } from '../store/sermoes';
 import { cores } from '../theme';
 import { CampoCrescente } from './CampoCrescente';
-import { Botao, Cartao, Rotulo } from './ui';
+import { Cartao, Rotulo } from './ui';
 
 // Partes do estudo usadas na etapa Estudo do sermão e na aba Estudo
 export const partesDoEstudo: EtapaEstudo[] = ['observacao', 'interpretacao', 'aplicacao'];
@@ -34,7 +33,6 @@ export function ParteDoEstudo({
 }) {
   return (
     <>
-      {parte === 'observacao' && <Genero sermao={sermao} mudar={mudar} />}
       {perguntasDaEtapa(parte, sermao.textoBase, sermao.genero).map((g) => (
         <Cartao key={g.titulo} style={{ gap: 10 }}>
           <Rotulo>{g.titulo}</Rotulo>
@@ -95,45 +93,6 @@ export function Anotacoes({
   );
 }
 
-// Gênero literário do texto, como primeira pergunta da Observação
-function Genero({ sermao, mudar }: { sermao: DadosEstudo; mudar: Mudar }) {
-  const sugerido = sugerirGenero(sermao.textoBase);
-  const generoAtual = sermao.genero ?? sugerido;
-  const genero = generos.find((g) => g.id === generoAtual);
-  const [trocando, setTrocando] = useState(false);
-
-  return (
-    <Cartao style={{ gap: 8 }}>
-      <Rotulo>Gênero literário</Rotulo>
-      <Text style={estilos.pergunta}>Qual o gênero literário do texto?</Text>
-      <Text style={estilos.genero}>{genero?.nome ?? 'Não definido'}</Text>
-      {genero && generoAtual === sugerido ? <Text style={estilos.suave}>Definido pelo livro do texto.</Text> : null}
-      {trocando || !genero ? (
-        <View style={estilos.linha}>
-          {generos.map((g) => (
-            <Pilula
-              key={g.id}
-              texto={g.nome}
-              ativa={generoAtual === g.id}
-              onPress={() => {
-                mudar((s) => ({ ...s, genero: g.id }));
-                setTrocando(false);
-              }}
-            />
-          ))}
-        </View>
-      ) : (
-        <Botao
-          titulo="Trocar gênero"
-          variante="contorno"
-          onPress={() => setTrocando(true)}
-          style={{ alignSelf: 'flex-start' }}
-        />
-      )}
-    </Cartao>
-  );
-}
-
 export function Lista({ itens }: { itens: string[] }) {
   return (
     <View style={{ gap: 4 }}>
@@ -160,10 +119,8 @@ export function Pilula({ texto, ativa, onPress }: { texto: string; ativa: boolea
 }
 
 const estilos = StyleSheet.create({
-  suave: { fontSize: 14, color: cores.textoSuave },
   item: { fontSize: 15, lineHeight: 21, color: cores.texto },
   chave: { fontSize: 14, fontStyle: 'italic', color: cores.apoioTexto },
-  genero: { fontSize: 18, fontWeight: '700', color: cores.destaque },
   pergunta: { fontSize: 15, fontWeight: '600', color: cores.texto },
   resposta: {
     fontSize: 15,
@@ -175,7 +132,6 @@ const estilos = StyleSheet.create({
     textAlignVertical: 'top',
   },
   entrada: { fontSize: 16, color: cores.texto, minHeight: 120, textAlignVertical: 'top' },
-  linha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pilula: {
     minHeight: 44,
     paddingHorizontal: 12,
