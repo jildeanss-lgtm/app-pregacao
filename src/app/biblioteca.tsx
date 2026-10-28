@@ -94,7 +94,6 @@ export default function BibliotecaTela() {
             </Pressable>
           ))
         )}
-
       </ScrollView>
       <BarraAbas atual="/estudo" />
     </View>
