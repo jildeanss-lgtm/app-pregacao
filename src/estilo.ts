@@ -7,9 +7,9 @@ import { nomesBloco, type TipoBloco } from './data/modelos';
 export const coresPregacao = {
   texto: '#000000',
   textoBiblico: '#990000',
-  frase: '#1C2F9E',
+  frase: '#0000FF',
   efeito: '#38761D',
-  pergunta: '#4A86E8',
+  pergunta: '#3C78D8',
   aplicacao: '#7030A0',
   citacao: '#B45F06',
   // Sugestão para o subtópico: azul petróleo, distinto do azul das frases e do azul claro das perguntas
