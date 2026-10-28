@@ -28,12 +28,16 @@ export type EstiloBloco = {
   // Cor e ênfase das linhas de baixo do quadro, quando diferem do subtópico
   itens?: { cor: string; italico?: boolean };
   nomeItem?: string;
+  // Sem destaque à mão, todas as palavras (menos conectivos) viram palavra-chave
+  autoDestaque?: boolean;
+  // Texto bíblico: livro e capítulo em cima, versículo e texto embaixo
+  referencia?: boolean;
 };
 
 export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
   topico: { cor: coresPregacao.texto, fundo: coresPregacao.fundoTopico },
   subtopico: { cor: coresPregacao.texto, seta: true },
-  quadro: { cor: coresPregacao.texto, quadro: true, nomeItem: 'Ponto' },
+  quadro: { cor: coresPregacao.texto, quadro: true, nomeItem: 'Ponto', autoDestaque: true },
   quadroPerguntas: {
     cor: coresPregacao.texto,
     quadro: true,
@@ -41,8 +45,8 @@ export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
     nomeItem: 'Pergunta',
   },
   frase: { cor: coresPregacao.frase, seta: true },
-  pontos: { cor: coresPregacao.texto, lista: true },
-  versiculo: { cor: coresPregacao.textoBiblico, italico: true },
+  pontos: { cor: coresPregacao.texto, lista: true, autoDestaque: true },
+  versiculo: { cor: coresPregacao.textoBiblico, italico: true, autoDestaque: true, referencia: true },
   citacao: { cor: coresPregacao.citacao, italico: true },
   efeito: { cor: coresPregacao.efeito, italico: true, centralizado: true },
   pergunta: { cor: coresPregacao.pergunta, italico: true, seta: true },
@@ -100,4 +104,43 @@ export function dividirQuadro(texto: string) {
 // Palavras em MAIÚSCULAS (2 letras ou mais) já viram palavra-chave, sem precisar de asteriscos
 export function marcarMaiusculas(texto: string) {
   return texto.replace(/(?<![\p{L}*])(\p{Lu}{2,})(?![\p{L}*])/gu, '*$1*');
+}
+
+// Palavras pequenas que ficam fora do destaque automático
+const conectivos = new Set(
+  (
+    'a o as os e de do da dos das em no na nos nas num numa um uma uns umas que se com por pelo pela pelos pelas ' +
+    'para pra ao aos à às ou mas nem como seu sua seus suas lhe lhes me te nos vos eu tu ele ela eles elas ' +
+    'isso isto este esta esse essa aquele aquela'
+  ).split(' '),
+);
+
+// Pontos do Corpo e texto bíblico: sem destaque marcado à mão, todas as palavras
+// (menos os conectivos) viram palavra-chave
+export function destacarTudo(linha: string) {
+  if (/\*|\p{Lu}{2,}/u.test(linha)) return linha;
+  return linha.replace(/\p{L}+(?:-\p{L}+)*/gu, (p) => (conectivos.has(p.toLowerCase()) ? p : `*${p}*`));
+}
+
+// "1 Tessalonicenses 5:21 - Examinai tudo" -> cabeçalho "1 Tessalonicenses 5" e linha "21 - Examinai tudo"
+export function dividirVersiculo(texto: string) {
+  const [primeira = '', ...resto] = texto.split('\n');
+  const m = primeira.match(/^(.*?\p{L}.*?)\s+(\d+):(\d+(?:\s*[-–,]\s*\d+)*)\s*(?:[-–—:]\s*)?(.*)$/u);
+  if (!m) return { cabecalho: undefined, linhas: texto.split('\n') };
+  const [, livro, capitulo, versos, conteudo] = m;
+  return {
+    cabecalho: `${livro} ${capitulo}`,
+    linhas: [conteudo ? `${versos} - ${conteudo}` : versos, ...resto],
+  };
+}
+
+// Linhas como aparecem na tela e no PDF, já com o destaque automático aplicado
+export function linhasParaMostrar(tipo: TipoBloco, texto: string) {
+  const e = estiloBloco[tipo];
+  const auto = (l: string) => (e.autoDestaque ? destacarTudo(l) : l);
+  if (e.referencia) {
+    const { cabecalho, linhas } = dividirVersiculo(texto);
+    return { cabecalho: cabecalho && `*${cabecalho}*`, linhas: linhas.map(auto) };
+  }
+  return { cabecalho: undefined, linhas: (e.lista ? linhasDoBloco(texto) : [texto]).map(auto) };
 }
