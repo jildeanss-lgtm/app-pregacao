@@ -6,7 +6,7 @@ import {
   modelos,
   montarBlocos,
   opcoesIntroducao,
-  verbosObjetivo,
+  objetivosSermao,
   type Modelo,
   type OpcaoIntroducao,
 } from '../data/modelos';
@@ -29,18 +29,16 @@ export default function NovoSermaoTela() {
   const [textoBase, setTextoBase] = useState(estudo.textoBase);
   const [modelo, setModelo] = useState<Modelo>('expositivo');
   const [objetivo, setObjetivo] = useState('');
+  const [tipoObjetivo, setTipoObjetivo] = useState('Pregação');
   const [introducao, setIntroducao] = useState<OpcaoIntroducao>('citacoes');
   const [generoEscolhido, setGenero] = useState<Genero>();
-  const [comSaudacao, setComSaudacao] = useState(true);
+  // O corpo começa em branco: a saudação só entra se for pedida
+  const [comSaudacao, setComSaudacao] = useState(false);
+  // Temas sugeridos pela IA no estudo deste texto
+  const temas = textoBase === estudo.textoBase ? (estudo.temas ?? []) : [];
 
   const sugerido = sugerirGenero(textoBase);
   const genero = generoEscolhido ?? sugerido;
-
-  const usarVerbo = (verbo: string) =>
-    setObjetivo((o) => {
-      const linhas = o.split('\n').filter((l) => l.trim());
-      return [...linhas, `*${verbo.toUpperCase()}* `].join('\n');
-    });
 
   const criarSermao = () => {
     const s = criar({
@@ -53,7 +51,7 @@ export default function NovoSermaoTela() {
       etapa: ETAPA_MONTAGEM,
       // O estudo feito para este texto vai junto e aparece em "Seu estudo" na montagem
       ...(textoBase === estudo.textoBase ? { respostas: estudo.respostas, anotacoes: estudo.anotacoes } : {}),
-      blocos: montarBlocos({ modelo, textoBase, objetivo, introducao, comSaudacao }),
+      blocos: montarBlocos({ modelo, textoBase, objetivo, tipoObjetivo, introducao, comSaudacao }),
     });
     router.replace(`/sermao/${s.id}`);
   };
@@ -94,6 +92,14 @@ export default function NovoSermaoTela() {
           placeholderTextColor={cores.textoSuave}
           style={[estilos.entrada, { fontSize: 18, fontWeight: '700' }]}
         />
+        {temas.length > 0 && (
+          <View style={{ gap: 6 }}>
+            <Text style={estilos.suave}>Temas sugeridos pelo estudo. Toque num deles para usar como título:</Text>
+            {temas.map((t) => (
+              <Escolha key={t} ativo={titulo === t} titulo={t} onPress={() => setTitulo(t)} />
+            ))}
+          </View>
+        )}
         <Rotulo>Texto referência</Rotulo>
         <TextInput
           accessibilityLabel="Texto referência"
@@ -119,10 +125,18 @@ export default function NovoSermaoTela() {
       </Cartao>
 
       <Cartao style={{ gap: 8 }}>
-        <Rotulo>Objetivo desta lição</Rotulo>
+        <Rotulo>Objetivo do sermão</Rotulo>
         <View style={estilos.linha}>
-          {verbosObjetivo.map((v) => (
-            <Botao key={v} titulo={v} variante="contorno" onPress={() => usarVerbo(v)} />
+          {objetivosSermao.map((o) => (
+            <Pressable
+              key={o}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: tipoObjetivo === o }}
+              onPress={() => setTipoObjetivo(o)}
+              style={[estilos.pilula, tipoObjetivo === o && estilos.pilulaAtiva]}
+            >
+              <Text style={[estilos.textoPilula, tipoObjetivo === o && { color: '#FFFFFF' }]}>{o}</Text>
+            </Pressable>
           ))}
         </View>
         <TextInput
@@ -130,7 +144,7 @@ export default function NovoSermaoTela() {
           value={objetivo}
           onChangeText={setObjetivo}
           multiline
-          placeholder="Toque num verbo e complete. Ex.: MOSTRAR que Deus age mesmo quando o coração endurece"
+          placeholder="Opcional. Ex.: mostrar que Deus age mesmo quando o coração endurece"
           placeholderTextColor={cores.textoSuave}
           style={[estilos.entrada, { minHeight: 64 }]}
         />
@@ -196,7 +210,7 @@ function Escolha({
 }: {
   ativo: boolean;
   titulo: string;
-  descricao: string;
+  descricao?: string;
   onPress: () => void;
 }) {
   return (
@@ -210,7 +224,7 @@ function Escolha({
         {ativo ? '◉ ' : '○ '}
         {titulo}
       </Text>
-      <Text style={estilos.suave}>{descricao}</Text>
+      {descricao ? <Text style={estilos.suave}>{descricao}</Text> : null}
     </Pressable>
   );
 }

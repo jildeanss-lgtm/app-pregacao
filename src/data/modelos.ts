@@ -71,7 +71,7 @@ export const modelos: { id: Modelo; nome: string; descricao: string }[] = [
   },
 ];
 
-export const verbosObjetivo = ['Exibir', 'Mostrar', 'Advertir', 'Explicar'];
+export const objetivosSermao = ['Pregação', 'Doutrinário', 'Estudo', 'Aula EBD'];
 
 export type OpcaoIntroducao = 'citacoes' | 'analise' | 'tema';
 
@@ -99,6 +99,7 @@ export type OpcoesNovoSermao = {
   modelo: Modelo;
   textoBase: string;
   objetivo: string;
+  tipoObjetivo?: string;
   introducao: OpcaoIntroducao;
   comSaudacao: boolean;
 };
@@ -142,8 +143,15 @@ function saudacao(textoBase: string): BlocoInicial[] {
 
 function topico(n: number, modelo: Modelo): BlocoInicial[] {
   return [
-    { tipo: 'topico', dica: modelo === 'tematico' ? 'Responda ao tema: O quê? Quem? Quando? Onde? Como? Por quê?' : undefined },
-    { tipo: 'versiculo', rotulo: 'Texto', dica: modelo === 'tematico' ? 'Versículo que fundamenta este tópico' : `Parte ${n} do texto` },
+    {
+      tipo: 'topico',
+      dica: modelo === 'tematico' ? 'Responda ao tema: O quê? Quem? Quando? Onde? Como? Por quê?' : undefined,
+    },
+    {
+      tipo: 'versiculo',
+      rotulo: 'Texto',
+      dica: modelo === 'tematico' ? 'Versículo que fundamenta este tópico' : `Parte ${n} do texto`,
+    },
     { tipo: 'explicacao' },
     { tipo: 'versiculo', rotulo: 'Versículo de apoio' },
     { tipo: 'exemplo' },
@@ -167,8 +175,17 @@ export function montarBlocos(o: OpcoesNovoSermao): BlocoInicial[] {
   const corpo = [1, 2, 3].flatMap((n) => (o.modelo === 'lectio' ? versoAVerso(n) : topico(n, o.modelo)));
   return [
     ...(o.comSaudacao ? saudacao(o.textoBase) : []),
-    { tipo: 'objetivo', texto: o.objetivo, dica: 'O objetivo desta lição é...' },
-    { tipo: 'versiculo', rotulo: 'Texto referência', dica: o.textoBase ? `${o.textoBase} - cole ou escreva o texto` : undefined },
+    {
+      tipo: 'objetivo',
+      rotulo: o.tipoObjetivo ? `Objetivo do sermão: ${o.tipoObjetivo}` : 'Objetivo do sermão',
+      texto: o.objetivo,
+      dica: 'O objetivo deste sermão é...',
+    },
+    {
+      tipo: 'versiculo',
+      rotulo: 'Texto referência',
+      dica: o.textoBase ? `${o.textoBase} - cole ou escreva o texto` : undefined,
+    },
     { tipo: 'introducao', rotulo: `Introdução: ${intro.nome}`, dica: intro.dica },
     ...corpo,
     { tipo: 'conclusao' },

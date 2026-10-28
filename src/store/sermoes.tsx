@@ -36,6 +36,9 @@ export type Sermao = {
   respostas?: Record<string, string>;
   // Anotações da versão antiga do roteiro, mostradas na observação
   estudo?: string;
+  // Anotações livres feitas na aba Bíblia e os temas sugeridos pela IA no estudo
+  notasBiblia?: string;
+  temas?: string[];
   blocos: Bloco[];
   pregacoes: Pregacao[];
   atualizadoEm: string;
@@ -46,7 +49,7 @@ const CHAVE_ESTUDO = 'estudo:v1';
 
 // Estudo em andamento nas abas Bíblia e Estudo: o texto escolhido e as respostas. Ao criar um sermão,
 // ele vai junto para o sermão
-export type DadosEstudo = Pick<Sermao, 'textoBase' | 'genero' | 'respostas' | 'anotacoes' | 'estudo'>;
+export type DadosEstudo = Pick<Sermao, 'textoBase' | 'genero' | 'respostas' | 'anotacoes' | 'estudo' | 'notasBiblia' | 'temas'>;
 
 // Etapas antigas (versão 1: Leitura...Pregação; versão 2: Bíblia, Leitura...Pregação) viram as quatro de agora
 const etapaV2: Record<number, number> = { 0: 0, 1: 0, 2: 1, 3: 1, 4: 1, 5: 2, 6: 3 };

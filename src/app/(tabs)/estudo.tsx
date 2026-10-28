@@ -1,15 +1,19 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AjudaIA } from '../../components/AjudaIA';
 import { LeitorBiblia } from '../../components/LeitorBiblia';
 import { ParteDoEstudo, Pilula, partesDoEstudo } from '../../components/PartesEstudo';
 import { nomesEstudo, type EtapaEstudo } from '../../data/etapas';
+import { Botao } from '../../components/ui';
 import { useSermoes } from '../../store/sermoes';
 import { coresPregacao } from '../../estilo';
 import { cores } from '../../theme';
 
 type Aba = 'texto' | EtapaEstudo;
 
-// Aba Estudo: o texto escolhido na aba Bíblia, com hebraico e grego, mais Observação, Interpretação e Aplicação
+// Aba Estudar: o texto escolhido na aba Bíblia, com hebraico e grego, mais Observação, Interpretação e Aplicação
+// (que a IA pode responder) e, no fim, o botão que cria o sermão
 export default function EstudoAba() {
   const { estudo, mudarEstudo } = useSermoes();
   const [aba, setAba] = useState<Aba>('texto');
@@ -30,7 +34,11 @@ export default function EstudoAba() {
         <LeitorBiblia />
       ) : (
         <ScrollView key={aba} contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
+          <AjudaIA estudo={estudo} mudar={mudarEstudo} />
           <ParteDoEstudo sermao={estudo} mudar={mudarEstudo} parte={aba} nome={nomesEstudo[aba]} />
+          {aba === 'aplicacao' && estudo.textoBase ? (
+            <Botao titulo="Criar sermão" onPress={() => router.push('/novo')} />
+          ) : null}
         </ScrollView>
       )}
     </View>
