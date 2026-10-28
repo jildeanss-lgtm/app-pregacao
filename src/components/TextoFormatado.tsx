@@ -90,16 +90,17 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }
     );
   }
 
+  // Cada linha escrita fica na sua própria linha, com um respiro entre elas
   const conteudo = (
-    <Text style={base}>
-      {cabecalho ? (
-        <>
-          {linha(cabecalho)}
-          {'\n'}
-        </>
-      ) : null}
-      {linha(linhas.join('\n'))}
-    </Text>
+    <View style={estilos.linhas}>
+      {[cabecalho, ...linhas.flatMap((l) => l.split('\n'))]
+        .filter((l): l is string => l !== undefined)
+        .map((l, i) => (
+          <Text key={i} style={base}>
+            {linha(l)}
+          </Text>
+        ))}
+    </View>
   );
 
   if (e.fundo) {
@@ -113,6 +114,7 @@ const estilos = StyleSheet.create({
   item: { flexDirection: 'row', gap: 8, paddingLeft: 8 },
   marcador: { fontStyle: 'normal' },
   comSeta: { flexDirection: 'row', gap: 8 },
+  linhas: { gap: 8 },
   quadro: {
     borderWidth: 1.5,
     borderColor: '#000000',
