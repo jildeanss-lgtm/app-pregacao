@@ -4,7 +4,7 @@ import { ActivityIndicator, Linking, StyleSheet, Text, TextInput, View } from 'r
 import { guardarChave, lerResultado, montarPedido, responderComChave, useChave, type ResultadoIA } from '../ia/estudo';
 import type { DadosEstudo } from '../store/sermoes';
 import { cores } from '../theme';
-import { Botao, Cartao, Rotulo } from './ui';
+import { Botao } from './ui';
 
 // Mostra só o começo e o fim da chave, para conferir sem expor a chave inteira
 const mascarar = (c: string) => `${c.slice(0, 14)}...${c.slice(-4)} (${c.length} caracteres)`;
@@ -75,17 +75,12 @@ export function AjudaIA({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mudar }
   if (!estudo.textoBase) return null;
 
   return (
-    <Cartao style={estilos.cartao}>
-      <Rotulo>Responder Perguntas</Rotulo>
-      <Text style={estilos.dica}>
-        A IA responde todas as perguntas de Observação, Interpretação e Aplicação sobre {estudo.textoBase}, usando a
-        perícope, o livro e a Bíblia como contexto, e sugere 4 temas para o sermão.
-      </Text>
-
-      {chave ? (
-        <Botao titulo={ocupado ? 'Estudando...' : 'Responder Perguntas'} onPress={() => !ocupado && responder()} />
-      ) : null}
-      <Botao titulo="Copiar pedido para o Claude" variante={chave ? 'contorno' : 'principal'} onPress={copiar} />
+    <View style={estilos.cartao}>
+      {/* Só o botão no topo: com a chave a IA responde no app; sem chave, copia o pedido para o claude.ai */}
+      <Botao
+        titulo={ocupado ? 'Estudando...' : 'Responder Perguntas'}
+        onPress={() => !ocupado && (chave ? responder() : copiar())}
+      />
       {ocupado && <ActivityIndicator color={cores.destaque} />}
 
       {colando && (
@@ -109,7 +104,7 @@ export function AjudaIA({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mudar }
       )}
 
       {aviso ? <Text style={estilos.aviso}>{aviso}</Text> : null}
-    </Cartao>
+    </View>
   );
 }
 
@@ -192,7 +187,7 @@ export function ChaveIA() {
 }
 
 const estilos = StyleSheet.create({
-  cartao: { gap: 10, borderColor: cores.destaque, borderWidth: 1 },
+  cartao: { gap: 10 },
   dica: { fontSize: 14, lineHeight: 20, color: cores.textoSuave },
   aviso: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: cores.destaqueEscuro },
   linha: { flexDirection: 'row', gap: 8 },
