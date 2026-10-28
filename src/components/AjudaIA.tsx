@@ -6,6 +6,9 @@ import type { DadosEstudo } from '../store/sermoes';
 import { cores } from '../theme';
 import { Botao, Cartao, Rotulo } from './ui';
 
+// Mostra só o começo e o fim da chave, para conferir sem expor a chave inteira
+const mascarar = (c: string) => `${c.slice(0, 14)}...${c.slice(-4)} (${c.length} caracteres)`;
+
 type Mudar = (mudar: (d: DadosEstudo) => DadosEstudo) => void;
 
 // A IA responde as perguntas de Observação, Interpretação e Aplicação e sugere 4 temas. Com a chave da
@@ -14,6 +17,7 @@ type Mudar = (mudar: (d: DadosEstudo) => DadosEstudo) => void;
 export function AjudaIA({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mudar }) {
   const [chave, setChave] = useState('');
   const [editandoChave, setEditandoChave] = useState(false);
+  const [novaChave, setNovaChave] = useState('');
   const [colando, setColando] = useState(false);
   const [colado, setColado] = useState('');
   const [ocupado, setOcupado] = useState(false);
@@ -115,15 +119,18 @@ export function AjudaIA({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mudar }
       {editandoChave ? (
         <View style={{ gap: 8 }}>
           <Text style={estilos.dica}>
-            Cole a chave da API da Anthropic (começa com sk-ant-). Ela fica guardada só neste aparelho.
+            Cole a chave da API da Anthropic (começa com sk-ant-api03- e tem uns 100 caracteres). Ela fica guardada só
+            neste aparelho.{chave ? ` Chave atual: ${mascarar(chave)}` : ''}
           </Text>
           <TextInput
             accessibilityLabel="Chave da Anthropic"
-            value={chave}
-            onChangeText={setChave}
-            placeholder="sk-ant-..."
+            value={novaChave}
+            onChangeText={setNovaChave}
+            placeholder="sk-ant-api03-..."
             placeholderTextColor={cores.textoSuave}
-            secureTextEntry
+            // Campo comum, não de senha, para o Chrome não preencher com uma senha salva
+            autoComplete="off"
+            importantForAutofill="no"
             autoCapitalize="none"
             autoCorrect={false}
             style={estilos.campo}
@@ -132,14 +139,34 @@ export function AjudaIA({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mudar }
             <Botao
               titulo="Guardar"
               onPress={() => {
-                const c = chave.trim();
+                // A chave não tem espaços: tira quebras de linha e espaços que vêm junto ao colar
+                const c = novaChave.replace(/\s+/g, '');
+                if (c && !c.startsWith('sk-ant-')) {
+                  setAviso('Isso não parece uma chave da Anthropic: ela começa com sk-ant-. Copie de novo no console.');
+                  return;
+                }
                 setChave(c);
                 guardarChave(c);
+                setNovaChave('');
                 setEditandoChave(false);
-                setAviso(c ? 'Chave guardada neste aparelho.' : 'Chave removida.');
+                setAviso(c ? `Chave guardada neste aparelho: ${mascarar(c)}` : 'Chave removida.');
               }}
               style={{ flex: 1 }}
             />
+            {chave ? (
+              <Botao
+                titulo="Remover"
+                variante="perigo"
+                onPress={() => {
+                  setChave('');
+                  guardarChave('');
+                  setNovaChave('');
+                  setEditandoChave(false);
+                  setAviso('Chave removida.');
+                }}
+                style={{ flex: 1 }}
+              />
+            ) : null}
             <Botao
               titulo="Criar chave"
               variante="contorno"
@@ -150,7 +177,9 @@ export function AjudaIA({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mudar }
         </View>
       ) : (
         <Text accessibilityRole="button" onPress={() => setEditandoChave(true)} style={estilos.link}>
-          {chave ? 'Trocar ou remover a chave da Anthropic' : 'Tenho uma chave da Anthropic (opcional)'}
+          {chave
+            ? `Trocar ou remover a chave da Anthropic (${mascarar(chave)})`
+            : 'Tenho uma chave da Anthropic (opcional)'}
         </Text>
       )}
     </Cartao>

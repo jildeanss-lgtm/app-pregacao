@@ -121,7 +121,10 @@ export async function responderComChave(chave: string, estudo: DadosEstudo): Pro
       })
       .finalMessage();
   } catch (e) {
-    if (e instanceof Anthropic.AuthenticationError) throw new Error('Chave inválida. Confira a chave da Anthropic.');
+    if (e instanceof Anthropic.AuthenticationError)
+      throw new Error(
+        'A Anthropic recusou a chave. Toque em "Trocar ou remover a chave", apague o campo e cole a chave de novo (ou crie outra no console).',
+      );
     if (e instanceof Anthropic.PermissionDeniedError) throw new Error('A chave não tem permissão. Confira o console.');
     if (e instanceof Anthropic.RateLimitError) throw new Error('Muitos pedidos agora. Tente de novo em um minuto.');
     if (e instanceof Anthropic.BadRequestError && /credit/i.test(e.message))
