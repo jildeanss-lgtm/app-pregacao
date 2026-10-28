@@ -1,8 +1,10 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Etapas } from '../../components/Etapas';
 import { TextoFormatado } from '../../components/TextoFormatado';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
+import { ETAPA_MONTAGEM, etapas, etapasDeEstudo } from '../../data/etapas';
 import { modelos, nomesBloco, type TipoBloco } from '../../data/modelos';
 import { estiloBloco, pontosDoQuadro } from '../../estilo';
 import { exportarPdf } from '../../lib/pdf';
@@ -18,7 +20,6 @@ const tiposParaAdicionar: TipoBloco[] = [
   'citacao',
   'aplicacao',
   'quadroPerguntas',
-  'pergunta',
   'frase',
   'pontos',
   'explicacao',
@@ -31,6 +32,7 @@ export default function EditorTela() {
   const sermao = useSermao(id);
   const { atualizar, adicionarBloco, remover } = useSermoes();
   const [mostrandoTipos, setMostrandoTipos] = useState(false);
+  const [vendoEstudo, setVendoEstudo] = useState(true);
 
   if (!sermao) {
     return (
@@ -60,14 +62,45 @@ export default function EditorTela() {
     [],
   );
   const modelo = modelos.find((m) => m.id === sermao.modelo);
+  // O que foi anotado nas etapas de estudo fica à vista enquanto o sermão é montado
+  const anotacoes = etapasDeEstudo
+    .map((e, i) => ({
+      nome: etapas[i].nome,
+      texto: (sermao.anotacoes?.[e] ?? (e === 'observacao' ? sermao.estudo : '') ?? '').trim(),
+    }))
+    .filter((a) => a.texto);
 
   return (
     <>
       <Stack.Screen options={{ title: sermao.titulo || 'Novo sermão' }} />
       <ScrollView contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
+        <Etapas sermaoId={sermao.id} atual={ETAPA_MONTAGEM} />
         <Text style={estilos.meta}>
           {modelo?.nome} · cerca de {minutosEstimados(sermao)} min
         </Text>
+
+        {anotacoes.length > 0 && (
+          <Cartao style={{ gap: 8, backgroundColor: cores.apoioFundo }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: vendoEstudo }}
+              onPress={() => setVendoEstudo((v) => !v)}
+              style={estilos.cabecalhoBloco}
+            >
+              <Rotulo>Seu estudo</Rotulo>
+              <Text style={estilos.meta}>{vendoEstudo ? 'Esconder' : 'Mostrar'}</Text>
+            </Pressable>
+            {vendoEstudo &&
+              anotacoes.map((a) => (
+                <View key={a.nome} style={{ gap: 2 }}>
+                  <Text style={estilos.tituloEstudo}>{a.nome}</Text>
+                  <Text selectable style={estilos.textoEstudo}>
+                    {a.texto}
+                  </Text>
+                </View>
+              ))}
+          </Cartao>
+        )}
 
         <Cartao style={{ gap: 8 }}>
           <View style={estilos.linha}>
@@ -147,11 +180,6 @@ export default function EditorTela() {
           <View style={estilos.linha}>
             <Botao titulo="+ Bloco" variante="contorno" onPress={() => setMostrandoTipos(true)} />
             <Botao
-              titulo="Roteiro de estudo"
-              variante="contorno"
-              onPress={() => router.push(`/estudo/${sermao.id}`)}
-            />
-            <Botao
               titulo="Abrir na Bíblia"
               variante="contorno"
               onPress={() => router.push({ pathname: '/biblia', params: { sermao: sermao.id } })}
@@ -196,6 +224,7 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
   // O quadro é editado em linhas separadas: subtópico em cima e um campo por ponto
   const ehQuadro = !!estiloBloco[bloco.tipo].quadro;
   const nomeItem = estiloBloco[bloco.tipo].nomeItem ?? 'Ponto';
+  const nomeTopo = estiloBloco[bloco.tipo].topo?.nome ?? 'Subtópico';
   const linhas = bloco.texto.split('\n');
   const campos = ehQuadro
     ? Array.from({ length: Math.max(pontosDoQuadro + 1, linhas.length) }, (_, i) => linhas[i] ?? '')
@@ -232,12 +261,12 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
               {campos.map((valor, i) => (
                 <TextInput
                   key={i}
-                  accessibilityLabel={i === 0 ? 'Subtópico' : `${nomeItem} ${i}`}
+                  accessibilityLabel={i === 0 ? nomeTopo : `${nomeItem} ${i}`}
                   value={valor}
                   onChangeText={(t) => mudarCampo(i, t)}
                   onFocus={() => setCampo(i)}
                   onSelectionChange={(e) => setSelecao(e.nativeEvent.selection)}
-                  placeholder={i === 0 ? 'Subtópico' : `${nomeItem} ${i}`}
+                  placeholder={i === 0 ? nomeTopo : `${nomeItem} ${i}`}
                   placeholderTextColor={cores.textoSuave}
                   style={[estilos.entrada, estilos.linhaQuadro, i === 0 ? estilos.topoQuadro : i > 1 && estilos.divisoria]}
                 />
@@ -295,5 +324,7 @@ const estilos = StyleSheet.create({
   linhaQuadro: { paddingHorizontal: 10, minHeight: 44 },
   topoQuadro: { backgroundColor: '#F1EFE9', borderBottomWidth: 1.5, borderColor: '#000000' },
   divisoria: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#999999' },
+  tituloEstudo: { fontSize: 13, fontWeight: '700', color: cores.apoioTexto },
+  textoEstudo: { fontSize: 15, lineHeight: 21, color: cores.texto },
   acao: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 });

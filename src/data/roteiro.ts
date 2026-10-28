@@ -97,6 +97,28 @@ export function livroDoTexto(texto: string) {
     .sort((a, b) => b.nome.length - a.nome.length)[0];
 }
 
+// "João 3:16-21" -> livro, capítulo 3, versículos 16 a 21. Sem versículo, o capítulo inteiro.
+export function referenciaDoTexto(texto: string) {
+  const livro = livroDoTexto(texto);
+  if (!livro) return undefined;
+  const resto = texto.slice(livro.nome.length);
+  const m = resto.match(/(\d+)(?:\s*:\s*(\d+)(?:\s*[-–]\s*(\d+))?)?/);
+  const capitulo = m ? Number(m[1]) : 1;
+  if (capitulo < 1 || capitulo > livro.capitulos) return undefined;
+  const de = m?.[2] ? Number(m[2]) : undefined;
+  const ate = m?.[3] ? Number(m[3]) : de;
+  return { livro, capitulo, de, ate };
+}
+
+export const leitura = [
+  'Leia devagar, como se fosse a primeira vez.',
+  'Leia mais de uma vez, de preferência em voz alta.',
+  'Leia com oração: peça a Deus entendimento antes, durante e depois.',
+  'Leia o capítulo inteiro e, se puder, o livro todo, para ver o contexto.',
+  'Leia em outra tradução (NVT, NAA) e anote as diferenças.',
+  'Leia com as seis perguntas: quem, o quê, onde, quando, por quê, para quê.',
+];
+
 export function sugerirGenero(textoBase: string): Genero | undefined {
   const livro = livroDoTexto(textoBase);
   if (!livro) return undefined;

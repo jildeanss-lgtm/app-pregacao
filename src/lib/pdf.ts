@@ -2,7 +2,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { modelos } from '../data/modelos';
-import { coresPregacao, destacarTudo, dividirDestaques, dividirQuadro, estiloBloco, linhasParaMostrar, rotuloVisivel } from '../estilo';
+import { destacarTudo, dividirDestaques, dividirQuadro, estiloBloco, linhasParaMostrar, rotuloVisivel } from '../estilo';
 import { minutosEstimados, type Bloco, type Sermao } from '../store/sermoes';
 
 function escapar(texto: string) {
@@ -36,9 +36,9 @@ function blocoHtml(b: Bloco) {
   const rotulo = nome ? `<span class="rotulo">${escapar(nome)}</span><br>` : '';
   if (e.quadro) {
     const { subtopico, pontos } = dividirQuadro(b.texto);
-    const estiloItens = e.itens ? ` style="color:${e.itens.cor};${e.itens.italico ? 'font-style:italic' : ''}"` : '';
-    const linhas = pontos.map((l) => `<tr><td${estiloItens}>• ${comDestaques(e.autoDestaque ? destacarTudo(l) : l)}</td></tr>`).join('');
-    return `<table class="quadro"><tr><th><span class="seta">➔</span>${comDestaques(subtopico, coresPregacao.frase)}</th></tr>${linhas}</table>`;
+    const estiloTopo = e.topo ? ` style="color:${e.topo.cor};${e.topo.italico ? 'font-style:italic' : ''}"` : '';
+    const linhas = pontos.map((l) => `<tr><td>• ${comDestaques(e.autoDestaque ? destacarTudo(l) : l)}</td></tr>`).join('');
+    return `<table class="quadro"><tr><th${estiloTopo}><span class="seta">➔</span>${comDestaques(subtopico, e.topo?.corChave)}</th></tr>${linhas}</table>`;
   }
   const { cabecalho, linhas } = linhasParaMostrar(b.tipo, b.texto);
   if (e.lista) {
