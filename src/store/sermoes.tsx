@@ -19,6 +19,8 @@ export type Pregacao = {
   observacoes: string;
 };
 
+export type TrechoBiblioteca = { livro: string; autor: string; local: string; trecho: string; comentario: string };
+
 export type Sermao = {
   id: string;
   titulo: string;
@@ -40,6 +42,8 @@ export type Sermao = {
   notasBiblia?: string;
   // O que a pesquisa na biblioteca do Drive (pelo claude.ai) trouxe sobre o texto
   notasBiblioteca?: string;
+  // Trechos dos livros da biblioteca que a IA trouxe sobre o tema, mostrados em cartões na aba Biblioteca
+  trechosBiblioteca?: TrechoBiblioteca[];
   // Resumo de todo o estudo, já em forma de sermão, que serve de base para montar o sermão
   resumo?: string;
   temas?: string[];
@@ -58,7 +62,16 @@ const CHAVE_ESTUDO = 'estudo:v1';
 // ele vai junto para o sermão
 export type DadosEstudo = Pick<
   Sermao,
-  'textoBase' | 'genero' | 'respostas' | 'anotacoes' | 'estudo' | 'notasBiblia' | 'notasBiblioteca' | 'resumo' | 'temas'
+  | 'textoBase'
+  | 'genero'
+  | 'respostas'
+  | 'anotacoes'
+  | 'estudo'
+  | 'notasBiblia'
+  | 'notasBiblioteca'
+  | 'trechosBiblioteca'
+  | 'resumo'
+  | 'temas'
 >;
 
 // Etapas antigas (versão 1: Leitura...Pregação; versão 2: Bíblia, Leitura...Pregação) viram as quatro de agora

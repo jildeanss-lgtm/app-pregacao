@@ -1,6 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
-import { Linking, StyleSheet, Text, TextInput } from 'react-native';
+import { Linking, StyleSheet, Text, TextInput, View } from 'react-native';
+import { lerTrechos, montarPedidoBiblioteca } from '../ia/estudo';
 import type { DadosEstudo } from '../store/sermoes';
 import { cores } from '../theme';
 import { CampoCrescente } from './CampoCrescente';
@@ -9,68 +10,103 @@ import { Botao, Cartao, Rotulo } from './ui';
 type Mudar = (mudar: (d: DadosEstudo) => DadosEstudo) => void;
 
 // A biblioteca pessoal fica no Google Drive (pasta "2 - Biblioteca") e os livros nunca são copiados para o app.
-// A pesquisa é feita no claude.ai, que já tem acesso ao Drive: o app monta o pedido e guarda a resposta colada
-function pedidoBiblioteca(tema: string, pergunta: string) {
-  return `Use o meu Google Drive conectado. Pesquise na pasta "2 - Biblioteca" e nas subpastas dela (por exemplo "01 Bíblia e Estudo Bíblico", "02 Teologia Sistemática" e a "Enciclopédia Temática Shedd") o que os livros dizem sobre: ${tema}.${pergunta ? `\n\nMinha pergunta: ${pergunta}` : ''}
-
-Para cada livro que trate do assunto (até 6), traga:
-- título e autor
-- capítulo ou página
-- um resumo de 2 a 4 frases do que o autor diz, com uma citação curta entre aspas quando houver
-
-Use só o que está nos livros da pasta e diga quando não encontrar nada. Termine com 3 ideias para o sermão a partir dessas fontes. Responda em português do Brasil, em texto simples, sem tabelas.`;
-}
-
-// Pesquisa nos livros do Drive: usada na aba Biblioteca do Estudar e na tela Biblioteca
+// A busca é feita no claude.ai, que já tem acesso ao Drive: o botão copia o pedido, a resposta colada vira
+// cartões com os trechos, como as respostas das abas Observação, Interpretação e Aplicação
 export function PesquisaBiblioteca({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mudar }) {
-  const [tema, setTema] = useState(estudo.textoBase);
-  const [pergunta, setPergunta] = useState('');
-  const [copiado, setCopiado] = useState(false);
+  const [assunto, setAssunto] = useState('');
+  const [colando, setColando] = useState(false);
+  const [colado, setColado] = useState('');
+  const [aviso, setAviso] = useState('');
+  const trechos = estudo.trechosBiblioteca ?? [];
+
+  const buscar = async () => {
+    await Clipboard.setStringAsync(montarPedidoBiblioteca(estudo, assunto));
+    setColando(true);
+    setAviso('Pedido copiado. Cole no claude.ai, espere a resposta, copie tudo e cole no campo abaixo.');
+  };
+
+  const trazer = () => {
+    const novos = lerTrechos(colado);
+    if (novos) {
+      mudar((e) => ({ ...e, trechosBiblioteca: [...(e.trechosBiblioteca ?? []), ...novos] }));
+      setAviso(`Pronto: ${novos.length} trecho${novos.length === 1 ? '' : 's'} da sua biblioteca.`);
+    } else if (colado.trim()) {
+      // Resposta sem o JSON: guarda o texto como está, nas anotações
+      mudar((e) => ({
+        ...e,
+        notasBiblioteca: [e.notasBiblioteca?.trim(), colado.trim()].filter(Boolean).join('\n\n'),
+      }));
+      setAviso('A resposta veio sem os trechos separados; guardei o texto nas anotações abaixo.');
+    }
+    setColado('');
+    setColando(false);
+  };
 
   return (
     <>
-      <Rotulo>Pesquisar na minha biblioteca</Rotulo>
+      <Botao titulo="Buscar na Biblioteca" onPress={buscar} />
+      <TextInput
+        accessibilityLabel="Assunto da busca"
+        value={assunto}
+        onChangeText={setAssunto}
+        placeholder="Assunto (opcional)"
+        placeholderTextColor={cores.textoSuave}
+        style={estilos.campo}
+      />
+
+      {colando && (
+        <View style={{ gap: 8 }}>
+          <Botao
+            titulo="Abrir o claude.ai"
+            variante="contorno"
+            onPress={() => Linking.openURL('https://claude.ai/new')}
+          />
+          <TextInput
+            accessibilityLabel="Resposta do Claude"
+            multiline
+            value={colado}
+            onChangeText={setColado}
+            placeholder="Cole aqui a resposta do Claude"
+            placeholderTextColor={cores.textoSuave}
+            style={[estilos.campo, { minHeight: 100 }]}
+          />
+          <Botao titulo="Trazer para o app" onPress={trazer} />
+        </View>
+      )}
+      {aviso ? <Text style={estilos.aviso}>{aviso}</Text> : null}
+
+      {trechos.length > 0 && (
+        <Cartao style={{ gap: 10 }}>
+          <Rotulo>Trechos da sua biblioteca</Rotulo>
+          {trechos.map((t, i) => (
+            <View key={i} style={[estilos.trecho, i > 0 && estilos.separador]}>
+              <Text style={estilos.livro}>{[t.livro, t.autor].filter(Boolean).join(' · ')}</Text>
+              {t.local ? <Text style={estilos.local}>{t.local}</Text> : null}
+              <Text style={estilos.citacao}>“{t.trecho}”</Text>
+              {t.comentario ? <Text style={estilos.comentario}>{t.comentario}</Text> : null}
+              <Text
+                accessibilityRole="button"
+                onPress={() =>
+                  mudar((e) => ({ ...e, trechosBiblioteca: (e.trechosBiblioteca ?? []).filter((_, j) => j !== i) }))
+                }
+                style={estilos.remover}
+              >
+                Remover
+              </Text>
+            </View>
+          ))}
+        </Cartao>
+      )}
+
       <Cartao style={{ gap: 10 }}>
-        <Text style={estilos.suave}>
-          Pesquisa nos livros da pasta “2 - Biblioteca” do seu Google Drive, pelo claude.ai. Copie o pedido, cole no
-          claude.ai e depois cole a resposta aqui embaixo. Ela fica guardada no estudo e aparece em “Seu estudo” no
-          sermão.
-        </Text>
-        <TextInput
-          accessibilityLabel="Assunto da pesquisa"
-          value={tema}
-          onChangeText={setTema}
-          placeholder="Assunto ou texto (ex.: Romanos 7:15-20, a luta contra o pecado)"
-          placeholderTextColor={cores.textoSuave}
-          style={estilos.campo}
-        />
-        <TextInput
-          accessibilityLabel="Pergunta para a biblioteca"
-          value={pergunta}
-          onChangeText={setPergunta}
-          placeholder="Pergunta (opcional)"
-          placeholderTextColor={cores.textoSuave}
-          style={estilos.campo}
-        />
-        <Botao
-          titulo={copiado ? 'Pedido copiado' : 'Copiar pedido para o Claude'}
-          onPress={async () => {
-            await Clipboard.setStringAsync(pedidoBiblioteca(tema.trim() || 'o texto do sermão', pergunta.trim()));
-            setCopiado(true);
-          }}
-        />
-        <Botao
-          titulo="Abrir o claude.ai"
-          variante="contorno"
-          onPress={() => Linking.openURL('https://claude.ai/new')}
-        />
+        <Rotulo>Suas anotações da biblioteca</Rotulo>
         <CampoCrescente
-          accessibilityLabel="Resposta da biblioteca"
+          accessibilityLabel="Anotações da biblioteca"
           value={estudo.notasBiblioteca ?? ''}
           onChangeText={(t) => mudar((e) => ({ ...e, notasBiblioteca: t }))}
-          placeholder="Cole aqui a resposta do Claude"
+          placeholder="O que você quer guardar destas leituras"
           placeholderTextColor={cores.textoSuave}
-          alturaMinima={120}
+          alturaMinima={80}
           style={estilos.campo}
         />
       </Cartao>
@@ -79,7 +115,7 @@ export function PesquisaBiblioteca({ estudo, mudar }: { estudo: DadosEstudo; mud
 }
 
 const estilos = StyleSheet.create({
-  suave: { fontSize: 14, color: cores.textoSuave, marginTop: 2 },
+  aviso: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: cores.destaqueEscuro },
   campo: {
     borderWidth: 1,
     borderColor: cores.bordaForte,
@@ -87,7 +123,14 @@ const estilos = StyleSheet.create({
     padding: 10,
     fontSize: 15,
     color: cores.texto,
-    backgroundColor: cores.fundo,
+    backgroundColor: cores.cartao,
     textAlignVertical: 'top',
   },
+  trecho: { gap: 4 },
+  separador: { borderTopWidth: 1, borderTopColor: cores.borda, paddingTop: 12 },
+  livro: { fontSize: 15, fontWeight: '700', color: cores.texto },
+  local: { fontSize: 13, color: cores.textoSuave },
+  citacao: { fontSize: 15, lineHeight: 22, fontStyle: 'italic', color: cores.texto },
+  comentario: { fontSize: 14, lineHeight: 20, color: cores.textoSuave },
+  remover: { fontSize: 13, color: cores.textoSuave, textDecorationLine: 'underline', alignSelf: 'flex-start' },
 });
