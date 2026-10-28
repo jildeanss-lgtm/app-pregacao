@@ -4,7 +4,7 @@ import { BarraAbas } from '../components/BarraAbas';
 import { PesquisaBiblioteca } from '../components/PesquisaBiblioteca';
 import { Cartao, Rotulo } from '../components/ui';
 import { useSermoes } from '../store/sermoes';
-import { cores } from '../theme';
+import { cores, larguraConteudo } from '../theme';
 
 export default function BibliotecaTela() {
   const { sermoes, estudo, mudarEstudo } = useSermoes();
@@ -39,7 +39,7 @@ export default function BibliotecaTela() {
 }
 
 const estilos = StyleSheet.create({
-  conteudo: { padding: 20, gap: 10, paddingBottom: 48 },
+  conteudo: { padding: 20, gap: 10, paddingBottom: 48, ...larguraConteudo },
   titulo: { fontSize: 16, fontWeight: '600', color: cores.texto },
   suave: { fontSize: 14, color: cores.textoSuave, marginTop: 2 },
 });
