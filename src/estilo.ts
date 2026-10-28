@@ -32,7 +32,7 @@ export type EstiloBloco = {
   // Caixa com o subtópico na linha de cima e os pontos embaixo
   quadro?: boolean;
   // Linha de cima do quadro: cor, itálico e cor das palavras-chave
-  topo?: { cor: string; italico?: boolean; corChave: string; nome: string };
+  topo?: { cor: string; italico?: boolean; corChave: string; nome: string; semSeta?: boolean };
   nomeItem?: string;
   // Os pontos usam a mesma cor e ênfase da linha de cima
   itensComoTopo?: boolean;
@@ -91,7 +91,13 @@ export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
     cor: coresPregacao.aplicacao,
     italico: true,
     quadro: true,
-    topo: { cor: coresPregacao.aplicacao, italico: true, corChave: coresPregacao.aplicacao, nome: 'Aplicação' },
+    topo: {
+      cor: coresPregacao.aplicacao,
+      italico: true,
+      corChave: coresPregacao.aplicacao,
+      nome: 'Aplicação',
+      semSeta: true,
+    },
     nomeItem: 'Ponto',
     itensComoTopo: true,
   },
