@@ -7,7 +7,7 @@ import { nomesBloco, type TipoBloco } from './data/modelos';
 export const coresPregacao = {
   texto: '#000000',
   textoBiblico: '#990000',
-  frase: '#1A3BD6',
+  frase: '#1C2F9E',
   efeito: '#38761D',
   pergunta: '#4A86E8',
   aplicacao: '#7030A0',

@@ -117,7 +117,7 @@ export default function PulpitoTela() {
                 return (
                   <View key={b.id} style={{ gap: 4 }}>
                     {rotulo && rotulo !== parte.titulo && <Text style={estilos.rotulo}>{rotulo}</Text>}
-                    <TextoFormatado tipo={b.tipo} texto={b.texto} tamanho={20} semMoldura />
+                    <TextoFormatado tipo={b.tipo} texto={b.texto} tamanho={20} semMoldura setaNaMargem={largo} />
                   </View>
                 );
               })}
