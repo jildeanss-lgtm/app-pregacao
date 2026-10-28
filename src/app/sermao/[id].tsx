@@ -181,6 +181,7 @@ export default function EditorTela() {
               },
               ...sermao.blocos.map((bloco, i) => ({
                 id: bloco.id,
+                novaPagina: bloco.tipo === 'topico',
                 conteudo: (
                   <BlocoEditor
                     bloco={bloco}
@@ -494,7 +495,8 @@ const margemVertical = { larga: 64, estreita: 28 };
 const margemLateral = { larga: 72, estreita: 20 };
 const espacoEntrePartes = 10;
 
-type Parte = { id: string; conteudo: ReactNode };
+// novaPagina: a parte sempre abre uma folha nova (cada Tópico, como o JILDEAN pediu)
+type Parte = { id: string; conteudo: ReactNode; novaPagina?: boolean };
 
 // Distribui as partes do sermão em páginas do tamanho de uma folha A4. Uma parte que não cabe no resto da página
 // começa na página seguinte, com o espaço cinza entre as folhas, como no Google Docs
@@ -512,8 +514,8 @@ function paginas(
   const elementos = partes.map((parte, i) => {
     const altura = alturas[parte.id] ?? 0;
     const espaco = i > 0 && usado > 0 ? espacoEntrePartes : 0;
-    const quebra = larguraFolha > 0 && usado > 0 && usado + espaco + altura > util;
-    const resto = util - usado;
+    const quebra = larguraFolha > 0 && usado > 0 && (!!parte.novaPagina || usado + espaco + altura > util);
+    const resto = Math.max(0, util - usado);
     usado = quebra ? altura : usado + espaco + altura;
     return (
       <Fragment key={parte.id}>
