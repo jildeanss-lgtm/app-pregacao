@@ -12,6 +12,7 @@ import {
 } from '../data/modelos';
 import { generos, sugerirGenero, type Genero } from '../data/roteiro';
 import { ETAPA_MONTAGEM } from '../data/etapas';
+import { lerChave, prepararSermao, textoDosVersiculos } from '../ia/estudo';
 import { useSermoes } from '../store/sermoes';
 import { cores } from '../theme';
 
@@ -21,7 +22,8 @@ function hoje() {
 }
 
 export default function NovoSermaoTela() {
-  const { criar, estudo } = useSermoes();
+  const { criar, atualizar, estudo } = useSermoes();
+  const [criando, setCriando] = useState(false);
   const [culto, setCulto] = useState('');
   const [data, setData] = useState(hoje);
   const [titulo, setTitulo] = useState('');
@@ -40,7 +42,12 @@ export default function NovoSermaoTela() {
   const sugerido = sugerirGenero(textoBase);
   const genero = generoEscolhido ?? sugerido;
 
-  const criarSermao = () => {
+  const criarSermao = async () => {
+    if (criando) return;
+    setCriando(true);
+    const intro = opcoesIntroducao.find((o) => o.id === introducao)!;
+    const doEstudo = textoBase === estudo.textoBase;
+    const [versos, chave] = await Promise.all([textoDosVersiculos(textoBase).catch(() => ''), lerChave()]);
     const s = criar({
       titulo,
       textoBase,
@@ -50,10 +57,44 @@ export default function NovoSermaoTela() {
       genero,
       etapa: ETAPA_MONTAGEM,
       // O estudo feito para este texto vai junto e aparece em "Seu estudo" na montagem
-      ...(textoBase === estudo.textoBase ? { respostas: estudo.respostas, anotacoes: estudo.anotacoes } : {}),
-      blocos: montarBlocos({ modelo, textoBase, objetivo, tipoObjetivo, introducao, comSaudacao }),
+      ...(doEstudo ? { respostas: estudo.respostas, anotacoes: estudo.anotacoes } : {}),
+      blocos: montarBlocos({ modelo, textoBase, objetivo, tipoObjetivo, versos, introducao, comSaudacao }),
     });
     router.replace(`/sermao/${s.id}`);
+    if (!chave || !textoBase.trim()) return;
+
+    // Com a chave da IA, o objetivo e a introdução são escritos logo depois, sem segurar a tela
+    atualizar(s.id, (x) => ({ ...x, iaPreparando: true, iaErro: undefined }));
+    try {
+      const r = await prepararSermao(chave, {
+        textoBase,
+        titulo,
+        modelo: modelos.find((m) => m.id === modelo)?.nome ?? modelo,
+        tipoObjetivo,
+        introducao: intro,
+        respostas: doEstudo ? estudo.respostas : undefined,
+      });
+      atualizar(s.id, (x) => ({
+        ...x,
+        iaPreparando: false,
+        // Só preenche o que ainda está em branco, para não apagar o que o pregador já escreveu
+        blocos: x.blocos.map((b) =>
+          b.texto.trim()
+            ? b
+            : b.tipo === 'objetivo' && r.objetivo
+              ? { ...b, texto: r.objetivo }
+              : b.tipo === 'introducao' && r.introducao
+                ? { ...b, texto: r.introducao }
+                : b,
+        ),
+      }));
+    } catch (e) {
+      atualizar(s.id, (x) => ({
+        ...x,
+        iaPreparando: false,
+        iaErro: e instanceof Error ? e.message : 'A IA não conseguiu escrever o objetivo e a introdução.',
+      }));
+    }
   };
 
   return (
@@ -197,7 +238,7 @@ export default function NovoSermaoTela() {
         />
       </Cartao>
 
-      <Botao titulo="Criar sermão" onPress={criarSermao} />
+      <Botao titulo={criando ? 'Criando...' : 'Criar sermão'} onPress={criarSermao} />
     </ScrollView>
   );
 }

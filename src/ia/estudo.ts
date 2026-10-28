@@ -104,9 +104,9 @@ export function lerResultado(estudo: DadosEstudo, texto: string): ResultadoIA {
   return { respostas, temas };
 }
 
-export async function responderComChave(chave: string, estudo: DadosEstudo): Promise<ResultadoIA> {
+// Uma chamada ao Claude com a resposta presa ao esquema JSON; devolve o texto da resposta
+async function chamarClaude(chave: string, pedido: string, schema: Record<string, unknown>) {
   const cliente = new Anthropic({ apiKey: chave, dangerouslyAllowBrowser: true });
-  const pedido = await montarPedido(estudo);
   let resposta;
   try {
     resposta = await cliente.beta.messages
@@ -114,7 +114,7 @@ export async function responderComChave(chave: string, estudo: DadosEstudo): Pro
         model: 'claude-opus-5-5',
         max_tokens: 64000,
         thinking: { type: 'adaptive' },
-        output_config: { effort: 'medium', format: { type: 'json_schema', schema: esquema } },
+        output_config: { effort: 'medium', format: { type: 'json_schema', schema } },
         betas: ['server-side-fallback-2026-07-01'],
         fallbacks: 'default',
         messages: [{ role: 'user', content: pedido }],
@@ -129,10 +129,78 @@ export async function responderComChave(chave: string, estudo: DadosEstudo): Pro
     if (e instanceof Anthropic.RateLimitError) throw new Error('Muitos pedidos agora. Tente de novo em um minuto.');
     if (e instanceof Anthropic.BadRequestError && /credit/i.test(e.message))
       throw new Error('Sem crédito na conta da Anthropic. Adicione crédito em Billing.');
+    if (e instanceof Anthropic.APIConnectionError) throw new Error('Sem conexão com a IA. Verifique a internet.');
     if (e instanceof Anthropic.APIError) throw new Error(`Erro da IA (${e.status}): ${e.message}`);
     throw new Error('Sem conexão com a IA. Verifique a internet.');
   }
   if (resposta.stop_reason === 'refusal') throw new Error('A IA não respondeu a este pedido.');
-  const texto = resposta.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
-  return lerResultado(estudo, texto);
+  return resposta.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+}
+
+export async function responderComChave(chave: string, estudo: DadosEstudo): Promise<ResultadoIA> {
+  return lerResultado(estudo, await chamarClaude(chave, await montarPedido(estudo), esquema));
+}
+
+// "Romanos 7:15-20" -> o texto dos versículos na Bíblia Livre, com os números, para o bloco Texto referência
+export async function textoDosVersiculos(textoBase: string) {
+  const ref = referenciaDoTexto(textoBase);
+  if (!ref) return '';
+  const capitulo = (await carregarTexto(ref.livro.codigo))[ref.capitulo - 1] ?? [];
+  const de = ref.de ?? 1;
+  const ate = ref.ate ?? (ref.de ? de : capitulo.length);
+  return capitulo
+    .slice(de - 1, ate)
+    .map((t, i) => `${de + i} ${t}`)
+    .join(' ');
+}
+
+export type DadosNovoSermao = {
+  textoBase: string;
+  titulo: string;
+  modelo: string;
+  tipoObjetivo?: string;
+  introducao: { nome: string; dica: string };
+  respostas?: Record<string, string>;
+};
+
+const esquemaSermao = {
+  type: 'object',
+  properties: { objetivos: { type: 'array', items: { type: 'string' } }, introducao: { type: 'string' } },
+  required: ['objetivos', 'introducao'],
+  additionalProperties: false,
+};
+
+// Ao criar o sermão: a IA escreve o objetivo e a introdução a partir do texto e do estudo feito
+export async function prepararSermao(chave: string, d: DadosNovoSermao) {
+  const versos = await textoDosVersiculos(d.textoBase);
+  const estudo = Object.entries(d.respostas ?? {})
+    .filter(([, r]) => r.trim())
+    .map(([p, r]) => `- ${p} ${r}`)
+    .join('\n');
+  const pedido = `Você ajuda um pregador brasileiro a montar um sermão. Escreva em português do Brasil.
+
+Texto: ${d.textoBase} (Bíblia Livre)
+${versos}
+${d.titulo ? `\nTítulo do sermão: ${d.titulo}` : ''}
+Tipo de sermão: ${d.modelo}
+Finalidade: ${d.tipoObjetivo ?? 'Pregação'}
+${estudo ? `\nEstudo que o pregador já fez sobre o texto:\n${estudo}\n` : ''}
+Escreva duas partes do sermão:
+
+1. objetivos: três objetivos que completam "O objetivo deste sermão é..." (sem repetir essas palavras), cada um começando por um verbo no infinitivo como mostrar, explicar, advertir ou exibir, adequados à finalidade "${d.tipoObjetivo ?? 'Pregação'}". Uma frase curta cada.
+
+2. introducao: a introdução do tipo "${d.introducao.nome}": ${d.introducao.dica} Use só citações e fatos que você tem certeza que existem, com autor e obra. Escreva como o pregador vai falar, em frases curtas, uma por linha, de 6 a 12 linhas.
+
+O pregador destaca as palavras-chave em MAIÚSCULAS entre asteriscos, por exemplo: Deus *NÃO DESISTE* de *VOCÊ*. Faça o mesmo nas duas partes, com 2 a 4 destaques por linha.`;
+  const texto = await chamarClaude(chave, pedido, esquemaSermao);
+  const dados = JSON.parse(texto.slice(texto.indexOf('{'), texto.lastIndexOf('}') + 1)) as {
+    objetivos?: string[];
+    introducao?: string;
+  };
+  // O objetivo vai no formato do quadro: a frase em cima e um objetivo por linha
+  const objetivos = (dados.objetivos ?? []).map((o) => o.replace(/\n/g, ' ').trim()).filter(Boolean);
+  return {
+    objetivo: objetivos.length ? ['O *OBJETIVO* deste *SERMÃO* é:', ...objetivos.slice(0, 3)].join('\n') : '',
+    introducao: dados.introducao?.trim() ?? '',
+  };
 }

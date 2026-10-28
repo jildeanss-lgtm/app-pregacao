@@ -26,7 +26,7 @@ export const nomesBloco: Record<TipoBloco, string> = {
   introducao: 'Introdução',
   topico: 'Tópico',
   subtopico: 'Subtópico',
-  quadro: 'Corpo',
+  quadro: 'Texto',
   quadroPerguntas: 'Pergunta',
   frase: 'Frase',
   pontos: 'Pontos',
@@ -100,6 +100,8 @@ export type OpcoesNovoSermao = {
   textoBase: string;
   objetivo: string;
   tipoObjetivo?: string;
+  // Texto dos versículos, que já entra no bloco Texto referência
+  versos?: string;
   introducao: OpcaoIntroducao;
   comSaudacao: boolean;
 };
@@ -141,53 +143,43 @@ function saudacao(textoBase: string): BlocoInicial[] {
   ];
 }
 
+// Cada tópico: Tópico, Texto (subtópico e pontos), Texto bíblico, Frase de efeito, Aplicação e Pergunta
 function topico(n: number, modelo: Modelo): BlocoInicial[] {
+  const dicaTopico =
+    modelo === 'tematico'
+      ? 'Responda ao tema: O quê? Quem? Quando? Onde? Como? Por quê?'
+      : modelo === 'lectio'
+        ? `Versículo ${n}: a ideia principal`
+        : undefined;
   return [
-    {
-      tipo: 'topico',
-      dica: modelo === 'tematico' ? 'Responda ao tema: O quê? Quem? Quando? Onde? Como? Por quê?' : undefined,
-    },
-    {
-      tipo: 'versiculo',
-      rotulo: 'Texto',
-      dica: modelo === 'tematico' ? 'Versículo que fundamenta este tópico' : `Parte ${n} do texto`,
-    },
-    { tipo: 'explicacao' },
-    { tipo: 'versiculo', rotulo: 'Versículo de apoio' },
-    { tipo: 'exemplo' },
+    { tipo: 'topico', rotulo: `Tópico ${n}`, dica: dicaTopico },
+    { tipo: 'quadro' },
+    { tipo: 'versiculo', dica: modelo === 'tematico' ? 'Versículo que fundamenta este tópico' : `Parte ${n} do texto` },
+    { tipo: 'efeito' },
     { tipo: 'aplicacao' },
+    { tipo: 'quadroPerguntas' },
   ];
 }
 
-function versoAVerso(n: number): BlocoInicial[] {
-  return [
-    { tipo: 'topico', dica: `Versículo ${n}: a ideia principal` },
-    { tipo: 'versiculo', rotulo: `Versículo ${n}` },
-    { tipo: 'explicacao' },
-    { tipo: 'aplicacao' },
-  ];
-}
-
-// Monta o esqueleto do sermão a partir do modelo de pregação do Jildean:
-// saudação, objetivo, texto, introdução, três tópicos e conclusão.
+// Monta o esqueleto do sermão a partir do modelo de pregação do Jildean: objetivo no cabeçalho, saudação,
+// texto referência, introdução, três tópicos e conclusão
 export function montarBlocos(o: OpcoesNovoSermao): BlocoInicial[] {
   const intro = opcoesIntroducao.find((i) => i.id === o.introducao)!;
-  const corpo = [1, 2, 3].flatMap((n) => (o.modelo === 'lectio' ? versoAVerso(n) : topico(n, o.modelo)));
   return [
-    ...(o.comSaudacao ? saudacao(o.textoBase) : []),
     {
       tipo: 'objetivo',
       rotulo: o.tipoObjetivo ? `Objetivo do sermão: ${o.tipoObjetivo}` : 'Objetivo do sermão',
-      texto: o.objetivo,
-      dica: 'O objetivo deste sermão é...',
+      texto: o.objetivo.trim() ? `O *OBJETIVO* deste *SERMÃO* é:\n${o.objetivo.trim()}` : '',
     },
+    ...(o.comSaudacao ? saudacao(o.textoBase) : []),
     {
       tipo: 'versiculo',
       rotulo: 'Texto referência',
+      texto: o.versos ? `${o.textoBase} - ${o.versos}` : '',
       dica: o.textoBase ? `${o.textoBase} - cole ou escreva o texto` : undefined,
     },
     { tipo: 'introducao', rotulo: `Introdução: ${intro.nome}`, dica: intro.dica },
-    ...corpo,
+    ...[1, 2, 3].flatMap((n) => topico(n, o.modelo)),
     { tipo: 'conclusao' },
     { tipo: 'efeito' },
     { tipo: 'aplicacao' },

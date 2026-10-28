@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { EtapaEstudo } from '../data/etapas';
 import { generos, perguntasDaEtapa, sentidoFigurado, sugerirGenero } from '../data/roteiro';
 import type { DadosEstudo } from '../store/sermoes';
 import { cores } from '../theme';
+import { CampoCrescente } from './CampoCrescente';
 import { Botao, Cartao, Rotulo } from './ui';
 
 // Partes do estudo usadas na etapa Estudo do sermão e na aba Estudo
@@ -42,7 +43,7 @@ export function ParteDoEstudo({
           {g.perguntas.map((q) => (
             <View key={q.pergunta} style={{ gap: 2 }}>
               <Text style={estilos.pergunta}>{q.pergunta}</Text>
-              <TextInput
+              <CampoCrescente
                 accessibilityLabel={q.pergunta}
                 value={sermao.respostas?.[q.pergunta] ?? q.padrao ?? ''}
                 onChangeText={(texto) => mudar((s) => ({ ...s, respostas: { ...s.respostas, [q.pergunta]: texto } }))}
@@ -82,7 +83,8 @@ export function Anotacoes({
   return (
     <Cartao style={{ gap: 8 }}>
       <Rotulo>Suas anotações</Rotulo>
-      <TextInput
+      <CampoCrescente
+        alturaMinima={120}
         accessibilityLabel={`Anotações da ${nome}`}
         value={anotacao}
         onChangeText={(texto) => mudar((s) => ({ ...s, anotacoes: { ...s.anotacoes, [etapa]: texto } }))}
