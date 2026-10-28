@@ -30,6 +30,8 @@ export type Sermao = {
   // Etapa em que o sermão parou (ver data/etapas) e as anotações de cada etapa do estudo
   etapa?: number;
   anotacoes?: Partial<Record<EtapaEstudo, string>>;
+  // Respostas às perguntas do estudo, pela própria pergunta
+  respostas?: Record<string, string>;
   // Anotações da versão antiga do roteiro, mostradas na observação
   estudo?: string;
   blocos: Bloco[];

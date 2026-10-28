@@ -1,3 +1,5 @@
+import type { EtapaEstudo } from './etapas';
+import { introducoes } from './introducoes';
 import { livros } from './portugues';
 
 // Roteiro de estudo indutivo: Observação -> Interpretação -> Aplicação.
@@ -160,3 +162,41 @@ export const sentidoFigurado = [
   'Use o figurado quando o literal contrariar o contexto, o estilo do livro ou o propósito do autor.',
   'Use o figurado quando o literal contradisser outras partes das Escrituras ou a doutrina.',
 ];
+
+export const perguntasAplicacao = [
+  'Que verdade eterna o texto ensina?',
+  'Onde ela confronta a nossa vida hoje (família, igreja, trabalho)?',
+  'Onde Cristo aparece neste texto?',
+  'Que pergunta vou fazer ao coração dos ouvintes?',
+];
+
+export type PerguntaEstudo = { pergunta: string; padrao?: string };
+export type GrupoPerguntas = { titulo: string; dica?: string; perguntas: PerguntaEstudo[] };
+
+// Perguntas de cada etapa, já com a resposta de partida quando o app sabe (contexto do livro)
+export function perguntasDaEtapa(etapa: EtapaEstudo, textoBase: string, generoEscolhido?: Genero): GrupoPerguntas[] {
+  if (etapa === 'observacao') {
+    const livro = livroDoTexto(textoBase);
+    const intro = livro ? introducoes[livro.codigo] : undefined;
+    const padroes = intro ? [intro.autor, intro.destinatarios, intro.data, intro.antes, intro.proposito] : [];
+    const genero = generos.find((g) => g.id === (generoEscolhido ?? sugerirGenero(textoBase)));
+    return [
+      {
+        titulo: 'Contexto do livro',
+        dica: intro ? 'Respostas de partida do app. Confira e complete.' : undefined,
+        perguntas: observacao.contexto.map((pergunta, i) => ({ pergunta, padrao: padroes[i] })),
+      },
+      ...(genero
+        ? [{ titulo: `Perguntas para ${genero.nome.toLowerCase()}`, dica: genero.chave, perguntas: genero.perguntas.map((pergunta) => ({ pergunta })) }]
+        : []),
+      { titulo: 'Seis pistas no texto', perguntas: observacao.pistas.map((pergunta) => ({ pergunta })) },
+    ];
+  }
+  if (etapa === 'interpretacao') {
+    return [{ titulo: 'As cinco chaves', perguntas: interpretacao.map((c) => ({ pergunta: `${c.nome}: ${c.texto}` })) }];
+  }
+  if (etapa === 'aplicacao') {
+    return [{ titulo: 'Perguntas para a aplicação', perguntas: perguntasAplicacao.map((pergunta) => ({ pergunta })) }];
+  }
+  return [];
+}
