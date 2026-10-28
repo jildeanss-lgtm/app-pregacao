@@ -58,7 +58,9 @@ export default function NovoSermaoTela() {
       genero,
       etapa: ETAPA_MONTAGEM,
       // O estudo feito para este texto vai junto e aparece em "Seu estudo" na montagem
-      ...(doEstudo ? { respostas: estudo.respostas, anotacoes: estudo.anotacoes } : {}),
+      ...(doEstudo
+        ? { respostas: estudo.respostas, anotacoes: estudo.anotacoes, notasBiblioteca: estudo.notasBiblioteca }
+        : {}),
       blocos: montarBlocos({ modelo, textoBase, objetivo, tipoObjetivo, versos, introducao, comSaudacao }),
     });
     router.replace(`/sermao/${s.id}`);
