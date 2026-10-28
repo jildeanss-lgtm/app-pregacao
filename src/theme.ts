@@ -21,6 +21,9 @@ export const cores = {
   pulpitoApoio: '#E3B26A',
 };
 
+// Largura máxima do conteúdo no computador, para as telas não ficarem esticadas
+export const larguraConteudo = { maxWidth: 880, width: '100%', alignSelf: 'center' } as const;
+
 export const fonteBiblia = 'Georgia';
 // Fonte dos esboços (editor e púlpito): Arial, como nos documentos do Jildean
 export const fonteEsboco = Platform.select({ web: 'Arial, Helvetica, sans-serif', default: undefined });
