@@ -34,7 +34,6 @@ export function ParteDoEstudo({
 }) {
   return (
     <>
-      {parte === 'observacao' && <Genero sermao={sermao} mudar={mudar} />}
       {perguntasDaEtapa(parte, sermao.textoBase, sermao.genero).map((g) => (
         <Cartao key={g.titulo} style={{ gap: 10 }}>
           <Rotulo>{g.titulo}</Rotulo>
@@ -95,7 +94,8 @@ export function Anotacoes({
   );
 }
 
-function Genero({ sermao, mudar }: { sermao: DadosEstudo; mudar: Mudar }) {
+// Gênero literário do texto: fica na aba Texto do Estudar
+export function Genero({ sermao, mudar }: { sermao: DadosEstudo; mudar: Mudar }) {
   const sugerido = sugerirGenero(sermao.textoBase);
   const generoAtual = sermao.genero ?? sugerido;
   const genero = generos.find((g) => g.id === generoAtual);

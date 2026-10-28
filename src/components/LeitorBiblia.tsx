@@ -13,6 +13,7 @@ import type { Lexico, PalavraOriginal } from '../data/tipos';
 import { useSermoes } from '../store/sermoes';
 import { cores, fonteBiblia, fonteOriginal } from '../theme';
 import { Botao } from './ui';
+import { Genero } from './PartesEstudo';
 
 // Palavra escolhida: o versículo, a posição da palavra no original (-1 quando a palavra do português não tem
 // par) e, quando o toque foi no português, a posição da palavra tocada
@@ -54,7 +55,7 @@ const nomeRef = (r: string) => {
 
 // Aba Estudo: só o texto escolhido na aba Bíblia, com o hebraico ou grego embaixo. Tocar numa palavra do português leva à palavra original
 export function LeitorBiblia() {
-  const { estudo } = useSermoes();
+  const { estudo, mudarEstudo } = useSermoes();
   const escolhido = referenciaDoTexto(estudo.textoBase);
   // Ao tocar num exemplo, o leitor vai até aquele capítulo; "Voltar" retorna ao texto escolhido
   const [outro, setOutro] = useState<{ codigo: CodigoLivro; cap: number; ver: number }>();
@@ -113,6 +114,7 @@ export function LeitorBiblia() {
           />
         ) : null}
         <Text style={estilos.titulo}>{de ? estudo.textoBase : `${livro.nome} ${cap}`}</Text>
+        {outro ? null : <Genero sermao={estudo} mudar={mudarEstudo} />}
         {original.length > 0 && (
           <View style={{ gap: 4 }}>
             <Text style={estilos.dica}>
