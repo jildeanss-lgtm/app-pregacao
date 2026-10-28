@@ -5,7 +5,7 @@ import { ETAPA_MONTAGEM, ETAPA_PREGACAO, etapas } from '../data/etapas';
 import { useSermoes } from '../store/sermoes';
 import { cores } from '../theme';
 
-// Barra com as etapas do sermão: Leitura, Observação, Interpretação, Aplicação, Montagem, Pregação
+// Barra com as etapas do sermão: Bíblia, Leitura, Observação, Interpretação, Aplicação, Montagem, Pregação
 export function Etapas({ sermaoId, atual }: { sermaoId: string; atual: number }) {
   const { atualizar } = useSermoes();
   const barra = useRef<ComponentRef<typeof ScrollView>>(null);

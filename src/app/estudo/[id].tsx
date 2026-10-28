@@ -4,7 +4,8 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { Etapas } from '../../components/Etapas';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
 import { ETAPA_MONTAGEM, etapaAtual, etapas, etapasDeEstudo, type EtapaEstudo } from '../../data/etapas';
-import { carregarTexto } from '../../data/portugues';
+import { pericopeDe } from '../../data/pericope';
+import { carregarTexto, livros, type CodigoLivro } from '../../data/portugues';
 import {
   generos,
   leitura,
@@ -14,6 +15,7 @@ import {
   sugerirGenero,
 } from '../../data/roteiro';
 import { useSermao, useSermoes, type Sermao } from '../../store/sermoes';
+import { coresPregacao } from '../../estilo';
 import { cores, fonteBiblia } from '../../theme';
 
 const dicasAnotacao: Record<EtapaEstudo, string> = {
@@ -23,7 +25,7 @@ const dicasAnotacao: Record<EtapaEstudo, string> = {
   aplicacao: 'Verdade central, onde ela toca a vida hoje, perguntas para a igreja...',
 };
 
-// Etapas 1 a 4 do sermão, uma tela por vez: Leitura, Observação, Interpretação e Aplicação
+// Etapas de estudo do sermão, uma tela por vez: Bíblia, Leitura, Observação, Interpretação e Aplicação
 export default function EstudoTela() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const sermao = useSermao(id);
@@ -31,9 +33,8 @@ export default function EstudoTela() {
 
   if (!sermao) return null;
 
-  const indice = Math.min(etapaAtual(sermao.etapa), etapasDeEstudo.length - 1);
-  const etapa = etapasDeEstudo[indice];
-  const anotacao = sermao.anotacoes?.[etapa] ?? (etapa === 'observacao' ? sermao.estudo : undefined) ?? '';
+  const indice = Math.min(etapaAtual(sermao.etapa), ETAPA_MONTAGEM - 1);
+  const etapa = indice === 0 ? undefined : etapasDeEstudo[indice - 1];
 
   const irPara = (proxima: number) => {
     atualizar(sermao.id, (s) => ({ ...s, etapa: proxima }));
@@ -50,9 +51,10 @@ export default function EstudoTela() {
           <Text style={estilos.suave}>{etapas[indice].pergunta}</Text>
         </View>
 
+        {!etapa && <EscolherTexto sermao={sermao} />}
         {etapa === 'leitura' && <Leitura sermao={sermao} />}
         {etapa === 'observacao' && <Genero sermao={sermao} />}
-        {perguntasDaEtapa(etapa, sermao.textoBase, sermao.genero).map((g) => (
+        {(etapa ? perguntasDaEtapa(etapa, sermao.textoBase, sermao.genero) : []).map((g) => (
           <Cartao key={g.titulo} style={{ gap: 10 }}>
             <Rotulo>{g.titulo}</Rotulo>
             {g.dica ? <Text style={estilos.chave}>{g.dica}</Text> : null}
@@ -81,27 +83,14 @@ export default function EstudoTela() {
           </Cartao>
         )}
 
-        <Cartao style={{ gap: 8 }}>
-          <Rotulo>Suas anotações</Rotulo>
-          <TextInput
-            accessibilityLabel={`Anotações da ${etapas[indice].nome}`}
-            value={anotacao}
-            onChangeText={(texto) =>
-              atualizar(sermao.id, (s) => ({ ...s, anotacoes: { ...s.anotacoes, [etapa]: texto } }))
-            }
-            multiline
-            placeholder={dicasAnotacao[etapa]}
-            placeholderTextColor={cores.textoSuave}
-            style={estilos.entrada}
-          />
-        </Cartao>
+        {etapa && <Anotacoes sermao={sermao} etapa={etapa} nome={etapas[indice].nome} />}
 
         <View style={estilos.navegacao}>
           {indice > 0 ? (
             <Botao titulo="Anterior" variante="contorno" onPress={() => irPara(indice - 1)} style={{ flex: 1 }} />
           ) : null}
           <Botao
-            titulo={indice === etapasDeEstudo.length - 1 ? 'Montar o sermão' : `Próximo: ${etapas[indice + 1].nome}`}
+            titulo={indice === ETAPA_MONTAGEM - 1 ? 'Montar o sermão' : `Próximo: ${etapas[indice + 1].nome}`}
             onPress={() => irPara(indice + 1)}
             style={{ flex: 2 }}
           />
@@ -111,48 +100,171 @@ export default function EstudoTela() {
   );
 }
 
-function Leitura({ sermao }: { sermao: Sermao }) {
-  const ref = referenciaDoTexto(sermao.textoBase);
-  const [versos, setVersos] = useState<{ n: number; texto: string }[]>();
+function Anotacoes({ sermao, etapa, nome }: { sermao: Sermao; etapa: EtapaEstudo; nome: string }) {
+  const { atualizar } = useSermoes();
+  const anotacao = sermao.anotacoes?.[etapa] ?? (etapa === 'observacao' ? sermao.estudo : undefined) ?? '';
+  return (
+    <Cartao style={{ gap: 8 }}>
+      <Rotulo>Suas anotações</Rotulo>
+      <TextInput
+        accessibilityLabel={`Anotações da ${nome}`}
+        value={anotacao}
+        onChangeText={(texto) => atualizar(sermao.id, (s) => ({ ...s, anotacoes: { ...s.anotacoes, [etapa]: texto } }))}
+        multiline
+        placeholder={dicasAnotacao[etapa]}
+        placeholderTextColor={cores.textoSuave}
+        style={estilos.entrada}
+      />
+    </Cartao>
+  );
+}
 
-  const codigo = ref?.livro.codigo;
-  const capitulo = ref?.capitulo;
-  const de = ref?.de;
-  const ate = ref?.ate;
-
+function useCapitulo(codigo: CodigoLivro | undefined, capitulo: number | undefined) {
+  const [versos, setVersos] = useState<{ chave: string; lista: string[] }>();
+  const chave = `${codigo} ${capitulo}`;
   useEffect(() => {
     if (!codigo || !capitulo) return;
     let ativo = true;
     carregarTexto(codigo).then((livro) => {
-      if (!ativo) return;
-      const todos = (livro[capitulo - 1] ?? []).map((texto, i) => ({ n: i + 1, texto }));
-      setVersos(de ? todos.filter((v) => v.n >= de && v.n <= (ate ?? de)) : todos);
+      if (ativo) setVersos({ chave: `${codigo} ${capitulo}`, lista: livro[capitulo - 1] ?? [] });
     });
     return () => {
       ativo = false;
     };
-  }, [codigo, capitulo, de, ate]);
+  }, [codigo, capitulo]);
+  return versos?.chave === chave ? versos.lista : undefined;
+}
+
+// Etapa Bíblia: escolher livro, capítulo e tocar no versículo (toque num segundo versículo para um trecho)
+function EscolherTexto({ sermao }: { sermao: Sermao }) {
+  const { atualizar } = useSermoes();
+  const ref = referenciaDoTexto(sermao.textoBase);
+  const [codigo, setCodigo] = useState<CodigoLivro>(ref?.livro.codigo ?? 'JOH');
+  const [cap, setCap] = useState(ref?.capitulo ?? 1);
+  const livro = livros.find((l) => l.codigo === codigo)!;
+  const [testamento, setTestamento] = useState<'AT' | 'NT'>(livro.testamento);
+  const versos = useCapitulo(codigo, cap);
+  const mesmoCapitulo = ref?.livro.codigo === codigo && ref.capitulo === cap;
+  const de = mesmoCapitulo ? ref.de : undefined;
+  const ate = mesmoCapitulo ? (ref.ate ?? ref.de) : undefined;
+
+  const escolher = (n: number) => {
+    let inicio = n;
+    let fim = n;
+    if (de && ate && de === ate && n > de) inicio = de;
+    else if (de === n && ate === n) return;
+    const texto = `${livro.nome} ${cap}:${inicio}${fim > inicio ? `-${fim}` : ''}`;
+    atualizar(sermao.id, (s) => {
+      const generoAntigo = sugerirGenero(s.textoBase);
+      const genero = !s.genero || s.genero === generoAntigo ? sugerirGenero(texto) : s.genero;
+      return { ...s, textoBase: texto, genero };
+    });
+  };
+
+  return (
+    <Cartao style={{ gap: 10 }}>
+      <View style={estilos.linha}>
+        {(['AT', 'NT'] as const).map((t) => (
+          <Pilula
+            key={t}
+            texto={t === 'AT' ? 'Antigo Testamento' : 'Novo Testamento'}
+            ativa={testamento === t}
+            onPress={() => setTestamento(t)}
+          />
+        ))}
+      </View>
+      <View style={estilos.linha}>
+        {livros
+          .filter((l) => l.testamento === testamento)
+          .map((l) => (
+            <Pilula
+              key={l.codigo}
+              texto={l.nome}
+              ativa={codigo === l.codigo}
+              onPress={() => {
+                setCodigo(l.codigo);
+                setCap(1);
+              }}
+            />
+          ))}
+      </View>
+      <Rotulo>{livro.nome}: capítulo</Rotulo>
+      <View style={estilos.linha}>
+        {Array.from({ length: livro.capitulos }, (_, i) => i + 1).map((c) => (
+          <Pilula key={c} texto={String(c)} ativa={cap === c} onPress={() => setCap(c)} />
+        ))}
+      </View>
+      <Rotulo>
+        {livro.nome} {cap} · toque no versículo
+      </Rotulo>
+      {!versos ? (
+        <ActivityIndicator color={cores.destaque} />
+      ) : (
+        versos.map((texto, i) => {
+          const n = i + 1;
+          const marcado = !!de && !!ate && n >= de && n <= ate;
+          return (
+            <Pressable
+              key={n}
+              accessibilityRole="button"
+              accessibilityState={{ selected: marcado }}
+              accessibilityLabel={`Versículo ${n}`}
+              onPress={() => escolher(n)}
+              style={[estilos.versoToque, marcado && estilos.versoMarcado]}
+            >
+              <Text style={[estilos.versiculo, marcado && estilos.versiculoDestaque]}>
+                <Text style={estilos.numero}>{n} </Text>
+                {texto}
+              </Text>
+            </Pressable>
+          );
+        })
+      )}
+      <Text style={estilos.suave}>Toque em outro versículo depois do primeiro para escolher um trecho.</Text>
+    </Cartao>
+  );
+}
+
+function Leitura({ sermao }: { sermao: Sermao }) {
+  const ref = referenciaDoTexto(sermao.textoBase);
+  const versos = useCapitulo(ref?.livro.codigo, ref?.capitulo);
+  const de = ref?.de;
+  const ate = ref?.ate ?? de;
+  const pericope =
+    ref && versos && de ? pericopeDe(ref.livro.codigo, ref.capitulo, de, ate ?? de, versos.length) : undefined;
+  const mostrar = (versos ?? [])
+    .map((texto, i) => ({ n: i + 1, texto }))
+    .filter((v) => !pericope || (v.n >= pericope.de && v.n <= pericope.ate));
 
   return (
     <>
       <Cartao style={{ gap: 8 }}>
         {!ref ? (
-          <Text style={estilos.suave}>
-            Escreva o texto referência no sermão (ex.: Êxodo 8 ou João 3:16-21) para ler a passagem aqui.
-          </Text>
+          <Text style={estilos.suave}>Escolha o texto na etapa Bíblia para ler a passagem aqui.</Text>
         ) : !versos ? (
           <ActivityIndicator color={cores.destaque} />
         ) : (
           <>
             <Rotulo>
-              {ref.livro.nome} {ref.capitulo} · Bíblia Livre
+              {pericope
+                ? `Perícope: ${ref.livro.nome} ${ref.capitulo}:${pericope.de}-${pericope.ate}`
+                : `${ref.livro.nome} ${ref.capitulo}`}{' '}
+              · Bíblia Livre
             </Rotulo>
-            {versos.map((v) => (
-              <Text key={v.n} style={estilos.versiculo}>
-                <Text style={estilos.numero}>{v.n} </Text>
-                {v.texto}
+            {mostrar.map((v) => {
+              const escolhido = !!de && v.n >= de && v.n <= (ate ?? de);
+              return (
+                <Text key={v.n} style={[estilos.versiculo, escolhido && estilos.versiculoDestaque]}>
+                  <Text style={estilos.numero}>{v.n} </Text>
+                  {v.texto}
+                </Text>
+              );
+            })}
+            {pericope ? (
+              <Text style={estilos.suave}>
+                Em vermelho, o texto escolhido. Ao redor, a perícope: o trecho que forma uma unidade com ele.
               </Text>
-            ))}
+            ) : null}
           </>
         )}
         <Botao
@@ -166,6 +278,19 @@ function Leitura({ sermao }: { sermao: Sermao }) {
         <Lista itens={leitura} />
       </Cartao>
     </>
+  );
+}
+
+function Pilula({ texto, ativa, onPress }: { texto: string; ativa: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: ativa }}
+      onPress={onPress}
+      style={[estilos.pilula, ativa && estilos.pilulaAtiva]}
+    >
+      <Text style={[estilos.textoPilula, ativa && { color: '#FFFFFF' }]}>{texto}</Text>
+    </Pressable>
   );
 }
 
@@ -199,7 +324,12 @@ function Genero({ sermao }: { sermao: Sermao }) {
           ))}
         </View>
       ) : (
-        <Botao titulo="Trocar gênero" variante="contorno" onPress={() => setTrocando(true)} style={{ alignSelf: 'flex-start' }} />
+        <Botao
+          titulo="Trocar gênero"
+          variante="contorno"
+          onPress={() => setTrocando(true)}
+          style={{ alignSelf: 'flex-start' }}
+        />
       )}
     </Cartao>
   );
@@ -225,6 +355,9 @@ const estilos = StyleSheet.create({
   item: { fontSize: 15, lineHeight: 21, color: cores.texto },
   versiculo: { fontSize: 18, lineHeight: 28, color: cores.texto, fontFamily: fonteBiblia },
   numero: { fontSize: 13, fontWeight: '700', color: cores.destaque },
+  versiculoDestaque: { color: coresPregacao.textoBiblico, fontWeight: '700' },
+  versoToque: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
+  versoMarcado: { backgroundColor: '#FBEAEA' },
   chave: { fontSize: 14, fontStyle: 'italic', color: cores.apoioTexto },
   genero: { fontSize: 18, fontWeight: '700', color: cores.destaque },
   pergunta: { fontSize: 15, fontWeight: '600', color: cores.texto },
