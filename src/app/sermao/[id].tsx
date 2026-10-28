@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { Etapas } from '../../components/Etapas';
 import { TextoFormatado } from '../../components/TextoFormatado';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
-import { ETAPA_MONTAGEM, etapas, etapasDeEstudo } from '../../data/etapas';
+import { ETAPA_MONTAGEM, etapasDeEstudo, nomesEstudo } from '../../data/etapas';
 import { perguntasDaEtapa } from '../../data/roteiro';
 import { modelos, nomesBloco, type TipoBloco } from '../../data/modelos';
 import { estiloBloco, pontosDoQuadro } from '../../estilo';
@@ -65,7 +65,7 @@ export default function EditorTela() {
   const modelo = modelos.find((m) => m.id === sermao.modelo);
   // O que foi anotado nas etapas de estudo fica à vista enquanto o sermão é montado
   const anotacoes = etapasDeEstudo
-    .map((e, i) => {
+    .map((e) => {
       const respostas = perguntasDaEtapa(e, sermao.textoBase, sermao.genero)
         .flatMap((g) => g.perguntas)
         .map((q) => ({
@@ -75,7 +75,7 @@ export default function EditorTela() {
         .filter((q) => q.resposta)
         .map((q) => `${q.pergunta} ${q.resposta}`);
       const nota = (sermao.anotacoes?.[e] ?? (e === 'observacao' ? sermao.estudo : '') ?? '').trim();
-      return { nome: etapas[i + 1].nome, texto: [...respostas, nota].filter(Boolean).join('\n') };
+      return { nome: nomesEstudo[e], texto: [...respostas, nota].filter(Boolean).join('\n') };
     })
     .filter((a) => a.texto);
 
@@ -277,7 +277,11 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
                   onSelectionChange={(e) => setSelecao(e.nativeEvent.selection)}
                   placeholder={i === 0 ? nomeTopo : `${nomeItem} ${i}`}
                   placeholderTextColor={cores.textoSuave}
-                  style={[estilos.entrada, estilos.linhaQuadro, i === 0 ? estilos.topoQuadro : i > 1 && estilos.divisoria]}
+                  style={[
+                    estilos.entrada,
+                    estilos.linhaQuadro,
+                    i === 0 ? estilos.topoQuadro : i > 1 && estilos.divisoria,
+                  ]}
                 />
               ))}
             </View>
@@ -289,14 +293,18 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar }: Bl
               onSelectionChange={(e) => setSelecao(e.nativeEvent.selection)}
               multiline
               autoFocus={!!bloco.texto}
-              placeholder={bloco.dica ?? dicas[bloco.tipo] ?? 'Escreva aqui. Use *asteriscos* para destacar palavras-chave'}
+              placeholder={
+                bloco.dica ?? dicas[bloco.tipo] ?? 'Escreva aqui. Use *asteriscos* para destacar palavras-chave'
+              }
               placeholderTextColor={cores.textoSuave}
               style={[estilos.entrada, { minHeight: 44 }]}
             />
           )}
           <View style={estilos.linha}>
             <Botao titulo="Destacar seleção" variante="contorno" onPress={destacar} />
-            {ehQuadro && <Botao titulo={`+ ${nomeItem}`} variante="contorno" onPress={() => onMudar(`${campos.join('\n')}\n`)} />}
+            {ehQuadro && (
+              <Botao titulo={`+ ${nomeItem}`} variante="contorno" onPress={() => onMudar(`${campos.join('\n')}\n`)} />
+            )}
             {bloco.texto.trim() ? <Botao titulo="Pronto" onPress={() => setEditando(false)} /> : null}
           </View>
         </>

@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
-import { Cartao, Rotulo } from '../../components/ui';
-import { useSermoes } from '../../store/sermoes';
-import { cores } from '../../theme';
+import { Cartao, Rotulo } from '../components/ui';
+import { useSermoes } from '../store/sermoes';
+import { cores } from '../theme';
 
 // Pastas da biblioteca pessoal no Google Drive. A leitura e a busca nos livros
 // entram quando a conexão com o Google for implementada; os livros nunca são

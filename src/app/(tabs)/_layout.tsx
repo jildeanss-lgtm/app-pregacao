@@ -14,9 +14,10 @@ export default function TabsLayout() {
         sceneStyle: { backgroundColor: cores.fundo },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Sermões' }} />
       <Tabs.Screen name="biblia" options={{ title: 'Bíblia' }} />
-      <Tabs.Screen name="biblioteca" options={{ title: 'Biblioteca' }} />
+      <Tabs.Screen name="estudo" options={{ title: 'Estudo' }} />
+      <Tabs.Screen name="index" options={{ title: 'Sermões' }} />
+      <Tabs.Screen name="pregar" options={{ title: 'Pregar' }} />
     </Tabs>
   );
 }
