@@ -142,7 +142,7 @@ export default function NovoSermaoTela() {
       <Cartao style={{ gap: 8 }}>
         <Rotulo>Gênero literário do texto</Rotulo>
         {sugerido && !generoEscolhido ? (
-          <Text style={estilos.suave}>Sugestão pelo livro: {generos.find((g) => g.id === sugerido)?.nome}</Text>
+          <Text style={estilos.suave}>Definido pelo livro: {generos.find((g) => g.id === sugerido)?.nome}</Text>
         ) : null}
         <View style={estilos.linha}>
           {generos.map((g) => (

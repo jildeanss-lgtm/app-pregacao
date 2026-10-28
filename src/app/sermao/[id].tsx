@@ -5,6 +5,7 @@ import { Etapas } from '../../components/Etapas';
 import { TextoFormatado } from '../../components/TextoFormatado';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
 import { ETAPA_MONTAGEM, etapas, etapasDeEstudo } from '../../data/etapas';
+import { perguntasDaEtapa } from '../../data/roteiro';
 import { modelos, nomesBloco, type TipoBloco } from '../../data/modelos';
 import { estiloBloco, pontosDoQuadro } from '../../estilo';
 import { exportarPdf } from '../../lib/pdf';
@@ -64,10 +65,18 @@ export default function EditorTela() {
   const modelo = modelos.find((m) => m.id === sermao.modelo);
   // O que foi anotado nas etapas de estudo fica à vista enquanto o sermão é montado
   const anotacoes = etapasDeEstudo
-    .map((e, i) => ({
-      nome: etapas[i].nome,
-      texto: (sermao.anotacoes?.[e] ?? (e === 'observacao' ? sermao.estudo : '') ?? '').trim(),
-    }))
+    .map((e, i) => {
+      const respostas = perguntasDaEtapa(e, sermao.textoBase, sermao.genero)
+        .flatMap((g) => g.perguntas)
+        .map((q) => ({
+          pergunta: e === 'interpretacao' ? q.pergunta.split(':')[0] : q.pergunta,
+          resposta: (sermao.respostas?.[q.pergunta] ?? q.padrao ?? '').trim(),
+        }))
+        .filter((q) => q.resposta)
+        .map((q) => `${q.pergunta} ${q.resposta}`);
+      const nota = (sermao.anotacoes?.[e] ?? (e === 'observacao' ? sermao.estudo : '') ?? '').trim();
+      return { nome: etapas[i].nome, texto: [...respostas, nota].filter(Boolean).join('\n') };
+    })
     .filter((a) => a.texto);
 
   return (

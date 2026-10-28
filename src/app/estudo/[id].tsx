@@ -7,22 +7,14 @@ import { ETAPA_MONTAGEM, etapaAtual, etapas, etapasDeEstudo, type EtapaEstudo } 
 import { carregarTexto } from '../../data/portugues';
 import {
   generos,
-  interpretacao,
   leitura,
-  observacao,
+  perguntasDaEtapa,
   referenciaDoTexto,
   sentidoFigurado,
   sugerirGenero,
 } from '../../data/roteiro';
 import { useSermao, useSermoes, type Sermao } from '../../store/sermoes';
 import { cores, fonteBiblia } from '../../theme';
-
-const perguntasAplicacao = [
-  'Que verdade eterna o texto ensina?',
-  'Onde ela confronta a nossa vida hoje (família, igreja, trabalho)?',
-  'Onde Cristo aparece neste texto?',
-  'Que pergunta vou fazer ao coração dos ouvintes?',
-];
 
 const dicasAnotacao: Record<EtapaEstudo, string> = {
   leitura: 'O que chamou sua atenção na leitura? Palavras que se repetem, frases fortes...',
@@ -59,24 +51,33 @@ export default function EstudoTela() {
         </View>
 
         {etapa === 'leitura' && <Leitura sermao={sermao} />}
-        {etapa === 'observacao' && <Observacao sermao={sermao} />}
+        {etapa === 'observacao' && <Genero sermao={sermao} />}
+        {perguntasDaEtapa(etapa, sermao.textoBase, sermao.genero).map((g) => (
+          <Cartao key={g.titulo} style={{ gap: 10 }}>
+            <Rotulo>{g.titulo}</Rotulo>
+            {g.dica ? <Text style={estilos.chave}>{g.dica}</Text> : null}
+            {g.perguntas.map((q) => (
+              <View key={q.pergunta} style={{ gap: 2 }}>
+                <Text style={estilos.pergunta}>{q.pergunta}</Text>
+                <TextInput
+                  accessibilityLabel={q.pergunta}
+                  value={sermao.respostas?.[q.pergunta] ?? q.padrao ?? ''}
+                  onChangeText={(texto) =>
+                    atualizar(sermao.id, (s) => ({ ...s, respostas: { ...s.respostas, [q.pergunta]: texto } }))
+                  }
+                  multiline
+                  placeholder="Sua resposta"
+                  placeholderTextColor={cores.textoSuave}
+                  style={estilos.resposta}
+                />
+              </View>
+            ))}
+          </Cartao>
+        ))}
         {etapa === 'interpretacao' && (
           <Cartao style={{ gap: 8 }}>
-            <Rotulo>As cinco chaves</Rotulo>
-            {interpretacao.map((c) => (
-              <Text key={c.nome} style={estilos.item}>
-                <Text style={{ fontWeight: '700' }}>{c.nome}: </Text>
-                {c.texto}
-              </Text>
-            ))}
-            <Text style={estilos.subtitulo}>Literal ou figurado?</Text>
+            <Rotulo>Literal ou figurado?</Rotulo>
             <Lista itens={sentidoFigurado} />
-          </Cartao>
-        )}
-        {etapa === 'aplicacao' && (
-          <Cartao style={{ gap: 8 }}>
-            <Rotulo>Perguntas para a aplicação</Rotulo>
-            <Lista itens={perguntasAplicacao} />
           </Cartao>
         )}
 
@@ -168,44 +169,39 @@ function Leitura({ sermao }: { sermao: Sermao }) {
   );
 }
 
-function Observacao({ sermao }: { sermao: Sermao }) {
+function Genero({ sermao }: { sermao: Sermao }) {
   const { atualizar } = useSermoes();
-  const generoAtual = sermao.genero ?? sugerirGenero(sermao.textoBase);
+  const sugerido = sugerirGenero(sermao.textoBase);
+  const generoAtual = sermao.genero ?? sugerido;
   const genero = generos.find((g) => g.id === generoAtual);
+  const [trocando, setTrocando] = useState(false);
 
   return (
-    <>
-      <Cartao style={{ gap: 8 }}>
-        <Rotulo>Contexto</Rotulo>
-        <Lista itens={observacao.contexto} />
-        <Text style={estilos.subtitulo}>Seis pistas no texto</Text>
-        <Lista itens={observacao.pistas} />
-        <Text style={estilos.subtitulo}>Perguntas seletivas</Text>
-        <Text style={estilos.item}>{observacao.perguntas.join('  ·  ')}</Text>
-      </Cartao>
-      <Cartao style={{ gap: 8 }}>
-        <Rotulo>Gênero literário</Rotulo>
+    <Cartao style={{ gap: 8 }}>
+      <Rotulo>Gênero literário</Rotulo>
+      <Text style={estilos.genero}>{genero?.nome ?? 'Não definido'}</Text>
+      {genero && generoAtual === sugerido ? <Text style={estilos.suave}>Definido pelo livro do texto.</Text> : null}
+      {trocando || !genero ? (
         <View style={estilos.linha}>
           {generos.map((g) => (
             <Pressable
               key={g.id}
               accessibilityRole="button"
               accessibilityState={{ selected: generoAtual === g.id }}
-              onPress={() => atualizar(sermao.id, (s) => ({ ...s, genero: g.id }))}
+              onPress={() => {
+                atualizar(sermao.id, (s) => ({ ...s, genero: g.id }));
+                setTrocando(false);
+              }}
               style={[estilos.pilula, generoAtual === g.id && estilos.pilulaAtiva]}
             >
               <Text style={[estilos.textoPilula, generoAtual === g.id && { color: '#FFFFFF' }]}>{g.nome}</Text>
             </Pressable>
           ))}
         </View>
-        {genero ? (
-          <>
-            <Text style={estilos.chave}>{genero.chave}</Text>
-            <Lista itens={genero.perguntas} />
-          </>
-        ) : null}
-      </Cartao>
-    </>
+      ) : (
+        <Botao titulo="Trocar gênero" variante="contorno" onPress={() => setTrocando(true)} style={{ alignSelf: 'flex-start' }} />
+      )}
+    </Cartao>
   );
 }
 
@@ -230,6 +226,17 @@ const estilos = StyleSheet.create({
   versiculo: { fontSize: 18, lineHeight: 28, color: cores.texto, fontFamily: fonteBiblia },
   numero: { fontSize: 13, fontWeight: '700', color: cores.destaque },
   chave: { fontSize: 14, fontStyle: 'italic', color: cores.apoioTexto },
+  genero: { fontSize: 18, fontWeight: '700', color: cores.destaque },
+  pergunta: { fontSize: 15, fontWeight: '600', color: cores.texto },
+  resposta: {
+    fontSize: 15,
+    color: cores.texto,
+    minHeight: 44,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderColor: cores.borda,
+    textAlignVertical: 'top',
+  },
   entrada: { fontSize: 16, color: cores.texto, minHeight: 120, textAlignVertical: 'top' },
   linha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   navegacao: { flexDirection: 'row', gap: 8 },
