@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState } from 'react';
 import { pericopeDe } from '../data/pericope';
 import { carregarTexto } from '../data/portugues';
 import { generos, perguntasDaEtapa, referenciaDoTexto } from '../data/roteiro';
@@ -13,8 +14,25 @@ const partes = ['observacao', 'interpretacao', 'aplicacao'] as const;
 const nomesPartes = { observacao: 'Observação', interpretacao: 'Interpretação', aplicacao: 'Aplicação' };
 
 export const lerChave = async () => (await AsyncStorage.getItem(CHAVE_IA)) ?? '';
-export const guardarChave = (chave: string) =>
-  chave ? AsyncStorage.setItem(CHAVE_IA, chave) : AsyncStorage.removeItem(CHAVE_IA);
+
+// Quem mostra a chave fica sabendo quando ela muda (o campo da chave fica no fim da página, longe do botão)
+const ouvintes = new Set<(chave: string) => void>();
+export const guardarChave = async (chave: string) => {
+  await (chave ? AsyncStorage.setItem(CHAVE_IA, chave) : AsyncStorage.removeItem(CHAVE_IA));
+  ouvintes.forEach((ouvir) => ouvir(chave));
+};
+
+export function useChave() {
+  const [chave, setChave] = useState('');
+  useEffect(() => {
+    lerChave().then(setChave);
+    ouvintes.add(setChave);
+    return () => {
+      ouvintes.delete(setChave);
+    };
+  }, []);
+  return chave;
+}
 
 export type ResultadoIA = { respostas: Record<string, string>; temas: string[] };
 

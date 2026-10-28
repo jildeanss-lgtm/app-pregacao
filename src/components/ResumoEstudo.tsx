@@ -1,8 +1,8 @@
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, Text, View } from 'react-native';
-import { lerChave, montarPedidoResumo, resumirComChave } from '../ia/estudo';
+import { montarPedidoResumo, resumirComChave, useChave } from '../ia/estudo';
 import type { DadosEstudo } from '../store/sermoes';
 import { cores, fonteEsboco } from '../theme';
 import { CampoCrescente } from './CampoCrescente';
@@ -13,13 +13,9 @@ type Mudar = (mudar: (d: DadosEstudo) => DadosEstudo) => void;
 // Aba Resumo: a IA junta Observação, Interpretação, Aplicação, anotações e biblioteca num rascunho já em forma
 // de sermão. Com a chave da Anthropic, direto no app; sem chave, copiando o pedido para o claude.ai
 export function ResumoEstudo({ estudo, mudar }: { estudo: DadosEstudo; mudar: Mudar }) {
-  const [chave, setChave] = useState('');
+  const chave = useChave();
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState('');
-
-  useEffect(() => {
-    lerChave().then(setChave);
-  }, []);
 
   if (!estudo.textoBase) {
     return <Text style={estilos.dica}>Escolha um texto na aba Bíblia para fazer o resumo do estudo.</Text>;
