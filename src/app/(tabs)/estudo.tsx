@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AjudaIA } from '../../components/AjudaIA';
 import { LeitorBiblia } from '../../components/LeitorBiblia';
+import { ResumoEstudo } from '../../components/ResumoEstudo';
 import { ParteDoEstudo, Pilula, partesDoEstudo } from '../../components/PartesEstudo';
 import { nomesEstudo, type EtapaEstudo } from '../../data/etapas';
 import { Botao } from '../../components/ui';
@@ -10,7 +11,7 @@ import { useSermoes } from '../../store/sermoes';
 import { coresPregacao } from '../../estilo';
 import { cores } from '../../theme';
 
-type Aba = 'texto' | EtapaEstudo;
+type Aba = 'texto' | EtapaEstudo | 'resumo';
 
 // Aba Estudar: o texto escolhido na aba Bíblia, com hebraico e grego, mais Observação, Interpretação e Aplicação
 // (que a IA pode responder) e, no fim, o botão que cria o sermão
@@ -27,11 +28,16 @@ export default function EstudoAba() {
           {partesDoEstudo.map((p) => (
             <Pilula key={p} texto={nomesEstudo[p]} ativa={aba === p} onPress={() => setAba(p)} />
           ))}
+          <Pilula texto="Resumo" ativa={aba === 'resumo'} onPress={() => setAba('resumo')} />
         </ScrollView>
       </View>
 
       {aba === 'texto' ? (
         <LeitorBiblia />
+      ) : aba === 'resumo' ? (
+        <ScrollView key={aba} contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
+          <ResumoEstudo estudo={estudo} mudar={mudarEstudo} />
+        </ScrollView>
       ) : (
         <ScrollView key={aba} contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
           <AjudaIA estudo={estudo} mudar={mudarEstudo} />

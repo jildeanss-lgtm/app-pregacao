@@ -204,3 +204,61 @@ O pregador destaca as palavras-chave em MAIÚSCULAS entre asteriscos, por exempl
     introducao: dados.introducao?.trim() ?? '',
   };
 }
+
+// Resumo de todo o estudo, já em forma de sermão, na ordem do modelo do Jildean. Serve de base para montar o sermão
+export async function montarPedidoResumo(estudo: DadosEstudo) {
+  const versos = await textoDosVersiculos(estudo.textoBase);
+  const respostas = perguntasDoEstudo(estudo)
+    .map((q) => ({ ...q, resposta: estudo.respostas?.[q.pergunta]?.trim() }))
+    .filter((q) => q.resposta)
+    .map((q) => `[${nomesPartes[q.parte]}] ${q.pergunta} ${q.resposta}`);
+  const notas = partes
+    .map((p) => (estudo.anotacoes?.[p]?.trim() ? `Anotações de ${nomesPartes[p]}: ${estudo.anotacoes[p]!.trim()}` : ''))
+    .filter(Boolean);
+  const extras = [
+    estudo.notasBiblia?.trim() && `Anotações na leitura da Bíblia: ${estudo.notasBiblia.trim()}`,
+    estudo.notasBiblioteca?.trim() && `O que a minha biblioteca diz:\n${estudo.notasBiblioteca.trim()}`,
+    estudo.temas?.length && `Temas sugeridos: ${estudo.temas.join('; ')}`,
+  ].filter(Boolean);
+
+  return `Você ajuda um pregador brasileiro a transformar o estudo bíblico dele num sermão. Escreva em português do Brasil.
+
+Texto: ${estudo.textoBase} (Bíblia Livre)
+${versos}
+
+Estudo que o pregador já fez (Observação, Interpretação e Aplicação):
+${[...respostas, ...notas, ...extras].join('\n') || '(sem respostas ainda: estude o texto você mesmo)'}
+
+Faça um resumo de todo esse estudo já em forma de sermão, para servir de base ao sermão dele. Use só o que o estudo e a Bíblia sustentam, sem inventar citações. Siga esta ordem, com os títulos em linhas próprias:
+
+TEMA: uma frase
+IDEIA CENTRAL: a verdade principal do texto, numa frase
+OBJETIVO: três objetivos, um por linha, começando por verbo (mostrar, explicar, advertir...)
+INTRODUÇÃO: 3 a 5 linhas
+TÓPICO 1, TÓPICO 2 e TÓPICO 3, cada um com:
+- o título do tópico
+- Texto: 2 a 4 frases curtas que explicam o ponto
+- Texto bíblico: a referência (do próprio texto ou de apoio)
+- Frase de efeito: uma frase curta e marcante
+- Aplicação: uma frase
+- Pergunta: uma pergunta para a igreja
+CONCLUSÃO: 3 a 5 linhas
+FRASE DE EFEITO FINAL
+CHAMADO E CONVITE: 2 a 3 linhas
+
+O pregador destaca as palavras-chave em MAIÚSCULAS entre asteriscos, por exemplo: Deus *NÃO DESISTE* de *VOCÊ*. Faça o mesmo, com 1 a 3 destaques por linha. Responda só com o resumo, em texto simples, sem tabelas e sem markdown.`;
+}
+
+const esquemaResumo = {
+  type: 'object',
+  properties: { resumo: { type: 'string' } },
+  required: ['resumo'],
+  additionalProperties: false,
+};
+
+export async function resumirComChave(chave: string, estudo: DadosEstudo) {
+  const pedido = `${await montarPedidoResumo(estudo)}\n\nDevolva o resumo inteiro no campo "resumo" do JSON, com quebras de linha.`;
+  const texto = await chamarClaude(chave, pedido, esquemaResumo);
+  const dados = JSON.parse(texto.slice(texto.indexOf('{'), texto.lastIndexOf('}') + 1)) as { resumo?: string };
+  return dados.resumo?.trim() ?? '';
+}
