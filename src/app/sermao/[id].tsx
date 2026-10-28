@@ -190,9 +190,9 @@ export default function EditorTela() {
           </View>
         </Cartao>
         <Botao
-          titulo="Abrir na Bíblia"
+          titulo="Estudar no hebraico e grego"
           variante="contorno"
-          onPress={() => router.push({ pathname: '/biblia', params: { sermao: sermao.id } })}
+          onPress={() => router.push({ pathname: '/estudo', params: { sermao: sermao.id } })}
         />
 
         <Botao titulo="Pregar" onPress={() => router.push(`/pregar/${sermao.id}`)} />
