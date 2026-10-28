@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, type TextStyle } from 'react-native';
 import type { TipoBloco } from '../data/modelos';
 import { destacarTudo, dividirDestaques, dividirQuadro, estiloBloco, linhasParaMostrar } from '../estilo';
-import { fonteBiblia } from '../theme';
+import { fonteEsboco } from '../theme';
 
 type Props = {
   tipo: TipoBloco;
@@ -17,11 +17,12 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }
   const base: TextStyle = {
     color: e.cor,
     fontSize: tamanho,
-    lineHeight: Math.round(tamanho * 1.45),
+    // Arial com espaçamento simples, como os esboços do Jildean no Google Docs
+    lineHeight: Math.round(tamanho * 1.2),
     fontStyle: e.italico ? 'italic' : 'normal',
     fontWeight: e.negrito ? '700' : '400',
     textAlign: e.centralizado ? 'center' : 'left',
-    fontFamily: tipo === 'versiculo' || tipo === 'citacao' ? fonteBiblia : undefined,
+    fontFamily: fonteEsboco,
   };
 
   const linha = (conteudo: string, corChave?: string) =>
@@ -42,7 +43,7 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }
       fontStyle: e.topo?.italico ? 'italic' : 'normal',
     };
     return (
-      <View style={semMoldura ? { gap: 2 } : estilos.quadro}>
+      <View style={semMoldura ? { gap: 0 } : estilos.quadro}>
         <View style={[estilos.item, { paddingLeft: 0 }, !semMoldura && estilos.quadroTopo]}>
           {comSeta && <Text style={[base, { width: recuo }]}>➔</Text>}
           <Text style={[base, topo, { flex: 1 }]}>{linha(subtopico, e.topo?.corChave)}</Text>
@@ -57,7 +58,7 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false }
               !semMoldura && i > 0 && estilos.divisoria,
             ]}
           >
-            <Text style={[base, e.itensComoTopo && topo, estilos.marcador]}>•</Text>
+            <Text style={[base, e.itensComoTopo && topo, estilos.marcador]}>●</Text>
             <Text style={[base, e.itensComoTopo && topo, { flex: 1 }]}>
               {linha(e.autoDestaque ? destacarTudo(l) : l, e.itensComoTopo ? e.topo?.corChave : undefined)}
             </Text>
@@ -121,7 +122,7 @@ const estilos = StyleSheet.create({
   item: { flexDirection: 'row', gap: 8, paddingLeft: 8 },
   marcador: { fontStyle: 'normal' },
   comSeta: { flexDirection: 'row', gap: 8 },
-  linhas: { gap: 8 },
+  linhas: { gap: 0 },
   quadro: {
     borderWidth: 1.5,
     borderColor: '#000000',
@@ -141,5 +142,5 @@ const estilos = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderColor: '#999999',
   },
-  faixa: { alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2 },
+  faixa: { alignSelf: 'flex-start', paddingHorizontal: 2 },
 });

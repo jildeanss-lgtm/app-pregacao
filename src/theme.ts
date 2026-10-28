@@ -22,6 +22,8 @@ export const cores = {
 };
 
 export const fonteBiblia = 'Georgia';
+// Fonte dos esboços (editor e púlpito): Arial, como nos documentos do Jildean
+export const fonteEsboco = Platform.select({ web: 'Arial, Helvetica, sans-serif', default: undefined });
 
 // Georgia não tem os acentos do grego politônico (os acentos ficavam soltos, como "προ`ς"); no navegador
 // usamos fontes que têm grego e hebraico completos
