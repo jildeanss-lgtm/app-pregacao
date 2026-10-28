@@ -1,19 +1,19 @@
 import { Platform } from 'react-native';
 
 export const cores = {
-  // Visual limpo: fundo cinza bem claro, cartões brancos e um azul-marinho sóbrio como cor principal
-  fundo: '#F5F6F8',
+  // Visual minimalista: tudo branco, linhas finas em cinza e quase preto como cor principal
+  fundo: '#FFFFFF',
   cartao: '#FFFFFF',
-  borda: '#E5E7EB',
-  bordaForte: '#D1D5DB',
-  texto: '#111827',
-  textoSuave: '#6B7280',
-  destaque: '#1E3A5F',
-  destaqueEscuro: '#152A45',
-  destaqueFundo: '#EEF2F7',
+  borda: '#EDEDED',
+  bordaForte: '#D4D4D4',
+  texto: '#171717',
+  textoSuave: '#737373',
+  destaque: '#171717',
+  destaqueEscuro: '#0A0A0A',
+  destaqueFundo: '#F5F5F5',
   apoioFundo: '#FFF8EB',
   apoioTexto: '#6B4510',
-  neutroFundo: '#F3F4F6',
+  neutroFundo: '#F5F5F5',
   pulpitoFundo: '#12171E',
   pulpitoCartao: '#1C232C',
   pulpitoTexto: '#F2F1EC',

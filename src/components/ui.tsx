@@ -56,17 +56,15 @@ const estilos = StyleSheet.create({
     justifyContent: 'center',
   },
   principal: { backgroundColor: cores.destaque },
-  contorno: { borderWidth: 1, borderColor: cores.bordaForte, backgroundColor: cores.cartao },
+  contorno: { borderWidth: 1, borderColor: cores.borda, backgroundColor: cores.cartao },
   perigo: { borderWidth: 1, borderColor: '#E4B4AC', backgroundColor: cores.cartao },
   textoBotao: { fontSize: 15, fontWeight: '600' },
   cartao: {
     backgroundColor: cores.cartao,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: cores.borda,
     padding: 16,
-    // Sombra bem leve, só para destacar o cartão do fundo
-    boxShadow: '0 1px 3px rgba(16, 24, 40, 0.06)',
   },
   rotulo: {
     fontSize: 11,

@@ -1,6 +1,5 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AjudaIA, ChaveIA } from '../../components/AjudaIA';
@@ -38,7 +37,6 @@ export default function EstudoAba() {
       <View style={[estilos.cabecalho, { paddingTop: insets.top + 18 }]}>
         <Text style={estilos.sobretitulo}>ESTUDO BÍBLICO</Text>
         <View style={estilos.linhaTitulo}>
-          <Ionicons name="book" size={22} color="#FFFFFF" />
           <Text style={estilos.titulo}>{estudo.textoBase || 'Escolha um texto na Bíblia'}</Text>
         </View>
         {genero ? <Text style={estilos.subtitulo}>{genero}</Text> : null}
@@ -88,11 +86,11 @@ export default function EstudoAba() {
 }
 
 const estilos = StyleSheet.create({
-  cabecalho: { backgroundColor: cores.destaque, paddingHorizontal: 20, paddingBottom: 18, gap: 4 },
-  sobretitulo: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: 'rgba(255,255,255,0.7)' },
+  cabecalho: { backgroundColor: cores.cartao, paddingHorizontal: 20, paddingBottom: 12, gap: 4 },
+  sobretitulo: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: cores.textoSuave },
   linhaTitulo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  titulo: { fontSize: 24, fontWeight: '800', color: '#FFFFFF', flexShrink: 1 },
-  subtitulo: { fontSize: 14, color: 'rgba(255,255,255,0.85)' },
+  titulo: { fontSize: 26, fontWeight: '700', color: cores.texto, flexShrink: 1 },
+  subtitulo: { fontSize: 14, color: cores.textoSuave },
   etapas: { backgroundColor: cores.cartao, borderBottomWidth: 1, borderBottomColor: cores.borda },
   linha: { flexDirection: 'row', gap: 4, paddingHorizontal: 12 },
   etapa: {
@@ -101,7 +99,7 @@ const estilos = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 10,
     minHeight: 48,
-    borderBottomWidth: 3,
+    borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
   etapaAtiva: { borderBottomColor: cores.destaque },
