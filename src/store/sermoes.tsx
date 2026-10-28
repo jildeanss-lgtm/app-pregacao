@@ -29,7 +29,7 @@ export type Sermao = {
   genero?: Genero;
   // Etapa em que o sermão parou (ver data/etapas) e as anotações de cada etapa do estudo
   etapa?: number;
-  // 2 = já conta a etapa Bíblia antes da Leitura
+  // 3 = quatro etapas: Bíblia, Estudo, Sermão e Pregar
   versao?: number;
   anotacoes?: Partial<Record<EtapaEstudo, string>>;
   // Respostas às perguntas do estudo, pela própria pergunta
@@ -43,10 +43,13 @@ export type Sermao = {
 
 const CHAVE = 'sermoes:v1';
 
-// A etapa Bíblia entrou antes da Leitura: etapas salvas antes disso andam uma casa
+// Etapas antigas (versão 1: Leitura...Pregação; versão 2: Bíblia, Leitura...Pregação) viram as quatro de agora
+const etapaV2: Record<number, number> = { 0: 0, 1: 0, 2: 1, 3: 1, 4: 1, 5: 2, 6: 3 };
+
 function migrar(s: Sermao): Sermao {
-  if (s.versao === 2) return s;
-  return { ...s, versao: 2, etapa: s.etapa === undefined ? undefined : s.etapa + 1 };
+  if (s.versao === 3 || s.etapa === undefined) return { ...s, versao: 3 };
+  const v2 = s.versao === 2 ? s.etapa : s.etapa + 1;
+  return { ...s, versao: 3, etapa: etapaV2[v2] ?? 2 };
 }
 
 function novoId() {
@@ -101,7 +104,7 @@ export function SermoesProvider({ children }: { children: ReactNode }) {
     const sermao: Sermao = {
       id: novoId(),
       ...dados,
-      versao: 2,
+      versao: 3,
       blocos: blocos.map((b) => ({ ...b, id: novoId(), texto: b.texto ?? '' })),
       pregacoes: [],
       atualizadoEm: new Date().toISOString(),

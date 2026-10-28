@@ -3,7 +3,15 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Etapas } from '../../components/Etapas';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
-import { ETAPA_MONTAGEM, etapaAtual, etapas, etapasDeEstudo, type EtapaEstudo } from '../../data/etapas';
+import {
+  ETAPA_BIBLIA,
+  ETAPA_ESTUDO,
+  ETAPA_MONTAGEM,
+  etapaAtual,
+  etapas,
+  nomesEstudo,
+  type EtapaEstudo,
+} from '../../data/etapas';
 import { pericopeDe } from '../../data/pericope';
 import { carregarTexto, livros, type CodigoLivro } from '../../data/portugues';
 import {
@@ -25,75 +33,120 @@ const dicasAnotacao: Record<EtapaEstudo, string> = {
   aplicacao: 'Verdade central, onde ela toca a vida hoje, perguntas para a igreja...',
 };
 
-// Etapas de estudo do sermão, uma tela por vez: Bíblia, Leitura, Observação, Interpretação e Aplicação
+const partesDoEstudo: EtapaEstudo[] = ['observacao', 'interpretacao', 'aplicacao'];
+
+// Telas Bíblia (escolha e leitura do texto) e Estudo (Observação, Interpretação e Aplicação) do sermão
 export default function EstudoTela() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const sermao = useSermao(id);
   const { atualizar } = useSermoes();
+  // Sem texto ainda, a Bíblia já abre para escolher; o seletor fica aberto até tocar em Pronto
+  const [escolhendo, setEscolhendo] = useState(() => !referenciaDoTexto(sermao?.textoBase ?? ''));
+  const [parte, setParte] = useState<EtapaEstudo>('observacao');
 
   if (!sermao) return null;
 
-  const indice = Math.min(etapaAtual(sermao.etapa), ETAPA_MONTAGEM - 1);
-  const etapa = indice === 0 ? undefined : etapasDeEstudo[indice - 1];
+  const indice = Math.min(etapaAtual(sermao.etapa), ETAPA_ESTUDO);
+  const temTexto = !!referenciaDoTexto(sermao.textoBase);
+  const posicaoParte = partesDoEstudo.indexOf(parte);
 
   const irPara = (proxima: number) => {
     atualizar(sermao.id, (s) => ({ ...s, etapa: proxima }));
     if (proxima === ETAPA_MONTAGEM) router.replace(`/sermao/${sermao.id}`);
   };
 
+  const anterior = () => {
+    if (indice === ETAPA_ESTUDO && posicaoParte > 0) setParte(partesDoEstudo[posicaoParte - 1]);
+    else irPara(indice - 1);
+  };
+  const proximo = () => {
+    if (indice === ETAPA_ESTUDO && posicaoParte < partesDoEstudo.length - 1) setParte(partesDoEstudo[posicaoParte + 1]);
+    else irPara(indice + 1);
+  };
+  const tituloProximo =
+    indice === ETAPA_BIBLIA
+      ? 'Próximo: Estudo'
+      : posicaoParte < partesDoEstudo.length - 1
+        ? `Próximo: ${nomesEstudo[partesDoEstudo[posicaoParte + 1]]}`
+        : 'Montar o sermão';
+
   return (
     <>
       <Stack.Screen options={{ title: `${indice + 1}. ${etapas[indice].nome}` }} />
-      <ScrollView key={indice} contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        key={`${indice}-${parte}`}
+        contentContainerStyle={estilos.conteudo}
+        keyboardShouldPersistTaps="handled"
+      >
         <Etapas sermaoId={sermao.id} atual={indice} />
         <View>
-          <Text style={estilos.base}>{sermao.textoBase || 'Sem texto referência'}</Text>
+          <Text style={estilos.base}>{sermao.textoBase || 'Escolha o texto'}</Text>
           <Text style={estilos.suave}>{etapas[indice].pergunta}</Text>
         </View>
 
-        {!etapa && <EscolherTexto sermao={sermao} />}
-        {etapa === 'leitura' && <Leitura sermao={sermao} />}
-        {etapa === 'observacao' && <Genero sermao={sermao} />}
-        {(etapa ? perguntasDaEtapa(etapa, sermao.textoBase, sermao.genero) : []).map((g) => (
-          <Cartao key={g.titulo} style={{ gap: 10 }}>
-            <Rotulo>{g.titulo}</Rotulo>
-            {g.dica ? <Text style={estilos.chave}>{g.dica}</Text> : null}
-            {g.perguntas.map((q) => (
-              <View key={q.pergunta} style={{ gap: 2 }}>
-                <Text style={estilos.pergunta}>{q.pergunta}</Text>
-                <TextInput
-                  accessibilityLabel={q.pergunta}
-                  value={sermao.respostas?.[q.pergunta] ?? q.padrao ?? ''}
-                  onChangeText={(texto) =>
-                    atualizar(sermao.id, (s) => ({ ...s, respostas: { ...s.respostas, [q.pergunta]: texto } }))
-                  }
-                  multiline
-                  placeholder="Sua resposta"
-                  placeholderTextColor={cores.textoSuave}
-                  style={estilos.resposta}
-                />
-              </View>
-            ))}
-          </Cartao>
-        ))}
-        {etapa === 'interpretacao' && (
-          <Cartao style={{ gap: 8 }}>
-            <Rotulo>Literal ou figurado?</Rotulo>
-            <Lista itens={sentidoFigurado} />
-          </Cartao>
+        {indice === ETAPA_BIBLIA && (
+          <>
+            {temTexto && <Leitura sermao={sermao} />}
+            {temTexto && !escolhendo ? (
+              <Botao titulo="Escolher outro texto" variante="contorno" onPress={() => setEscolhendo(true)} />
+            ) : (
+              <EscolherTexto sermao={sermao} />
+            )}
+            {temTexto && escolhendo ? (
+              <Botao titulo="Pronto, ler a perícope" onPress={() => setEscolhendo(false)} />
+            ) : null}
+            <Cartao style={{ gap: 8 }}>
+              <Rotulo>Como ler</Rotulo>
+              <Lista itens={leitura} />
+            </Cartao>
+            <Anotacoes sermao={sermao} etapa="leitura" nome="Leitura" />
+          </>
         )}
 
-        {etapa && <Anotacoes sermao={sermao} etapa={etapa} nome={etapas[indice].nome} />}
+        {indice === ETAPA_ESTUDO && (
+          <>
+            <Genero sermao={sermao} />
+            <View style={estilos.linha}>
+              {partesDoEstudo.map((p) => (
+                <Pilula key={p} texto={nomesEstudo[p]} ativa={parte === p} onPress={() => setParte(p)} />
+              ))}
+            </View>
+            {perguntasDaEtapa(parte, sermao.textoBase, sermao.genero).map((g) => (
+              <Cartao key={g.titulo} style={{ gap: 10 }}>
+                <Rotulo>{g.titulo}</Rotulo>
+                {g.dica ? <Text style={estilos.chave}>{g.dica}</Text> : null}
+                {g.perguntas.map((q) => (
+                  <View key={q.pergunta} style={{ gap: 2 }}>
+                    <Text style={estilos.pergunta}>{q.pergunta}</Text>
+                    <TextInput
+                      accessibilityLabel={q.pergunta}
+                      value={sermao.respostas?.[q.pergunta] ?? q.padrao ?? ''}
+                      onChangeText={(texto) =>
+                        atualizar(sermao.id, (s) => ({ ...s, respostas: { ...s.respostas, [q.pergunta]: texto } }))
+                      }
+                      multiline
+                      placeholder="Sua resposta"
+                      placeholderTextColor={cores.textoSuave}
+                      style={estilos.resposta}
+                    />
+                  </View>
+                ))}
+              </Cartao>
+            ))}
+            {parte === 'interpretacao' && (
+              <Cartao style={{ gap: 8 }}>
+                <Rotulo>Literal ou figurado?</Rotulo>
+                <Lista itens={sentidoFigurado} />
+                <Botao titulo="Consultar a biblioteca" variante="contorno" onPress={() => router.push('/biblioteca')} />
+              </Cartao>
+            )}
+            <Anotacoes sermao={sermao} etapa={parte} nome={nomesEstudo[parte]} />
+          </>
+        )}
 
         <View style={estilos.navegacao}>
-          {indice > 0 ? (
-            <Botao titulo="Anterior" variante="contorno" onPress={() => irPara(indice - 1)} style={{ flex: 1 }} />
-          ) : null}
-          <Botao
-            titulo={indice === ETAPA_MONTAGEM - 1 ? 'Montar o sermão' : `Próximo: ${etapas[indice + 1].nome}`}
-            onPress={() => irPara(indice + 1)}
-            style={{ flex: 2 }}
-          />
+          {indice > 0 ? <Botao titulo="Anterior" variante="contorno" onPress={anterior} style={{ flex: 1 }} /> : null}
+          <Botao titulo={tituloProximo} onPress={proximo} style={{ flex: 2 }} />
         </View>
       </ScrollView>
     </>
@@ -272,10 +325,6 @@ function Leitura({ sermao }: { sermao: Sermao }) {
           variante="contorno"
           onPress={() => router.push({ pathname: '/biblia', params: { sermao: sermao.id } })}
         />
-      </Cartao>
-      <Cartao style={{ gap: 8 }}>
-        <Rotulo>Como ler</Rotulo>
-        <Lista itens={leitura} />
       </Cartao>
     </>
   );
