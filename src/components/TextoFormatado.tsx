@@ -109,8 +109,9 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false, 
       {[cabecalho, ...linhas.flatMap((l) => l.split('\n'))]
         .filter((l): l is string => l !== undefined)
         .map((l, i) => (
+          // Linha em branco continua ocupando espaço, como no documento
           <Text key={i} style={base}>
-            {linha(l)}
+            {l.trim() ? linha(l) : ' '}
           </Text>
         ))}
     </View>

@@ -194,9 +194,31 @@ export function dividirVersiculo(texto: string) {
   const m = primeira.match(/^(.*?\p{L}.*?)\s+(\d+):(\d+(?:\s*[-–,]\s*\d+)*)\s*(?:[-–—:]\s*)?(.*)$/u);
   if (!m) return { cabecalho: undefined, linhas: texto.split('\n') };
   const [, livro, capitulo, versos, conteudo] = m;
+  const faixa = versos.match(/^(\d+)\s*[-–]\s*(\d+)/);
+  if (!faixa) {
+    return {
+      cabecalho: `${livro} ${capitulo}`,
+      linhas: [conteudo ? `${versos} - ${conteudo}` : versos, ...resto],
+    };
+  }
+  // Vários versículos: cada um na sua linha, começando pelo número ("15 - Porque...", "16 - E...")
+  const [de, ate] = [Number(faixa[1]), Number(faixa[2])];
+  // Em "15-17 - 15 Porque..." o número do primeiro versículo pode ter ficado junto com a faixa
+  const sobra = versos.slice(faixa[0].length).replace(/^\s*[-–]\s*/, '');
+  let corpo = [`${sobra} ${conteudo}`, ...resto].join('\n').trim();
+  if (!corpo) return { cabecalho: `${livro} ${capitulo}`, linhas: [versos] };
+  corpo = corpo.startsWith(`${de} `)
+    ? `${de} - ${corpo.slice(`${de} `.length).replace(/^-\s*/, '')}`
+    : `${de} - ${corpo}`;
+  for (let n = de + 1; n <= ate; n++) {
+    corpo = corpo.replace(new RegExp(`(^|\\s)${n}\\s+(?:-\\s*)?(?=\\S)`), `\n${n} - `);
+  }
   return {
     cabecalho: `${livro} ${capitulo}`,
-    linhas: [conteudo ? `${versos} - ${conteudo}` : versos, ...resto],
+    linhas: corpo
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean),
   };
 }
 
