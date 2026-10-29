@@ -7,6 +7,7 @@ export default function SermoesTela() {
     <ListaSermoes
       vazio="Nenhum sermão ainda. Toque em + Novo sermão para começar."
       aoAbrir={(s) => router.push(`/sermao/${s.id}`)}
+      comNuvem
     />
   );
 }

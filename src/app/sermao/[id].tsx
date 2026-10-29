@@ -24,6 +24,9 @@ import { textoDaBiblioteca } from '../../ia/estudo';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
 import { cores, fonteEsboco, larguraConteudo } from '../../theme';
 
+// Hora atual, usada só nos toques e na digitação
+const relogio = () => Date.now();
+
 export default function EditorTela() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const sermao = useSermao(id);
@@ -35,6 +38,10 @@ export default function EditorTela() {
   // Altura de cada parte da folha e largura da folha, medidas na tela, para separar as páginas A4
   const [alturas, setAlturas] = useState<Record<string, number>>({});
   const [larguraFolha, setLarguraFolha] = useState(0);
+  // Caixas como estavam antes de cada mudança, para o botão Desfazer
+  const [passos, setPassos] = useState<Bloco[][]>([]);
+  // Digitação seguida na mesma caixa conta como um passo só
+  const ultimoPasso = useRef({ chave: '', em: 0 });
 
   if (!sermao) {
     return (
@@ -44,10 +51,33 @@ export default function EditorTela() {
     );
   }
 
-  const mudarBloco = (blocoId: string, texto: string) =>
-    atualizar(sermao.id, (s) => ({ ...s, blocos: s.blocos.map((b) => (b.id === blocoId ? { ...b, texto } : b)) }));
+  const guardarPasso = (chave = '') => {
+    const agora = relogio();
+    const seguido = chave && chave === ultimoPasso.current.chave && agora - ultimoPasso.current.em < 3000;
+    ultimoPasso.current = { chave, em: agora };
+    if (!seguido) setPassos((p) => [...p.slice(-49), sermao.blocos]);
+  };
 
-  const mover = (indice: number, direcao: -1 | 1) =>
+  const desfazer = () => {
+    const anterior = passos.at(-1);
+    if (!anterior) return;
+    setPassos((p) => p.slice(0, -1));
+    ultimoPasso.current = { chave: '', em: 0 };
+    atualizar(sermao.id, (s) => ({ ...s, blocos: anterior }));
+  };
+
+  const mudarBloco = (blocoId: string, texto: string) => {
+    guardarPasso(`texto:${blocoId}`);
+    atualizar(sermao.id, (s) => ({ ...s, blocos: s.blocos.map((b) => (b.id === blocoId ? { ...b, texto } : b)) }));
+  };
+
+  const inserirBloco = (tipo: TipoBloco, depoisDe?: string) => {
+    guardarPasso();
+    adicionarBloco(sermao.id, tipo, '', depoisDe);
+  };
+
+  const mover = (indice: number, direcao: -1 | 1) => {
+    guardarPasso();
     atualizar(sermao.id, (s) => {
       const alvo = indice + direcao;
       if (alvo < 0 || alvo >= s.blocos.length) return s;
@@ -55,9 +85,12 @@ export default function EditorTela() {
       [blocos[indice], blocos[alvo]] = [blocos[alvo], blocos[indice]];
       return { ...s, blocos };
     });
+  };
 
-  const apagarBloco = (blocoId: string) =>
+  const apagarBloco = (blocoId: string) => {
+    guardarPasso();
     atualizar(sermao.id, (s) => ({ ...s, blocos: s.blocos.filter((b) => b.id !== blocoId) }));
+  };
 
   // Antes de concluir alguma caixa, o "+ Inserir" fica na última caixa preenchida
   const ultimaPreenchida = [...sermao.blocos].reverse().find((b) => b.texto.trim())?.id;
@@ -199,7 +232,7 @@ export default function EditorTela() {
                       onSubir={() => mover(i, -1)}
                       onDescer={() => mover(i, 1)}
                       onApagar={() => apagarBloco(bloco.id)}
-                      onInserir={(tipo) => adicionarBloco(sermao.id, tipo, '', bloco.id)}
+                      onInserir={(tipo) => inserirBloco(tipo, bloco.id)}
                       mostrarInserir={bloco.id === (ultimaConcluida ?? ultimaPreenchida)}
                       onConcluir={() => setUltimaConcluida(bloco.id)}
                     />
@@ -216,7 +249,7 @@ export default function EditorTela() {
 
         <View style={estilos.inserir}>
           <Text style={estilos.meta}>Inserir</Text>
-          <ChipsInserir onEscolher={(tipo) => adicionarBloco(sermao.id, tipo)} />
+          <ChipsInserir onEscolher={(tipo) => inserirBloco(tipo)} />
         </View>
         <View style={estilos.acoesSermao}>
           <Botao titulo="Pregar" onPress={() => router.push(`/pregar/${sermao.id}`)} style={estilos.acaoSermao} />
@@ -247,6 +280,16 @@ export default function EditorTela() {
           }}
         />
       </ScrollView>
+      {passos.length > 0 ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Desfazer"
+          onPress={desfazer}
+          style={({ pressed }) => [estilos.desfazer, pressed && { opacity: 0.7 }]}
+        >
+          <Text style={estilos.textoDesfazer}>↶ Desfazer</Text>
+        </Pressable>
+      ) : null}
       <BarraAbas />
     </>
   );
@@ -562,6 +605,21 @@ function paginas(
 }
 
 const estilos = StyleSheet.create({
+  desfazer: {
+    position: 'absolute',
+    right: 16,
+    bottom: 76,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 22,
+    backgroundColor: '#202124',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  textoDesfazer: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
   // Mesa cinza do Google Docs em volta da folha
   mesa: { backgroundColor: '#F1F3F4' },
   avisoIA: { gap: 8, borderColor: cores.destaque, borderWidth: 1 },
