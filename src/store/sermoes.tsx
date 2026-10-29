@@ -15,6 +15,8 @@ export type Bloco = {
   // Nome próprio do bloco (ex.: "Versículo de apoio") e dica de preenchimento
   rotulo?: string;
   dica?: string;
+  // Criado pelo + entre as folhas: começa numa página nova
+  novaPagina?: boolean;
 };
 
 export type Pregacao = {
@@ -131,8 +133,8 @@ type Contexto = {
   nuvem: Nuvem;
   // Pelo toque do usuário: pode abrir o login do Google
   sincronizarAgora: () => Promise<void>;
-  // Sem depoisDe, o bloco vai para o fim do sermão
-  adicionarBloco: (id: string, tipo: TipoBloco, texto?: string, depoisDe?: string) => void;
+  // Sem depoisDe, o bloco vai para o fim do sermão; com null, para o começo
+  adicionarBloco: (id: string, tipo: TipoBloco, texto?: string, depoisDe?: string | null, novaPagina?: boolean) => void;
 };
 
 const SermoesContexto = createContext<Contexto | null>(null);
@@ -251,11 +253,12 @@ export function SermoesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const adicionarBloco = useCallback(
-    (id: string, tipo: TipoBloco, texto = '', depoisDe?: string) => {
+    (id: string, tipo: TipoBloco, texto = '', depoisDe?: string | null, novaPagina?: boolean) => {
       atualizar(id, (s) => {
         const blocos = [...s.blocos];
         const posicao = depoisDe ? blocos.findIndex((b) => b.id === depoisDe) + 1 : 0;
-        blocos.splice(posicao > 0 ? posicao : blocos.length, 0, { id: novoId(), tipo, texto });
+        const novo: Bloco = { id: novoId(), tipo, texto, ...(novaPagina ? { novaPagina } : {}) };
+        blocos.splice(depoisDe === null ? 0 : posicao > 0 ? posicao : blocos.length, 0, novo);
         return { ...s, blocos };
       });
     },
