@@ -14,24 +14,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TextoFormatado } from '../../components/TextoFormatado';
-import { nomesBloco } from '../../data/modelos';
-import { coresPregacao, rotuloVisivel, tituloDaPagina } from '../../estilo';
+import { abreNovaPagina, coresPregacao, rotuloVisivel, tituloDaPagina } from '../../estilo';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
 import { cores } from '../../theme';
 
-// Divide o sermão em telas: tudo antes do 1º tópico é a abertura,
-// cada tópico leva consigo os blocos que vêm depois dele.
-function dividirEmPartes(blocos: Bloco[], tituloAbertura: string) {
-  const partes: { titulo: string; topico: boolean; blocos: Bloco[] }[] = [];
-  for (const b of blocos) {
-    if (b.tipo === 'topico' || b.tipo === 'conclusao' || partes.length === 0) {
-      const titulo = b.tipo === 'topico' ? b.texto : partes.length === 0 ? tituloAbertura : nomesBloco[b.tipo];
-      partes.push({ titulo, topico: b.tipo === 'topico', blocos: b.tipo === 'topico' ? [] : [b] });
-    } else {
-      partes[partes.length - 1].blocos.push(b);
-    }
-  }
-  return partes;
+// Divide o sermão nas mesmas páginas do editor e do PDF (capa, saudação, texto, introdução, cada tópico...)
+function dividirEmPaginas(blocos: Bloco[]) {
+  const paginas: Bloco[][] = [[]];
+  blocos.forEach((b, i) => {
+    if (abreNovaPagina(blocos, i)) paginas.push([]);
+    if (b.texto.trim()) paginas[paginas.length - 1].push(b);
+  });
+  return paginas.filter((p, i) => i === 0 || p.length);
 }
 
 // Largura da folha A4 (210 mm) e letra do esboço, como no Google Docs
@@ -120,10 +114,7 @@ export default function PulpitoTela() {
     return () => clearInterval(t);
   }, []);
 
-  const partes = useMemo(
-    () => dividirEmPartes(sermao?.blocos ?? [], sermao?.titulo ?? ''),
-    [sermao?.blocos, sermao?.titulo],
-  );
+  const paginas = useMemo(() => dividirEmPaginas(sermao?.blocos ?? []), [sermao?.blocos]);
 
   if (!sermao) return null;
 
@@ -185,37 +176,32 @@ export default function PulpitoTela() {
           onContentSizeChange={(_, altura) => auto.medirConteudo(altura)}
         >
           <View style={{ width: larguraA4 * escala, height: alturaFolha * escala }}>
+            {/* As folhas, uma embaixo da outra, como no Google Docs; a coluna inteira é reduzida no celular */}
             <View
               onLayout={(e) => setAlturaFolha(e.nativeEvent.layout.height)}
-              style={[estilos.folha, { transform: [{ scale: escala }], transformOrigin: 'top left' }]}
+              style={[estilos.coluna, { transform: [{ scale: escala }], transformOrigin: 'top left' }]}
             >
-              <Text style={[estilos.titulo, estilos.tema]}>{sermao.titulo || 'Sem título'}</Text>
-              {sermao.textoBase ? <Text style={estilos.base}>{sermao.textoBase}</Text> : null}
-              {partes.map((parte, i) => (
-                <View key={i} style={{ gap: 10 }}>
-                  {parte.topico ? (
-                    <TextoFormatado tipo="topico" texto={parte.titulo || 'Sem título'} tamanho={tamanhoLetra} />
-                  ) : null}
-                  {parte.blocos
-                    .filter((b) => b.texto.trim())
-                    .map((b) => {
-                      // No púlpito a aplicação aparece sem o nome em cima, só pela cor
-                      const titulo = tituloDaPagina(sermao.blocos, sermao.blocos.indexOf(b));
-                      const rotulo = b.tipo === 'aplicacao' || titulo ? undefined : rotuloVisivel(b);
-                      return (
-                        <View key={b.id} style={{ gap: 2 }}>
-                          {titulo && <TextoFormatado tipo="topico" texto={titulo} tamanho={tamanhoLetra} />}
-                          {rotulo && rotulo !== parte.titulo && <Text style={estilos.rotulo}>{rotulo}</Text>}
-                          <TextoFormatado
-                            tipo={b.tipo}
-                            texto={b.texto}
-                            tamanho={tamanhoLetra}
-                            semMoldura
-                            setaNaMargem
-                          />
-                        </View>
-                      );
-                    })}
+              {paginas.map((pagina, n) => (
+                <View key={n} style={estilos.folha}>
+                  {n === 0 && (
+                    <>
+                      <Text style={[estilos.titulo, estilos.tema]}>{sermao.titulo || 'Sem título'}</Text>
+                      {sermao.textoBase ? <Text style={estilos.base}>{sermao.textoBase}</Text> : null}
+                    </>
+                  )}
+                  {pagina.map((b) => {
+                    const titulo = tituloDaPagina(sermao.blocos, sermao.blocos.indexOf(b));
+                    // No púlpito a aplicação aparece sem o nome em cima, só pela cor
+                    const rotulo =
+                      b.tipo === 'aplicacao' || b.tipo === 'topico' || titulo ? undefined : rotuloVisivel(b);
+                    return (
+                      <View key={b.id} style={{ gap: 2 }}>
+                        {titulo && <TextoFormatado tipo="topico" texto={titulo} tamanho={tamanhoLetra} />}
+                        {rotulo && <Text style={estilos.rotulo}>{rotulo}</Text>}
+                        <TextoFormatado tipo={b.tipo} texto={b.texto} tamanho={tamanhoLetra} semMoldura setaNaMargem />
+                      </View>
+                    );
+                  })}
                 </View>
               ))}
             </View>
@@ -273,6 +259,7 @@ const estilos = StyleSheet.create({
   mesa: { flex: 1, backgroundColor: '#F1F3F4', marginTop: 12 },
   mesaConteudo: { paddingVertical: 8, paddingHorizontal: 8, alignItems: 'center' },
   // Folha A4 com margens de 2,5 cm e altura mínima de uma página
+  coluna: { width: larguraA4, gap: 20 },
   folha: {
     width: larguraA4,
     minHeight: 1123,

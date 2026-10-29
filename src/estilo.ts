@@ -131,7 +131,7 @@ export function abreNovaPagina(blocos: { tipo: TipoBloco; rotulo?: string }[], i
 }
 
 // Cada página abre com o seu título em fundo verde, como os tópicos (letra um pouco maior que o resto)
-export const escalaTopico = 1.2;
+export const escalaTopico = 1.4;
 export function tituloDaPagina(blocos: { tipo: TipoBloco; rotulo?: string }[], i: number) {
   const b = blocos[i];
   if (b.tipo === 'topico' || !abreNovaPagina(blocos, i)) return undefined;
