@@ -118,6 +118,7 @@ export type DadosEstudo = Pick<
 const etapaV2: Record<number, number> = { 0: 0, 1: 0, 2: 1, 3: 1, 4: 1, 5: 2, 6: 3 };
 
 function migrar(s: Sermao): Sermao {
+  s = migrarCapa(s);
   if (s.versao === 3 || s.etapa === undefined) return { ...s, versao: 3 };
   const v2 = s.versao === 2 ? s.etapa : s.etapa + 1;
   return { ...s, versao: 3, etapa: etapaV2[v2] ?? 2 };
@@ -210,7 +211,7 @@ export function SermoesProvider({ children }: { children: ReactNode }) {
       const junto = juntar(atual.current, dados);
       atual.current = junto;
       enviado.current = JSON.stringify(dados);
-      setSermoes(junto.sermoes);
+      setSermoes(junto.sermoes.map(migrarCapa));
       setApagados(junto.apagados);
       setNuvem((n) => ({ ...n, estado: 'ok', quando: new Date().toISOString() }));
     } catch (e) {
@@ -340,6 +341,27 @@ export function trocarSaudacao(blocos: Bloco[], nova: BlocosSaudacao | undefined
     ...criarBlocos(nova?.depois ?? []),
     ...blocos.slice(fim),
   ];
+}
+
+// Sermões criados antes de 29/10/2026: títulos da capa passam ao fundo verde do tópico, e o texto de referência
+// já escrito à mão deixa de vir repetido com o texto da Bíblia
+function migrarCapa(s: Sermao): Sermao {
+  const base = s.textoBase?.trim() ?? '';
+  const repetido = (t: string) => base.includes(' - ') && t.startsWith(`${base} - `);
+  if (!s.blocos?.some((b) => b.capa && (b.tipo === 'subtopico' || repetido(b.texto)))) return s;
+  return {
+    ...s,
+    ...(s.capa?.texto && repetido(s.capa.texto) ? { capa: { ...s.capa, texto: base } } : {}),
+    blocos: s.blocos.map((b) =>
+      !b.capa
+        ? b
+        : b.tipo === 'subtopico'
+          ? { ...b, tipo: 'subtopicoVerde' }
+          : repetido(b.texto)
+            ? { ...b, texto: base }
+            : b,
+    ),
+  };
 }
 
 // Refaz as caixas da capa do tipo de sermão (antes e depois do quadro do objetivo) com o que foi preenchido
