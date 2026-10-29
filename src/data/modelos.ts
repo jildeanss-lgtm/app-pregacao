@@ -130,7 +130,6 @@ export type OpcoesNovoSermao = {
 export type CampoCapa = { id: string; nome: string; dica: string; linhas?: number };
 export const camposCapa: Record<string, CampoCapa[]> = {
   'Aula EBD': [
-    { id: 'licao', nome: 'Lição nº', dica: 'Ex.: 5' },
     { id: 'verdade', nome: 'Verdade aplicada', dica: 'A verdade central da lição', linhas: 2 },
     { id: 'oracao', nome: 'Momento de oração', dica: 'Pelo que orar no fim da aula', linhas: 2 },
     {
@@ -153,20 +152,23 @@ export function blocosDaCapa(tipo: string | undefined, capa: Record<string, stri
     valor(id)
       ? [
           { tipo: 'subtopico', texto: `*${titulo}*`, capa: id },
-          { tipo: tipoBloco, texto: valor(id), capa: id },
+          { tipo: tipoBloco, rotulo: '', texto: valor(id), capa: id },
         ]
       : [];
-  const licao = valor('licao').replace(/^li[çc][ãa]o\s*/i, '');
-  // Os objetivos vêm logo depois da Lição (JILDEAN, 29/10/2026)
-  const antes: BlocoInicial[] = licao
-    ? [{ tipo: 'subtopico', texto: `*LIÇÃO ${licao.toUpperCase()}*`, capa: 'licao' }]
-    : [];
+  // Os objetivos abrem a capa; as outras caixas vêm logo depois deles (JILDEAN, 29/10/2026)
   return {
-    antes,
+    antes: [] as BlocoInicial[],
     depois: [
       ...comTitulo('verdade', 'VERDADE APLICADA', 'efeito'),
       ...comTitulo('oracao', 'MOMENTO DE ORAÇÃO', 'palavra'),
       ...comTitulo('versiculo', 'VERSÍCULO DO DIA', 'versiculo'),
+      // O texto bíblico do Texto de referência, que a tela já guarda pronto na capa
+      ...(tipo === 'Aula EBD' && capa?.texto?.trim()
+        ? [
+            { tipo: 'subtopico' as const, texto: '*TEXTO DE REFERÊNCIA*', capa: 'texto' },
+            { tipo: 'versiculo' as const, texto: capa.texto.trim(), capa: 'texto' },
+          ]
+        : []),
     ],
   };
 }
