@@ -127,13 +127,14 @@ const semCorPropria = new Set<TipoBloco>([
 // 1ª capa com os dados do sermão (tema, texto e objetivo); 2ª saudação, qual texto e agradecimentos;
 // 3ª leitura do texto referência; 4ª introdução; depois cada Tópico e a Conclusão numa página nova
 export const rotulosTextoReferencia = ['Texto referência', 'Texto'];
-type BlocoDaPagina = { tipo: TipoBloco; rotulo?: string; novaPagina?: boolean };
+type BlocoDaPagina = { tipo: TipoBloco; rotulo?: string; novaPagina?: boolean; capa?: string };
 // Página nova pelo padrão do sermão (sem contar as criadas pelo + entre as folhas)
 function quebraPadrao(blocos: BlocoDaPagina[], i: number) {
   const b = blocos[i];
   if (b.tipo === 'topico' || b.tipo === 'conclusao' || b.tipo === 'introducao') return true;
   if (b.tipo === 'versiculo' && rotulosTextoReferencia.includes(b.rotulo ?? '')) return true;
-  return i === blocos.findIndex((x) => x.tipo !== 'objetivo');
+  // A capa (objetivo e as caixas da capa do tipo de sermão) fica toda na primeira folha
+  return i === blocos.findIndex((x) => x.tipo !== 'objetivo' && !x.capa);
 }
 export function abreNovaPagina(blocos: BlocoDaPagina[], i: number) {
   return !!blocos[i].novaPagina || quebraPadrao(blocos, i);
