@@ -134,15 +134,23 @@ function blocoParaDocs(b: Bloco, quebra: boolean): string {
   );
 }
 
+// Linha em branco entre as caixas: a leitura do Docs pula parágrafos vazios
+const ESPACO = '<p style="font-family:Arial"><br></p>';
+
 export function htmlParaDocs(s: Sermao) {
   const cabecalho = [
     paragrafo(`<b><u>${escapar(s.titulo || 'Sermão sem título')}</u></b>`, { centro: true, fundo: '#00FF00' }),
     ...(s.culto || s.data ? [paragrafo(escapar([s.culto, s.data].filter(Boolean).join(' · ')), { centro: true })] : []),
   ];
+  // Cada tópico abre uma página nova, e entre as caixas fica uma linha em branco (menos nas marcadas com
+  // SEM ESPAÇO), como o Jildean pediu
   const blocos = s.blocos
-    .map((b, i) => ({ b, quebra: !!b.novaPagina || (i > 0 && abreNovaPagina(s.blocos, i)) }))
+    .map((b, i) => ({
+      b,
+      quebra: !!b.novaPagina || (i > 0 && (abreNovaPagina(s.blocos, i) || b.tipo === 'topico')),
+    }))
     .filter(({ b }) => b.texto.trim())
-    .map(({ b, quebra }) => blocoParaDocs(b, quebra));
+    .map(({ b, quebra }, i) => (i && !quebra && !b.colado ? ESPACO : '') + blocoParaDocs(b, quebra));
   return `<!doctype html><html><head><meta charset="utf-8"></head><body style="font-family:Arial;font-size:12pt">${[
     ...cabecalho,
     ...blocos,

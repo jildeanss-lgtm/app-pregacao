@@ -72,8 +72,12 @@ const realces: Record<string, string> = { green: '00ff00', yellow: 'ffff00', cya
 
 export function lerParagrafos(xml: string): Paragrafo[] {
   const paragrafos: Paragrafo[] = [];
+  // Quebra de página no fim de um parágrafo, ou num parágrafo vazio: vale para o parágrafo seguinte
+  let quebraPendente = false;
   for (const [p] of xml.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)) {
     const props = p.match(/<w:pPr>([\s\S]*?)<\/w:pPr>/)?.[1] ?? '';
+    const quebraNoTexto = p.indexOf('w:type="page"');
+    const quebraNoFim = quebraNoTexto >= 0 && !/<w:t[ >]/.test(p.slice(quebraNoTexto));
     const pesoCor = new Map<string, number>();
     const pesoFundo = new Map<string, number>();
     let italicos = 0;
@@ -108,7 +112,11 @@ export function lerParagrafos(xml: string): Paragrafo[] {
       .replace(/\*(\s*)\*/g, '$1')
       .replace(/[  ]+/g, ' ')
       .trim();
-    if (!texto.replace(/\*/g, '').trim()) continue;
+    if (!texto.replace(/\*/g, '').trim()) {
+      if (quebraNoTexto >= 0 || /<w:pageBreakBefore(?: w:val="(?:1|true|on)")?\s*\/>/.test(props))
+        quebraPendente = true;
+      continue;
+    }
     const maior = (m: Map<string, number>) => [...m].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
     paragrafos.push({
       texto,
@@ -116,7 +124,10 @@ export function lerParagrafos(xml: string): Paragrafo[] {
       fundo: maior(pesoFundo),
       centro: /<w:jc w:val="center"/.test(props),
       lista: props.includes('<w:numPr>'),
-      quebra: /<w:pageBreakBefore(?: w:val="(?:1|true|on)")?\s*\/>/.test(props) || p.includes('w:type="page"'),
+      quebra:
+        quebraPendente ||
+        /<w:pageBreakBefore(?: w:val="(?:1|true|on)")?\s*\/>/.test(props) ||
+        (quebraNoTexto >= 0 && !quebraNoFim),
       italico: letras > 0 && italicos / letras > 0.6,
       estilo: /<w:pStyle w:val="(?:Heading|Ttulo|Titulo|Title)1?"/i.test(props)
         ? 1
@@ -124,6 +135,7 @@ export function lerParagrafos(xml: string): Paragrafo[] {
           ? 2
           : undefined,
     });
+    quebraPendente = quebraNoFim;
   }
   return paragrafos;
 }
