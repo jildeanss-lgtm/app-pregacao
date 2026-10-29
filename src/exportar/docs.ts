@@ -55,7 +55,7 @@ function paragrafo(conteudo: string, e: Estilo = {}) {
     .join(';');
   const corpo = e.fundo ? `<span style="background-color:${e.fundo}">${conteudo}</span>` : conteudo;
   // Seta preta em negrito antes do subtópico, fora do fundo colorido, como no app
-  const seta = e.seta ? '<b style="color:#000000">➢</b> ' : '';
+  const seta = e.seta ? '<b style="color:#000000">➔</b> ' : '';
   return `<p style="${css}">${seta}${corpo}</p>`;
 }
 
@@ -123,9 +123,13 @@ function blocoParaDocs(b: Bloco, quebra: boolean): string {
     const italico = b.tipo !== 'quadro' && b.tipo !== 'objetivo';
     return (
       // No Texto a linha de cima é preta com as palavras-chave em azul, como no app
-      (b.tipo === 'quadro' || b.tipo === 'objetivo'
-        ? paragrafo(comChaves(subtopico.replace(/\n/g, ' '), cor), base)
-        : paragrafo(comChaves(subtopico.replace(/\n/g, ' ')), { ...base, cor, italico })) +
+      (!subtopico
+        ? quebra
+          ? paragrafo('', base)
+          : ''
+        : b.tipo === 'quadro' || b.tipo === 'objetivo'
+          ? paragrafo(comChaves(subtopico.replace(/\n/g, ' '), cor), base)
+          : paragrafo(comChaves(subtopico.replace(/\n/g, ' ')), { ...base, cor, italico })) +
       (pontos.length ? lista(pontos, b.tipo === 'aplicacao' ? { cor: '#7030A0', italico: true } : {}) : '')
     );
   }

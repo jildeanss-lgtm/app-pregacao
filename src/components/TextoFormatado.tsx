@@ -61,10 +61,13 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false, 
     };
     return (
       <View style={semMoldura ? { gap: 0 } : estilos.quadro}>
-        <View style={[estilos.item, { paddingLeft: 0 }, !semMoldura && estilos.quadroTopo, comSeta && naMargem]}>
-          {comSeta && <Text style={[base, estilos.seta, { width: recuo }]}>➔</Text>}
-          <Text style={[base, topo, { flex: 1 }]}>{linha(subtopico, e.topo?.corChave)}</Text>
-        </View>
+        {/* Sem a linha de cima (objetivos da Aula EBD, que têm o título num subtópico), só os pontos */}
+        {subtopico ? (
+          <View style={[estilos.item, { paddingLeft: 0 }, !semMoldura && estilos.quadroTopo, comSeta && naMargem]}>
+            {comSeta && <Text style={[base, estilos.seta, { width: recuo }]}>➔</Text>}
+            <Text style={[base, topo, { flex: 1 }]}>{linha(subtopico, e.topo?.corChave)}</Text>
+          </View>
+        ) : null}
         {pontos.map((l, i) => (
           <View
             key={i}

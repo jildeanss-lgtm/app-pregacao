@@ -351,6 +351,24 @@ export function trocarSaudacao(blocos: Bloco[], nova: BlocosSaudacao | undefined
 function migrarCapa(s: Sermao): Sermao {
   const base = s.textoBase?.trim() ?? '';
   const repetido = (t: string) => base.includes(' - ') && t.startsWith(`${base} - `);
+  // Objetivos da Aula EBD: a frase "Os OBJETIVOS desta LIÇÃO são:" vira o subtópico verde OBJETIVOS DA LIÇÃO
+  const fraseEBD = 'Os *OBJETIVOS* desta *LIÇÃO* são:\n';
+  const objetivoEBD = s.blocos?.findIndex((b) => b.tipo === 'objetivo' && b.texto.startsWith(fraseEBD)) ?? -1;
+  if (objetivoEBD >= 0) {
+    const titulo = s.blocos.some((b) => b.capa === 'objetivos')
+      ? []
+      : [{ id: novoId(), tipo: 'subtopicoVerde' as const, texto: '*OBJETIVOS DA LIÇÃO*', capa: 'objetivos' }];
+    const obj = s.blocos[objetivoEBD];
+    s = {
+      ...s,
+      blocos: [
+        ...s.blocos.slice(0, objetivoEBD),
+        ...titulo,
+        { ...obj, texto: `\n${obj.texto.slice(fraseEBD.length)}` },
+        ...s.blocos.slice(objetivoEBD + 1),
+      ],
+    };
+  }
   if (!s.blocos?.some((b) => b.capa && (b.tipo === 'subtopico' || repetido(b.texto)))) return s;
   return {
     ...s,
