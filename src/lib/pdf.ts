@@ -2,15 +2,19 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { modelos } from '../data/modelos';
-import { destacarTudo, dividirDestaques, dividirQuadro, estiloBloco, linhasParaMostrar, rotuloVisivel } from '../estilo';
+import {
+  abreNovaPagina,
+  destacarTudo,
+  dividirDestaques,
+  dividirQuadro,
+  estiloBloco,
+  linhasParaMostrar,
+  rotuloVisivel,
+} from '../estilo';
 import { minutosEstimados, type Bloco, type Sermao } from '../store/sermoes';
 
 function escapar(texto: string) {
-  return texto
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>');
+  return texto.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
 }
 
 // Converte um texto com *palavras-chave* em HTML, já escapado
@@ -62,8 +66,9 @@ function blocoHtml(b: Bloco) {
 
 export function htmlDoSermao(s: Sermao) {
   const blocos = s.blocos
-    .filter((b) => b.texto.trim())
-    .map(blocoHtml)
+    .map((b, i) => ({ b, nova: abreNovaPagina(s.blocos, i) }))
+    .filter(({ b }) => b.texto.trim())
+    .map(({ b, nova }) => (nova ? `<div class="nova-pagina"></div>${blocoHtml(b)}` : blocoHtml(b)))
     .join('\n');
 
   const modelo = modelos.find((m) => m.id === s.modelo)?.nome ?? '';
@@ -73,6 +78,8 @@ export function htmlDoSermao(s: Sermao) {
   @page { margin: 2cm; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 13pt; line-height: 1.45; color: #000; }
   h1 { font-size: 20pt; margin: 0 0 4pt; }
+  h1 span { background: #00FF00; padding: 1pt 4pt; }
+  .nova-pagina { break-before: page; page-break-before: always; }
   .meta { font-size: 10pt; color: #5B6470; margin-bottom: 18pt; }
   p { margin: 6pt 0; }
   ul { margin: 2pt 0 8pt; padding-left: 22pt; }
@@ -87,7 +94,7 @@ export function htmlDoSermao(s: Sermao) {
 </style></head>
 <body>
   ${s.culto || s.data ? `<div class="meta">${escapar([s.culto, s.data].filter(Boolean).join(' · '))}</div>` : ''}
-  <h1>${escapar(s.titulo || 'Sermão sem título')}</h1>
+  <h1><span>${escapar(s.titulo || 'Sermão sem título')}</span></h1>
   <div class="meta">${[s.textoBase, modelo, `cerca de ${minutosEstimados(s)} min`].filter(Boolean).map(escapar).join(' · ')}</div>
   ${blocos}
 </body></html>`;
