@@ -6,6 +6,8 @@ import { TextoFormatado } from '../../components/TextoFormatado';
 import { BarraAbas } from '../../components/BarraAbas';
 import { CampoCrescente } from '../../components/CampoCrescente';
 import { PainelDocs } from '../../components/PainelDocs';
+import { salvarNoDocsLigado } from '../../exportar/docs';
+import { pedirToken } from '../../ia/drive';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
 import { etapasDeEstudo, nomesEstudo } from '../../data/etapas';
 import { perguntasDaEtapa } from '../../data/roteiro';
@@ -34,6 +36,7 @@ export default function EditorTela() {
   const { atualizar, adicionarBloco, remover, mudarEstudo, nuvem, sincronizarAgora } = useSermoes();
   // Aviso do botão Salvar no fim da edição
   const [salvo, setSalvo] = useState('');
+  const [salvoDocs, setSalvoDocs] = useState('');
   // Folha cujo + está aberto, mostrando os tipos de bloco para a página nova
   const [novaPaginaEm, setNovaPaginaEm] = useState<string>();
   const [vendoEstudo, setVendoEstudo] = useState(true);
@@ -346,6 +349,23 @@ export default function EditorTela() {
           titulo={nuvem.estado === 'sincronizando' ? 'Salvando...' : 'Salvar'}
           onPress={async () => {
             setSalvo('');
+            setSalvoDocs('');
+            if (sermao.docId) {
+              // Sermão ligado a um Google Docs: o Salvar grava nele também
+              try {
+                const r = await salvarNoDocsLigado(await pedirToken(), sermao);
+                if (r === 'mudou')
+                  setSalvoDocs(
+                    'O Google Docs foi editado pelo Drive e não gravei por cima. Toque em Atualizar do Docs para trazer essas edições.',
+                  );
+                else if (r) {
+                  atualizar(sermao.id, (s) => ({ ...s, docId: r.id, docEm: r.modifiedTime }));
+                  setSalvoDocs(`Google Docs "${sermao.titulo || 'Sermão sem título'}" atualizado.`);
+                }
+              } catch (e) {
+                setSalvoDocs(e instanceof Error ? e.message : 'Não deu para gravar no Google Docs.');
+              }
+            }
             if (!nuvem.ligada) return setSalvo('Sermão salvo neste aparelho.');
             await sincronizarAgora();
             setSalvo('pronto');
@@ -360,6 +380,7 @@ export default function EditorTela() {
                 : `Sermão salvo neste aparelho. ${nuvem.erro ?? 'Não deu para enviar ao Google Drive.'}`}
           </Text>
         ) : null}
+        {salvoDocs ? <Text style={estilos.avisoSalvo}>{salvoDocs}</Text> : null}
         <View style={estilos.acoesSermao}>
           <Botao titulo="Pregar" onPress={() => router.push(`/pregar/${sermao.id}`)} style={estilos.acaoSermao} />
           <Botao

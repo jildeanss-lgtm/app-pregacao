@@ -182,6 +182,17 @@ export async function quandoMudouNoDocs(t: string, id: string) {
   return ((await r.json()) as { modifiedTime: string }).modifiedTime;
 }
 
+// O Salvar também grava no Docs ligado ao sermão, menos quando o Docs foi editado pelo Drive depois da
+// última gravação do app: aí as edições de lá seriam perdidas
+export async function salvarNoDocsLigado(t: string, s: Sermao) {
+  if (!s.docId) return undefined;
+  if (s.docEm) {
+    const mudou = await quandoMudouNoDocs(t, s.docId).catch(() => undefined);
+    if (mudou && mudou > s.docEm) return 'mudou' as const;
+  }
+  return gravarNoDocs(t, s);
+}
+
 // A caixa como ela fica no Docs (cor do tipo e palavras-chave, inclusive as maiúsculas que o app destaca
 // sozinho), sem as cores marcadas à mão, que a leitura do Docs não traz de volta. Duas caixas iguais aqui são
 // a mesma caixa; destacar uma palavra ou trocar a cor no Docs conta como mudança
