@@ -151,8 +151,32 @@ export default function EditorTela() {
     guardarPasso();
     atualizar(sermao.id, (s) => ({
       ...s,
-      blocos: s.blocos.map((b) => (b.id === blocoId ? { ...b, novaPagina: !b.novaPagina || undefined } : b)),
+      blocos: s.blocos.map((b) =>
+        b.id === blocoId ? { ...b, novaPagina: !b.novaPagina || undefined, mesmaPagina: undefined } : b,
+      ),
     }));
+  };
+
+  // O contrário: esta caixa (com as de cima da mesma página) volta para a página anterior, e as de baixo
+  // continuam onde estão
+  const paginaAnterior = (blocoId: string) => {
+    guardarPasso();
+    atualizar(sermao.id, (s) => {
+      const i = s.blocos.findIndex((b) => b.id === blocoId);
+      let inicio = i;
+      while (inicio > 0 && !abreNovaPagina(s.blocos, inicio)) inicio--;
+      if (inicio <= 0) return s;
+      return {
+        ...s,
+        blocos: s.blocos.map((b, j) =>
+          j === inicio
+            ? { ...b, novaPagina: undefined, mesmaPagina: true }
+            : j === i + 1 && !abreNovaPagina(s.blocos, j)
+              ? { ...b, novaPagina: true }
+              : b,
+        ),
+      };
+    });
   };
 
   // Tira (ou devolve) o espaço entre esta caixa e a de cima
@@ -351,6 +375,7 @@ export default function EditorTela() {
                       onMudarTipo={(tipo) => mudarTipo(bloco.id, tipo)}
                       paginaNova={!!bloco.novaPagina}
                       onQuebrarPagina={() => quebrarPagina(bloco.id)}
+                      onPaginaAnterior={i > 0 ? () => paginaAnterior(bloco.id) : undefined}
                       colado={!!bloco.colado}
                       onColar={() => colarNaDeCima(bloco.id)}
                       mostrarInserir={bloco.id === (ultimaConcluida ?? ultimaPreenchida)}
@@ -472,6 +497,7 @@ type BlocoEditorProps = {
   // A caixa começa uma página (criada pelo + ou pelo botão "Próxima página")
   paginaNova: boolean;
   onQuebrarPagina: () => void;
+  onPaginaAnterior?: () => void;
   colado: boolean;
   onColar: () => void;
   // "+ Inserir" clarinho embaixo (só na caixa concluída por último)
@@ -495,6 +521,7 @@ function BlocoEditor({
   onMudarTipo,
   paginaNova,
   onQuebrarPagina,
+  onPaginaAnterior,
   colado,
   onColar,
   mostrarInserir,
@@ -595,6 +622,21 @@ function BlocoEditor({
             >
               <Text style={estilos.textoInserir}>{paginaNova ? '⤒ JUNTAR' : '⤓ PRÓX. PÁGINA'}</Text>
             </Pressable>
+            {!paginaNova && onPaginaAnterior ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Levar para a página anterior"
+                onPress={() => {
+                  clearTimeout(saida.current);
+                  setFocado(false);
+                  if (bloco.texto.trim()) setEditando(false);
+                  onPaginaAnterior();
+                }}
+                style={[estilos.botaoInserir, { marginLeft: 6 }]}
+              >
+                <Text style={estilos.textoInserir}>⤒ PÁG. ANTERIOR</Text>
+              </Pressable>
+            ) : null}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={colado ? 'Devolver o espaço acima' : 'Tirar o espaço acima'}

@@ -299,10 +299,10 @@ export function sermaoDosParagrafos(
   if (lista[0] && (lista[0].tipo === 'titulo' || lista[0].centro)) {
     titulo = semChaves(lista[0].texto);
     i = 1;
-    if (lista[1]?.centro && !lista[1].cor && !lista[1].fundo) {
-      culto = semChaves(lista[1].texto);
-      i = 2;
-    }
+    // Tema quebrado em duas linhas com Enter, no mesmo fundo e centralizado: continua o tema
+    while (lista[i]?.centro && lista[i].fundo && lista[i].fundo === lista[0].fundo && !lista[i].quebra)
+      titulo = `${titulo} ${semChaves(lista[i++].texto)}`.replace(/\s+/g, ' ').trim();
+    if (lista[i]?.centro && !lista[i].cor && !lista[i].fundo) culto = semChaves(lista[i++].texto);
   }
 
   // Pontos em preto numa lista logo abaixo de uma frase, pergunta ou aplicação
