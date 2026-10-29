@@ -9,7 +9,9 @@ import {
   abreNovaPagina,
   partesDoTema,
   marcas,
+  tituloDaPagina,
 } from '../estilo';
+import { docxDoHtml } from './word';
 import { criarPasta } from '../store/nuvem';
 import type { BlocoInicial } from '../data/modelos';
 import type { Bloco, Sermao } from '../store/sermoes';
@@ -146,6 +148,7 @@ function blocoParaDocs(b: Bloco, quebra: boolean): string {
 
 // Linha em branco entre as caixas: a leitura do Docs pula parágrafos vazios
 const ESPACO = '<p style="font-family:Arial"><br></p>';
+export const FUNDO_TITULO = '#00FF01';
 
 export function htmlParaDocs(s: Sermao) {
   const cabecalho = [
@@ -159,13 +162,20 @@ export function htmlParaDocs(s: Sermao) {
   ];
   // Cada tópico abre uma página nova, e entre as caixas fica uma linha em branco (menos nas marcadas com
   // SEM ESPAÇO), como o Jildean pediu
+  // A página que abre com título no app (SAUDAÇÃO, TEXTO, INTRODUÇÃO, CONCLUSÃO) abre com ele no Docs também,
+  // no verde #00FF01 (igual ao do tópico à vista), que a leitura do Docs reconhece e não traz como caixa
   const blocos = s.blocos
     .map((b, i) => ({
       b,
       quebra: !!b.novaPagina || (i > 0 && (abreNovaPagina(s.blocos, i) || b.tipo === 'topico')),
+      titulo: tituloDaPagina(s.blocos, i),
     }))
     .filter(({ b }) => b.texto.trim())
-    .map(({ b, quebra }, i) => (i && !quebra && !b.colado ? ESPACO : '') + blocoParaDocs(b, quebra));
+    .map(({ b, quebra, titulo }, i) =>
+      titulo
+        ? paragrafo(comChaves(titulo), { quebra: i > 0, fundo: FUNDO_TITULO }) + ESPACO + blocoParaDocs(b, false)
+        : (i && !quebra && !b.colado ? ESPACO : '') + blocoParaDocs(b, quebra),
+    );
   return `<!doctype html><html><head><meta charset="utf-8"></head><body style="font-family:Arial;font-size:12pt">${[
     ...cabecalho,
     ...blocos,
@@ -176,11 +186,17 @@ type Resposta = { id: string; modifiedTime: string };
 
 // Cria o Google Docs do sermão (ou reescreve o que já existe) e devolve o id e a hora da gravação
 export async function gravarNoDocs(t: string, s: Sermao): Promise<Resposta> {
-  const html = new Blob([htmlParaDocs(s)], { type: 'text/html' });
+  // Vai como .docx: do HTML o Google Docs tira as quebras de página
+  const arquivo = new Blob([docxDoHtml(htmlParaDocs(s)) as BlobPart], { type: DOCX });
   const campos = 'fields=id,modifiedTime';
   if (s.docId) {
     try {
-      const r = await drive(`/files/${s.docId}?uploadType=media&${campos}`, t, { method: 'PATCH', body: html }, UPLOAD);
+      const r = await drive(
+        `/files/${s.docId}?uploadType=media&${campos}`,
+        t,
+        { method: 'PATCH', body: arquivo },
+        UPLOAD,
+      );
       return (await r.json()) as Resposta;
     } catch {
       // O Docs foi apagado no Drive: cria outro
@@ -194,7 +210,7 @@ export async function gravarNoDocs(t: string, s: Sermao): Promise<Resposta> {
   };
   const corpo = new FormData();
   corpo.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
-  corpo.append('file', html);
+  corpo.append('file', arquivo);
   const r = await drive(`/files?uploadType=multipart&${campos}`, t, { method: 'POST', body: corpo }, UPLOAD);
   return (await r.json()) as Resposta;
 }
