@@ -1,6 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Fragment, useRef, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { ChipsInserir } from '../../components/ChipsInserir';
 import { TextoFormatado } from '../../components/TextoFormatado';
 import { BarraAbas } from '../../components/BarraAbas';
 import { CampoCrescente } from '../../components/CampoCrescente';
@@ -22,18 +23,6 @@ import { exportarPdf } from '../../lib/pdf';
 import { textoDaBiblioteca } from '../../ia/estudo';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
 import { cores, fonteEsboco, larguraConteudo } from '../../theme';
-
-// Blocos sempre à vista para adicionar, na ordem do JILDEAN
-const tiposParaAdicionar: TipoBloco[] = [
-  'topico',
-  'quadro',
-  'efeito',
-  'versiculo',
-  'quadroPerguntas',
-  'aplicacao',
-  'subtopico',
-  'citacao',
-];
 
 export default function EditorTela() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -254,37 +243,6 @@ export default function EditorTela() {
       </ScrollView>
       <BarraAbas />
     </>
-  );
-}
-
-// Os tipos de bloco para inserir, com a cor de cada um: no fim do sermão e no "Inserir" de cada bloco
-function ChipsInserir({ onEscolher }: { onEscolher: (tipo: TipoBloco) => void }) {
-  return (
-    <View style={estilos.linha}>
-      {tiposParaAdicionar.map((tipo) => {
-        const e = estiloBloco[tipo];
-        return (
-          <Pressable
-            key={tipo}
-            accessibilityRole="button"
-            accessibilityLabel={`Adicionar ${nomesBloco[tipo]}`}
-            onPress={() => onEscolher(tipo)}
-            style={[estilos.chipBloco, e.fundo ? { backgroundColor: e.fundo, borderColor: e.fundo } : null]}
-          >
-            <Text
-              style={[
-                estilos.textoChip,
-                { color: e.topo?.cor ?? e.cor, fontStyle: e.topo?.italico || e.italico ? 'italic' : 'normal' },
-                // Texto (subtópico e pontos) em caixa alta e azul, como o Jildean pediu
-                tipo === 'quadro' && { color: coresPregacao.frase, fontWeight: '800' },
-              ]}
-            >
-              + {tipo === 'quadro' ? nomesBloco[tipo].toUpperCase() : nomesBloco[tipo]}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
   );
 }
 
@@ -645,16 +603,6 @@ const estilos = StyleSheet.create({
   inserir: { gap: 8, marginTop: 4 },
   acoesSermao: { flexDirection: 'row', gap: 8 },
   acaoSermao: { flex: 1 },
-  chipBloco: {
-    minHeight: 44,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: cores.borda,
-    backgroundColor: cores.cartao,
-    justifyContent: 'center',
-  },
-  textoChip: { fontSize: 15, fontWeight: '600' },
   cabecalhoBloco: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   // Corpo sem molduras: o subtópico em negrito e os pontos recuados embaixo
   quadro: { gap: 0 },
