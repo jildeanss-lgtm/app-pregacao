@@ -141,13 +141,18 @@ export default function PulpitoTela() {
   const escala = Math.min(1, (largura - 16) / larguraA4);
   const [alturaFolha, setAlturaFolha] = useState(0);
   const [segundos, setSegundos] = useState(0);
+  // Hora do relógio, ao lado de Encerrar
+  const [agora, setAgora] = useState(() => new Date());
   const [terminando, setTerminando] = useState(false);
   const [local, setLocal] = useState('');
   const rolagem = useRef<ScrollViewInstance>(null);
   const auto = useRolagemAutomatica(rolagem, escala);
 
   useEffect(() => {
-    const t = setInterval(() => setSegundos((s) => s + 1), 1000);
+    const t = setInterval(() => {
+      setSegundos((s) => s + 1);
+      setAgora(new Date());
+    }, 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -170,16 +175,26 @@ export default function PulpitoTela() {
     <SafeAreaView style={estilos.tela}>
       <StatusBar style="dark" />
       <View style={estilos.topo}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={estilos.sair}>
-          <Text style={estilos.suave}>Sair</Text>
-        </Pressable>
-        <Text style={estilos.relogio} accessibilityLabel={`Tempo ${relogio(segundos)}`}>
-          {relogio(segundos)}
-        </Text>
-        <Text style={estilos.suave}>de {total} min</Text>
-        <Pressable accessibilityRole="button" onPress={() => setTerminando(true)} style={estilos.sair}>
-          <Text style={[estilos.suave, { color: cores.destaque, fontWeight: '700' }]}>Encerrar</Text>
-        </Pressable>
+        <View style={estilos.lado}>
+          <Pressable accessibilityRole="button" onPress={() => router.back()} style={estilos.sair}>
+            <Text style={estilos.suave}>Sair</Text>
+          </Pressable>
+        </View>
+        {/* Tempo de pregação grande no meio, para ver de longe */}
+        <View style={estilos.centro}>
+          <Text style={estilos.relogio} accessibilityLabel={`Tempo ${relogio(segundos)}`}>
+            {relogio(segundos)}
+          </Text>
+          <Text style={estilos.pequeno}>de {total} min</Text>
+        </View>
+        <View style={[estilos.lado, estilos.ladoDireito]}>
+          <Text style={estilos.hora} accessibilityLabel="Hora atual">
+            {agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+          </Text>
+          <Pressable accessibilityRole="button" onPress={() => setTerminando(true)} style={estilos.sair}>
+            <Text style={[estilos.suave, { color: cores.destaque, fontWeight: '700' }]}>Encerrar</Text>
+          </Pressable>
+        </View>
       </View>
       <View style={estilos.barra}>
         <View style={[estilos.barraCheia, { width: `${progresso * 100}%` }]} />
@@ -305,8 +320,13 @@ const estilos = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 8,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
   },
+  lado: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  ladoDireito: { justifyContent: 'flex-end', gap: 8 },
+  centro: { alignItems: 'center' },
+  hora: { fontSize: 13, color: cores.textoSuave },
+  pequeno: { fontSize: 12, color: cores.textoSuave },
   // Mesa cinza do Google Docs com a folha A4 (210 mm = 794 px) no meio
   mesa: { flex: 1, backgroundColor: '#F1F3F4', marginTop: 12 },
   mesaConteudo: { paddingVertical: 8, paddingHorizontal: 8, alignItems: 'center' },
@@ -349,7 +369,7 @@ const estilos = StyleSheet.create({
   textoControle: { fontSize: 20, fontWeight: '700', color: cores.texto },
   velocidade: { fontSize: 12, color: cores.textoSuave, paddingRight: 6 },
   sair: { minHeight: 44, justifyContent: 'center' },
-  relogio: { fontSize: 28, fontWeight: '700', color: cores.texto },
+  relogio: { fontSize: 44, fontWeight: '700', color: cores.texto, fontVariant: ['tabular-nums'], lineHeight: 50 },
   suave: { fontSize: 15, color: cores.textoSuave },
   barra: { height: 4, backgroundColor: cores.borda, borderRadius: 2, marginTop: 12, marginHorizontal: 24 },
   barraCheia: { height: 4, backgroundColor: cores.destaque, borderRadius: 2 },
