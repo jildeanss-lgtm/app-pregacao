@@ -39,7 +39,10 @@ function escolhasDoSermao(s: Sermao) {
   return {
     tipoObjetivo: obj?.rotulo?.startsWith(ROTULO_OBJETIVO) ? obj.rotulo.slice(ROTULO_OBJETIVO.length) : '',
     objetivo: obj?.texto.startsWith(INICIO_OBJETIVO) ? obj.texto.slice(INICIO_OBJETIVO.length) : (obj?.texto ?? ''),
-    introducao: opcoesIntroducao.find((o) => intro?.rotulo === `${ROTULO_INTRODUCAO}${o.nome}`)?.id,
+    // Sermões novos guardam a opção pela dica da caixa; os antigos, pelo nome dela
+    introducao: opcoesIntroducao.find(
+      (o) => intro?.rotulo === `${ROTULO_INTRODUCAO}${o.nome}` || intro?.dica === o.dica,
+    )?.id,
     saudacao: s.saudacao ?? (temSaudacao ? ATUAL : ''),
   };
 }
@@ -84,7 +87,13 @@ export default function NovoSermaoTela() {
         );
       if (introducao !== inicio.introducao)
         blocos = blocos.map((b) =>
-          b.tipo === 'introducao' ? { ...b, rotulo: `${ROTULO_INTRODUCAO}${intro.nome}`, dica: intro.dica } : b,
+          b.tipo === 'introducao'
+            ? {
+                ...b,
+                rotulo: b.rotulo?.startsWith(ROTULO_INTRODUCAO) ? `${ROTULO_INTRODUCAO}${intro.nome}` : b.rotulo,
+                dica: intro.dica,
+              }
+            : b,
         );
       if (novaSaudacao !== null) blocos = trocarSaudacao(blocos, novaSaudacao, textoBase);
       return {

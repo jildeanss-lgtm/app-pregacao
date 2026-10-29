@@ -86,11 +86,34 @@ export default function EditorTela() {
     setNovaPaginaEm(undefined);
     adicionarBloco(sermao.id, tipo, '', depoisDe === 'cabecalho' ? null : depoisDe, true);
   };
+  // A página de cima de um espaço cinza: do bloco que abriu a página até antes do que abre a próxima.
+  // A capa (antes do primeiro bloco que abre página) não pode ser excluída
+  const paginaQueTermina = (ultimoId: string) => {
+    const k = sermao.blocos.findIndex((b) => b.id === ultimoId);
+    if (k < 0) return undefined;
+    let inicio = k;
+    while (inicio >= 0 && !abreNovaPagina(sermao.blocos, inicio)) inicio--;
+    if (inicio < 0) return undefined;
+    let fim = k + 1;
+    while (fim < sermao.blocos.length && !abreNovaPagina(sermao.blocos, fim)) fim++;
+    return { inicio, fim };
+  };
+  const excluirPagina = (ultimoId: string) => {
+    const pagina = paginaQueTermina(ultimoId);
+    if (!pagina) return;
+    guardarPasso();
+    setNovaPaginaEm(undefined);
+    atualizar(sermao.id, (s) => ({
+      ...s,
+      blocos: s.blocos.filter((_, i) => i < pagina.inicio || i >= pagina.fim),
+    }));
+  };
   const botaoNovaPagina = (depoisDe: string) => (
     <NovaPagina
       aberto={novaPaginaEm === depoisDe}
       onAbrir={() => setNovaPaginaEm((v) => (v === depoisDe ? undefined : depoisDe))}
       onEscolher={(tipo) => criarPagina(tipo, depoisDe)}
+      onExcluir={paginaQueTermina(depoisDe) ? () => excluirPagina(depoisDe) : undefined}
     />
   );
 
@@ -663,6 +686,8 @@ function paginas(
 
 const estilos = StyleSheet.create({
   novaPagina: { alignItems: 'center', gap: 8, alignSelf: 'stretch', paddingVertical: 4 },
+  linhaNovaPagina: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  botaoExcluir: { borderColor: '#E3A8A3' },
   botaoNovaPagina: {
     paddingHorizontal: 14,
     paddingVertical: 5,
@@ -828,22 +853,65 @@ function NovaPagina({
   aberto,
   onAbrir,
   onEscolher,
+  onExcluir,
 }: {
   aberto: boolean;
   onAbrir: () => void;
   onEscolher: (tipo: TipoBloco) => void;
+  // Exclui a página de cima (o Desfazer traz de volta)
+  onExcluir?: () => void;
 }) {
+  const [confirmando, setConfirmando] = useState(false);
   return (
     <View style={estilos.novaPagina}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Nova página"
-        accessibilityState={{ expanded: aberto }}
-        onPress={onAbrir}
-        style={({ pressed }) => [estilos.botaoNovaPagina, pressed && { opacity: 0.6 }]}
-      >
-        <Text style={estilos.textoNovaPagina}>{aberto ? '× Fechar' : '+ Nova página'}</Text>
-      </Pressable>
+      <View style={estilos.linhaNovaPagina}>
+        {onExcluir ? (
+          confirmando ? (
+            <>
+              <Text style={estilos.textoNovaPagina}>Excluir a página de cima?</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Confirmar excluir página"
+                onPress={() => {
+                  setConfirmando(false);
+                  onExcluir();
+                }}
+                style={[estilos.botaoNovaPagina, estilos.botaoExcluir]}
+              >
+                <Text style={[estilos.textoNovaPagina, { color: '#B3261E' }]}>Excluir</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cancelar"
+                onPress={() => setConfirmando(false)}
+                style={estilos.botaoNovaPagina}
+              >
+                <Text style={estilos.textoNovaPagina}>Cancelar</Text>
+              </Pressable>
+            </>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Excluir página"
+              onPress={() => setConfirmando(true)}
+              style={({ pressed }) => [estilos.botaoNovaPagina, pressed && { opacity: 0.6 }]}
+            >
+              <Text style={estilos.textoNovaPagina}>− Excluir página</Text>
+            </Pressable>
+          )
+        ) : null}
+        {!confirmando ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Nova página"
+            accessibilityState={{ expanded: aberto }}
+            onPress={onAbrir}
+            style={({ pressed }) => [estilos.botaoNovaPagina, pressed && { opacity: 0.6 }]}
+          >
+            <Text style={estilos.textoNovaPagina}>{aberto ? '× Fechar' : '+ Nova página'}</Text>
+          </Pressable>
+        ) : null}
+      </View>
       {aberto ? (
         <View style={estilos.menuNovaPagina}>
           <Text style={estilos.meta}>A nova página começa com:</Text>

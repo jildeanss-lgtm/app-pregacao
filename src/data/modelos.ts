@@ -305,6 +305,9 @@ function topico(n: number, modelo: Modelo): BlocoInicial[] {
 
 // Monta o esqueleto do sermão a partir do modelo de pregação do Jildean: objetivo no cabeçalho, saudação,
 // texto referência, introdução, três tópicos e conclusão
+// Nome do botão + TEXTO, usado nas caixas da introdução e da conclusão
+export const ROTULO_TEXTO = 'Texto';
+
 export function montarBlocos(o: OpcoesNovoSermao): BlocoInicial[] {
   const intro = opcoesIntroducao.find((i) => i.id === o.introducao)!;
   const comTexto = (b: BlocoInicial) => ({ ...b, texto: b.texto?.split(MARCA_TEXTO).join(o.textoBase || '...') });
@@ -322,12 +325,14 @@ export function montarBlocos(o: OpcoesNovoSermao): BlocoInicial[] {
       dica: o.textoBase ? `${o.textoBase} - cole ou escreva o texto` : undefined,
     },
     ...(o.saudacao?.depois ?? []).map(comTexto),
-    { tipo: 'introducao', rotulo: `Introdução: ${intro.nome}`, dica: intro.dica },
+    // No corpo só entram caixas com os nomes dos botões do fim do editor (JILDEAN, 29/10/2026). Introdução e
+    // conclusão continuam abrindo as suas páginas, mas a caixa aparece como TEXTO
+    { tipo: 'introducao', rotulo: ROTULO_TEXTO, dica: intro.dica },
     ...[1, 2, 3].flatMap((n) => topico(n, o.modelo)),
-    { tipo: 'conclusao' },
+    { tipo: 'conclusao', rotulo: ROTULO_TEXTO },
     { tipo: 'efeito' },
     { tipo: 'aplicacao' },
-    { tipo: 'apelo', rotulo: 'Chamado e convite' },
-    { tipo: 'pergunta', rotulo: 'Reflexão' },
+    { tipo: 'quadro', dica: 'Chamado e convite' },
+    { tipo: 'quadroPerguntas', dica: 'Reflexão' },
   ];
 }
