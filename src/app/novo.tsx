@@ -175,7 +175,9 @@ export default function NovoSermaoTela() {
       if (
         semObjetivo ||
         tipoObjetivo !== (inicio.tipoObjetivo || 'Pregação') ||
-        JSON.stringify(capaCom(versosCapa)) !== JSON.stringify(s.capa ?? {})
+        JSON.stringify(capaCom(versosCapa)) !== JSON.stringify(s.capa ?? {}) ||
+        // Capa que voltou do Google Docs sem a marca de capa: refaz e tira as caixas soltas
+        !blocos.some((b) => b.capa)
       )
         blocos = trocarCapa(blocos, tipoObjetivo, capaCom(versosCapa));
       if (introducao !== inicio.introducao)
