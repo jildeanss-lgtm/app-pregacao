@@ -25,6 +25,8 @@ export type Bloco = {
   dica?: string;
   // Criado pelo + entre as folhas: começa numa página nova
   novaPagina?: boolean;
+  // Levada para a página de cima (PÁG. ANTERIOR): não abre a página nova que o padrão do sermão abriria
+  mesmaPagina?: boolean;
   // Sem o espaço que separa esta caixa da de cima
   colado?: boolean;
   // Caixa da capa do tipo de sermão (ver camposCapa)

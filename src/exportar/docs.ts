@@ -169,13 +169,15 @@ export function htmlParaDocs(s: Sermao) {
   const blocos = s.blocos
     .map((b, i) => ({
       b,
-      quebra: !!b.novaPagina || (i > 0 && (abreNovaPagina(s.blocos, i) || b.tipo === 'topico')),
+      quebra: !!b.novaPagina || (i > 0 && (abreNovaPagina(s.blocos, i) || (b.tipo === 'topico' && !b.mesmaPagina))),
       titulo: tituloDaPagina(s.blocos, i),
     }))
     .filter(({ b }) => b.texto.trim())
     .map(({ b, quebra, titulo }, i) =>
       titulo
-        ? paragrafo(comChaves(titulo), { quebra: i > 0, fundo: FUNDO_TITULO }) + ESPACO + blocoParaDocs(b, false)
+        ? paragrafo(comChaves(titulo), { quebra: quebra && i > 0, fundo: FUNDO_TITULO }) +
+          ESPACO +
+          blocoParaDocs(b, false)
         : (i && !quebra && !b.colado ? ESPACO : '') + blocoParaDocs(b, quebra),
     );
   return `<!doctype html><html><head><meta charset="utf-8"></head><body style="font-family:Arial;font-size:12pt">${[

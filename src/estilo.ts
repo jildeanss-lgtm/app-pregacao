@@ -133,7 +133,7 @@ const semCorPropria = new Set<TipoBloco>([
 // 1ª capa com os dados do sermão (tema, texto e objetivo); 2ª saudação, qual texto e agradecimentos;
 // 3ª leitura do texto referência; 4ª introdução; depois cada Tópico e a Conclusão numa página nova
 export const rotulosTextoReferencia = ['Texto referência', 'Texto'];
-type BlocoDaPagina = { tipo: TipoBloco; rotulo?: string; novaPagina?: boolean; capa?: string };
+type BlocoDaPagina = { tipo: TipoBloco; rotulo?: string; novaPagina?: boolean; mesmaPagina?: boolean; capa?: string };
 // Página nova pelo padrão do sermão (sem contar as criadas pelo + entre as folhas)
 function quebraPadrao(blocos: BlocoDaPagina[], i: number) {
   const b = blocos[i];
@@ -143,14 +143,14 @@ function quebraPadrao(blocos: BlocoDaPagina[], i: number) {
   return i === blocos.findIndex((x) => x.tipo !== 'objetivo' && !x.capa);
 }
 export function abreNovaPagina(blocos: BlocoDaPagina[], i: number) {
-  return !!blocos[i].novaPagina || quebraPadrao(blocos, i);
+  return !!blocos[i].novaPagina || (!blocos[i].mesmaPagina && quebraPadrao(blocos, i));
 }
 
 // Cada página abre com o seu título em fundo verde, como os tópicos (letra um pouco maior que o resto)
 export const escalaTopico = 1.4;
 export function tituloDaPagina(blocos: BlocoDaPagina[], i: number) {
   const b = blocos[i];
-  if (b.tipo === 'topico' || !quebraPadrao(blocos, i)) return undefined;
+  if (b.tipo === 'topico' || b.mesmaPagina || !quebraPadrao(blocos, i)) return undefined;
   if (b.tipo === 'introducao') return '*INTRODUÇÃO*';
   if (b.tipo === 'conclusao') return '*CONCLUSÃO*';
   if (b.tipo === 'versiculo') return '*TEXTO*';
