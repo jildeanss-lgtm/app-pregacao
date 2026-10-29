@@ -10,7 +10,7 @@ import {
   type OpcaoIntroducao,
   type TipoBloco,
 } from '../data/modelos';
-import { rotulosTextoReferencia } from '../estilo';
+import { rotulosTextoReferencia, tituloDaPagina } from '../estilo';
 import type { EtapaEstudo } from '../data/etapas';
 import type { Genero } from '../data/roteiro';
 import { pedirToken, tokenAtual } from '../ia/drive';
@@ -353,7 +353,54 @@ export function trocarSaudacao(blocos: Bloco[], nova: BlocosSaudacao | undefined
 
 // Sermões criados antes de 29/10/2026: títulos da capa passam ao fundo verde do tópico, e o texto de referência
 // já escrito à mão deixa de vir repetido com o texto da Bíblia
-function migrarCapa(s: Sermao): Sermao {
+// Capa que voltou do Google Docs sem a marca de capa (JILDEAN, 29/10/2026): o título ganha a marca de novo,
+// a lista de OBJETIVOS DA LIÇÃO volta a ser o quadro do objetivo e o título de página escrito à mão como
+// tópico (SAUDAÇÃO...) sai, porque o app já põe o título sozinho
+function repararCapa(s: Sermao): Sermao {
+  if (!s.blocos?.length || !s.tipoSermao) return s;
+  let mudou = false;
+  const listaObjetivo = new Set<number>();
+  const blocos = s.blocos.map((b, i): Bloco => {
+    // A lista de objetivos vira o quadro do objetivo, colado no título
+    if (listaObjetivo.has(i))
+      return {
+        id: b.id,
+        tipo: 'objetivo',
+        rotulo: `Objetivo do sermão: ${s.tipoSermao}`,
+        texto: `\n${b.texto.replace(/\[[^\]]*\]/g, '').trim()}`,
+        colado: true,
+      };
+    if (b.capa || !['topico', 'subtopico', 'subtopicoVerde'].includes(b.tipo)) return b;
+    const id = titulosCapa[textoPuro(b.texto)];
+    const abaixo = s.blocos[i + 1];
+    const titulo = { ...b, tipo: 'subtopicoVerde' as const, texto: `*${textoPuro(b.texto)}*`, capa: id };
+    if (id && id !== 'objetivos' && abaixo?.capa === id) {
+      mudou = true;
+      return titulo;
+    }
+    if (id === 'objetivos' && s.tipoSermao === 'Aula EBD' && !s.blocos.some((x) => x.tipo === 'objetivo')) {
+      mudou = true;
+      if (abaixo?.tipo.startsWith('pontos')) listaObjetivo.add(i + 1);
+      return titulo;
+    }
+    return b;
+  });
+  const semTitulo = blocos.filter((b, i) => {
+    if (
+      b.tipo !== 'topico' ||
+      b.novaPagina ||
+      !['SAUDAÇÃO', 'INTRODUÇÃO', 'CONCLUSÃO', 'TEXTO'].includes(textoPuro(b.texto))
+    )
+      return true;
+    const sem = blocos.filter((_, k) => k !== i);
+    return textoPuro(tituloDaPagina(sem, i) ?? '') !== textoPuro(b.texto);
+  });
+  if (semTitulo.length !== blocos.length) mudou = true;
+  return mudou ? { ...s, blocos: semTitulo } : s;
+}
+
+export function migrarCapa(s: Sermao): Sermao {
+  s = repararCapa(s);
   const base = s.textoBase?.trim() ?? '';
   const repetido = (t: string) => base.includes(' - ') && t.startsWith(`${base} - `);
   // Objetivos da Aula EBD: a frase "Os OBJETIVOS desta LIÇÃO são:" vira o subtópico verde OBJETIVOS DA LIÇÃO
