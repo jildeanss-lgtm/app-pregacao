@@ -461,16 +461,23 @@ export default function NovoSermaoTela() {
 
         <Cartao style={{ gap: 8 }}>
           <Rotulo>Saudação</Rotulo>
-          {saudacoes.map((o) => (
-            <Escolha
-              key={o.id}
-              ativo={saudacao === o.id}
-              titulo={o.nome}
-              descricao={o.resumo}
-              onPress={() => setSaudacao(o.id)}
-              onEditar={() => router.push(`/saudacao/${o.id}`)}
-            />
-          ))}
+          {/* A saudação do tipo de sermão escolhido vem primeiro (a da EBD na Aula EBD); as dos outros tipos, no fim */}
+          {[...saudacoes]
+            .sort(
+              (a, b) =>
+                Number(b.tipo === tipoObjetivo) - Number(a.tipo === tipoObjetivo) ||
+                Number(!!a.tipo) - Number(!!b.tipo),
+            )
+            .map((o) => (
+              <Escolha
+                key={o.id}
+                ativo={saudacao === o.id}
+                titulo={o.nome}
+                descricao={o.resumo}
+                onPress={() => setSaudacao(o.id)}
+                onEditar={() => router.push(`/saudacao/${o.id}`)}
+              />
+            ))}
           <Escolha ativo={!saudacao} titulo="Sem saudação" onPress={() => setSaudacao('')} />
           {inicio?.saudacao === ATUAL ? (
             <Escolha

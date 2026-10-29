@@ -188,6 +188,8 @@ export type Saudacao = {
   resumo: string;
   antes: (textoBase: string) => BlocoInicial[];
   depois: BlocoInicial[];
+  // Tipo de sermão em que ela vem primeiro na lista (ex.: Aula EBD)
+  tipo?: string;
 };
 
 const depoisPadrao: BlocoInicial[] = [
@@ -236,6 +238,34 @@ export const saudacaoOriginal = (id: string): BlocosSaudacao | undefined => {
 };
 
 export const saudacoes: Saudacao[] = [
+  // Abertura da aula da EBD, escrita pelo JILDEAN (29/10/2026)
+  {
+    id: 'ebd',
+    nome: 'Abertura da aula (EBD)',
+    resumo: 'Paz do Senhor, bom dia, agradecimentos, abra a Bíblia e a revista',
+    tipo: 'Aula EBD',
+    antes: () => [
+      { tipo: 'frase', texto: 'IRMÃOS, A PAZ do SENHOR!' },
+      {
+        tipo: 'palavra',
+        rotulo: '',
+        texto: 'BOM DIA a cada um! É uma ALEGRIA estar aqui na CASA DE DEUS mais um DOMINGO para ESTUDAR a PALAVRA.',
+      },
+      { tipo: 'frase', texto: 'QUERO AGRADECER:' },
+      {
+        tipo: 'pontos',
+        texto: [
+          'DEUS pelo PRIVILÉGIO de estarmos aqui',
+          'SUPERINTENDENTE da EBD pela OPORTUNIDADE',
+          'PASTOR MOACIR: CONFIANÇA',
+        ].join('\n'),
+        colado: true,
+      },
+      { tipo: 'frase', texto: 'ABRA sua BÍBLIA e a sua REVISTA na LIÇÃO 5' },
+      { tipo: 'frase', texto: 'DIGA ao IRMÃO do lado: “HOJE DEUS tem uma PALAVRA para MIM!”' },
+    ],
+    depois: [],
+  },
   {
     id: 'louvado',
     nome: 'Louvado seja o nome de Jesus',
