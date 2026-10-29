@@ -196,15 +196,6 @@ export default function EditorTela() {
                         style={[estilos.entradaMeta, { flex: 1, textAlign: 'right' }]}
                       />
                     </View>
-                    {/* Atalho discreto para pregar, logo abaixo da data */}
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Pregar"
-                      onPress={() => router.push(`/pregar/${sermao.id}`)}
-                      style={({ pressed }) => [estilos.pregarTopo, pressed && { opacity: 0.6 }]}
-                    >
-                      <Text style={estilos.textoPregarTopo}>▶ Pregar</Text>
-                    </Pressable>
                     <TextInput
                       accessibilityLabel="Título do sermão"
                       value={sermao.titulo}
@@ -213,14 +204,25 @@ export default function EditorTela() {
                       placeholderTextColor="#B0B5BD"
                       style={estilos.entradaTitulo}
                     />
-                    <TextInput
-                      accessibilityLabel="Texto referência"
-                      value={sermao.textoBase}
-                      onChangeText={(textoBase) => atualizar(sermao.id, (s) => ({ ...s, textoBase }))}
-                      placeholder="Texto referência (ex.: João 3:16)"
-                      placeholderTextColor={cores.textoSuave}
-                      style={estilos.entradaBase}
-                    />
+                    {/* Texto referência e, no fim da mesma linha, o atalho para pregar */}
+                    <View style={estilos.linhaBase}>
+                      <TextInput
+                        accessibilityLabel="Texto referência"
+                        value={sermao.textoBase}
+                        onChangeText={(textoBase) => atualizar(sermao.id, (s) => ({ ...s, textoBase }))}
+                        placeholder="Texto referência (ex.: João 3:16)"
+                        placeholderTextColor={cores.textoSuave}
+                        style={[estilos.entradaBase, { flex: 1 }]}
+                      />
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Pregar"
+                        onPress={() => router.push(`/pregar/${sermao.id}`)}
+                        style={({ pressed }) => [estilos.pregarTopo, pressed && { opacity: 0.7 }]}
+                      >
+                        <Text style={estilos.textoPregarTopo}>▶ Pregar</Text>
+                      </Pressable>
+                    </View>
                     <View style={estilos.separador} />
                   </>
                 ),
@@ -688,16 +690,9 @@ const estilos = StyleSheet.create({
   },
   linhaMeta: { flexDirection: 'row', gap: 12 },
   avisoSalvo: { fontSize: 14, fontWeight: '600', color: '#38761D', textAlign: 'center' },
-  pregarTopo: {
-    alignSelf: 'flex-end',
-    marginTop: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: cores.borda,
-  },
-  textoPregarTopo: { fontSize: 12, color: cores.textoSuave, fontWeight: '600' },
+  linhaBase: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pregarTopo: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 14, backgroundColor: '#202124' },
+  textoPregarTopo: { fontSize: 13, color: '#FFFFFF', fontWeight: '700' },
   entradaMeta: {
     fontSize: 13,
     color: cores.textoSuave,

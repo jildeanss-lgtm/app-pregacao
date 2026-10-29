@@ -185,13 +185,13 @@ export default function PulpitoTela() {
           <Text style={estilos.relogio} accessibilityLabel={`Tempo ${relogio(segundos)}`}>
             {relogio(segundos)}
           </Text>
-          {/* Hora atual logo abaixo do cronômetro e, menor, o tempo previsto do sermão */}
-          <Text style={estilos.hora} accessibilityLabel="Hora atual">
-            {agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-          </Text>
           <Text style={estilos.pequeno}>previsto: {total} min</Text>
         </View>
         <View style={[estilos.lado, estilos.ladoDireito]}>
+          {/* Hora atual entre o cronômetro e Encerrar */}
+          <Text style={estilos.hora} accessibilityLabel="Hora atual">
+            {agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+          </Text>
           <Pressable accessibilityRole="button" onPress={() => setTerminando(true)} style={estilos.sair}>
             <Text style={[estilos.suave, { color: cores.destaque, fontWeight: '700' }]}>Encerrar</Text>
           </Pressable>
@@ -324,9 +324,16 @@ const estilos = StyleSheet.create({
     paddingHorizontal: 16,
   },
   lado: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  ladoDireito: { justifyContent: 'flex-end' },
+  ladoDireito: { justifyContent: 'space-between', paddingLeft: 8 },
   centro: { alignItems: 'center' },
-  hora: { fontSize: 20, fontWeight: '600', color: cores.texto, fontVariant: ['tabular-nums'] },
+  hora: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: '600',
+    color: cores.texto,
+    fontVariant: ['tabular-nums'],
+  },
   pequeno: { fontSize: 12, color: cores.textoSuave },
   // Mesa cinza do Google Docs com a folha A4 (210 mm = 794 px) no meio
   mesa: { flex: 1, backgroundColor: '#F1F3F4', marginTop: 12 },
@@ -370,7 +377,7 @@ const estilos = StyleSheet.create({
   textoControle: { fontSize: 20, fontWeight: '700', color: cores.texto },
   velocidade: { fontSize: 12, color: cores.textoSuave, paddingRight: 6 },
   sair: { minHeight: 44, justifyContent: 'center' },
-  relogio: { fontSize: 44, fontWeight: '700', color: cores.texto, fontVariant: ['tabular-nums'], lineHeight: 50 },
+  relogio: { fontSize: 36, fontWeight: '700', color: cores.texto, fontVariant: ['tabular-nums'], lineHeight: 42 },
   suave: { fontSize: 15, color: cores.textoSuave },
   barra: { height: 4, backgroundColor: cores.borda, borderRadius: 2, marginTop: 12, marginHorizontal: 24 },
   barraCheia: { height: 4, backgroundColor: cores.destaque, borderRadius: 2 },
