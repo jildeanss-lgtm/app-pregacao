@@ -60,7 +60,17 @@ export default function NovoSermaoTela() {
   // O texto estudado nas abas Bíblia e Estudo já vem preenchido
   const [textoBase, setTextoBase] = useState(original?.textoBase ?? estudo.textoBase);
   const [modelo, setModelo] = useState<Modelo>(original?.modelo ?? 'expositivo');
+  // Três objetivos, um por linha (como no quadro do Objetivo no sermão)
   const [objetivo, setObjetivo] = useState(inicio?.objetivo ?? '');
+  const linhasObjetivo = objetivo.split('\n');
+  const camposObjetivo = Array.from({ length: Math.max(3, linhasObjetivo.length) }, (_, i) => linhasObjetivo[i] ?? '');
+  const mudarObjetivo = (i: number, t: string) =>
+    setObjetivo(camposObjetivo.map((l, j) => (j === i ? t.replace(/\n/g, ' ') : l)).join('\n'));
+  // Sem as linhas deixadas em branco
+  const objetivos = linhasObjetivo
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .join('\n');
   const [tipoObjetivo, setTipoObjetivo] = useState(inicio?.tipoObjetivo || 'Pregação');
   const [introducao, setIntroducao] = useState<OpcaoIntroducao>(inicio?.introducao ?? 'citacoes');
   const [generoEscolhido, setGenero] = useState<Genero | undefined>(original?.genero);
@@ -81,7 +91,7 @@ export default function NovoSermaoTela() {
             ? {
                 ...b,
                 rotulo: `${ROTULO_OBJETIVO}${tipoObjetivo}`,
-                texto: objetivo.trim() ? `${INICIO_OBJETIVO}${objetivo.trim()}` : '',
+                texto: objetivos ? `${INICIO_OBJETIVO}${objetivos}` : '',
               }
             : b,
         );
@@ -145,7 +155,15 @@ export default function NovoSermaoTela() {
             resumo: estudo.resumo,
           }
         : {}),
-      blocos: montarBlocos({ modelo, textoBase, objetivo, tipoObjetivo, versos, introducao, saudacao: blocosSaudacao }),
+      blocos: montarBlocos({
+        modelo,
+        textoBase,
+        objetivo: objetivos,
+        tipoObjetivo,
+        versos,
+        introducao,
+        saudacao: blocosSaudacao,
+      }),
     });
     router.replace(`/sermao/${s.id}`);
     if (!chave || !textoBase.trim()) return;
@@ -269,15 +287,24 @@ export default function NovoSermaoTela() {
               </Pressable>
             ))}
           </View>
-          <TextInput
-            accessibilityLabel="Objetivo"
-            value={objetivo}
-            onChangeText={setObjetivo}
-            multiline
-            placeholder="Opcional. Ex.: mostrar que Deus age mesmo quando o coração endurece"
-            placeholderTextColor={cores.textoSuave}
-            style={[estilos.entrada, { minHeight: 64 }]}
-          />
+          <Text style={estilos.objetivoTopo}>O OBJETIVO deste SERMÃO é:</Text>
+          {camposObjetivo.map((valor, i) => (
+            <View key={i} style={estilos.linhaObjetivo}>
+              <Text style={estilos.marcadorObjetivo}>●</Text>
+              <TextInput
+                accessibilityLabel={`Objetivo ${i + 1}`}
+                value={valor}
+                onChangeText={(t) => mudarObjetivo(i, t)}
+                placeholder={
+                  i === 0
+                    ? 'Opcional. Ex.: mostrar que Deus age mesmo quando o coração endurece'
+                    : `Objetivo ${i + 1} (opcional)`
+                }
+                placeholderTextColor={cores.textoSuave}
+                style={[estilos.entrada, { flex: 1 }]}
+              />
+            </View>
+          ))}
         </Cartao>
 
         <Cartao style={{ gap: 8 }}>
@@ -397,6 +424,9 @@ function Escolha({
 const estilos = StyleSheet.create({
   conteudo: { padding: 20, gap: 12, paddingBottom: 48, ...larguraConteudo },
   entrada: { fontSize: 16, color: cores.texto, paddingVertical: 6 },
+  objetivoTopo: { fontSize: 15, color: cores.texto, marginTop: 4 },
+  linhaObjetivo: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 8 },
+  marcadorObjetivo: { fontSize: 11, color: cores.texto },
   linha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   titulo: { fontSize: 16, fontWeight: '600', color: cores.texto },
   suave: { fontSize: 13, color: cores.textoSuave, marginTop: 2 },
