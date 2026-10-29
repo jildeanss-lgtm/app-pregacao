@@ -3,6 +3,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { modelos } from '../data/modelos';
 import { minutosEstimados, useSermoes, type Sermao } from '../store/sermoes';
 import { cores, larguraConteudo } from '../theme';
+import { ImportarSermao } from './ImportarSermao';
 import { PainelNuvem } from './PainelNuvem';
 import { Botao, Cartao } from './ui';
 
@@ -34,6 +35,7 @@ export function ListaSermoes({
           <View style={{ gap: 12, marginBottom: 8 }}>
             {comNuvem ? <PainelNuvem /> : null}
             {comNovo ? <Botao titulo={textoNovo} onPress={() => router.push('/novo')} /> : null}
+            {comNuvem ? <ImportarSermao /> : null}
           </View>
         ) : undefined
       }
