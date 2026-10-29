@@ -7,6 +7,7 @@ import {
   type BlocoInicial,
   type BlocosSaudacao,
   type Modelo,
+  type OpcaoIntroducao,
   type TipoBloco,
 } from '../data/modelos';
 import { rotulosTextoReferencia } from '../estilo';
@@ -66,6 +67,8 @@ export type Sermao = {
   temas?: string[];
   // O que foi preenchido na capa do tipo de sermão (ver camposCapa), pelo id de cada campo
   capa?: Record<string, string>;
+  // Opção de introdução escolhida ao criar o sermão
+  introducao?: OpcaoIntroducao;
   // Enquanto a IA escreve o objetivo e a introdução de um sermão novo, e o erro se não der certo
   iaPreparando?: boolean;
   iaErro?: string;
@@ -136,6 +139,7 @@ export type NovoSermao = {
   anotacoes?: Partial<Record<EtapaEstudo, string>>;
   saudacao?: string;
   capa?: Record<string, string>;
+  introducao?: OpcaoIntroducao;
   blocos: BlocoInicial[];
 };
 

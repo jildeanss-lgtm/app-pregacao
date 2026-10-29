@@ -20,6 +20,7 @@ export default function RootLayout() {
         <Stack.Screen name="novo" options={{ title: 'Novo sermão' }} />
         <Stack.Screen name="sermao/[id]" options={{ title: 'Sermão' }} />
         <Stack.Screen name="saudacao/[id]" options={{ title: 'Editar saudação' }} />
+        <Stack.Screen name="introducao/[id]" options={{ title: 'Editar introdução' }} />
         <Stack.Screen name="biblioteca" options={{ title: 'Biblioteca' }} />
         <Stack.Screen name="pregar/[id]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
       </Stack>
