@@ -36,12 +36,26 @@ const tamanhoLetra = 15;
 const velocidades = [8, 12, 16, 22, 30, 40, 55, 75];
 const CHAVE_VELOCIDADE = 'pregar:velocidade';
 
-// Rola a folha sozinha enquanto está ligada. Se o pregador rolar com o dedo, a rolagem continua de onde ele parou
-function useRolagemAutomatica(rolagem: RefObject<ScrollViewInstance | null>) {
+// Espaço da mesa cinza acima da primeira folha
+const margemMesa = 8;
+
+// Rola a folha sozinha enquanto está ligada e para quando o fim da página atual aparece inteiro; "Próxima página"
+// leva ao começo da seguinte. Se o pregador rolar com o dedo, a rolagem continua de onde ele parou
+function useRolagemAutomatica(rolagem: RefObject<ScrollViewInstance | null>, escala: number) {
   const [rolando, setRolando] = useState(false);
   const [nivel, setNivel] = useState(2);
   const posicao = useRef(0);
   const alturas = useRef({ tela: 0, conteudo: 0 });
+  // Posição e altura de cada folha, no tamanho A4 (antes da redução para a tela)
+  const folhas = useRef<{ topo: number; altura: number }[]>([]);
+  const topoNaTela = (n: number) => margemMesa + (folhas.current[n]?.topo ?? 0) * escala;
+  const paginaAtual = () => {
+    let atual = 0;
+    folhas.current.forEach((_, n) => {
+      if (topoNaTela(n) <= posicao.current + margemMesa + 2) atual = n;
+    });
+    return atual;
+  };
 
   useEffect(() => {
     AsyncStorage.getItem(CHAVE_VELOCIDADE).then((v) => {
@@ -55,10 +69,12 @@ function useRolagemAutomatica(rolagem: RefObject<ScrollViewInstance | null>) {
     let antes = 0;
     const passo = (agora: number) => {
       if (antes) {
-        const limite = Math.max(0, alturas.current.conteudo - alturas.current.tela);
+        const n = paginaAtual();
+        const fimDaPagina = topoNaTela(n) + (folhas.current[n]?.altura ?? Infinity) * escala + margemMesa;
+        const limite = Math.max(0, Math.min(alturas.current.conteudo, fimDaPagina) - alturas.current.tela);
         posicao.current = Math.min(limite, posicao.current + (velocidades[nivel] * (agora - antes)) / 1000);
         rolagem.current?.scrollTo({ y: posicao.current, animated: false });
-        // No fim da folha a rolagem para sozinha
+        // Quando o fim da página aparece inteiro, a rolagem para sozinha
         if (posicao.current >= limite) return setRolando(false);
       }
       antes = agora;
@@ -66,7 +82,8 @@ function useRolagemAutomatica(rolagem: RefObject<ScrollViewInstance | null>) {
     };
     quadro = requestAnimationFrame(passo);
     return () => cancelAnimationFrame(quadro);
-  }, [rolando, nivel, rolagem]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rolando, nivel, rolagem, escala]);
 
   const mudarVelocidade = (delta: number) =>
     setNivel((n) => {
@@ -85,6 +102,13 @@ function useRolagemAutomatica(rolagem: RefObject<ScrollViewInstance | null>) {
       if (Math.abs(y - posicao.current) > 2) posicao.current = y;
     },
     medirTela: (altura: number) => (alturas.current.tela = altura),
+    medirFolha: (n: number, topo: number, altura: number) => (folhas.current[n] = { topo, altura }),
+    proximaPagina: () => {
+      const n = paginaAtual() + 1;
+      if (!folhas.current[n]) return;
+      posicao.current = topoNaTela(n) - margemMesa;
+      rolagem.current?.scrollTo({ y: posicao.current, animated: true });
+    },
     medirConteudo: (altura: number) => (alturas.current.conteudo = altura),
   };
 }
@@ -107,7 +131,7 @@ export default function PulpitoTela() {
   const [terminando, setTerminando] = useState(false);
   const [local, setLocal] = useState('');
   const rolagem = useRef<ScrollViewInstance>(null);
-  const auto = useRolagemAutomatica(rolagem);
+  const auto = useRolagemAutomatica(rolagem, escala);
 
   useEffect(() => {
     const t = setInterval(() => setSegundos((s) => s + 1), 1000);
@@ -182,7 +206,14 @@ export default function PulpitoTela() {
               style={[estilos.coluna, { transform: [{ scale: escala }], transformOrigin: 'top left' }]}
             >
               {paginas.map((pagina, n) => (
-                <View key={n} style={estilos.folha}>
+                // Um toque em qualquer parte da folha leva à próxima página
+                <Pressable
+                  key={n}
+                  accessibilityHint="Toque para ir à próxima página"
+                  onPress={auto.proximaPagina}
+                  style={estilos.folha}
+                  onLayout={(e) => auto.medirFolha(n, e.nativeEvent.layout.y, e.nativeEvent.layout.height)}
+                >
                   {n === 0 && (
                     <>
                       <Text style={[estilos.titulo, estilos.tema]}>{sermao.titulo || 'Sem título'}</Text>
@@ -202,7 +233,7 @@ export default function PulpitoTela() {
                       </View>
                     );
                   })}
-                </View>
+                </Pressable>
               ))}
             </View>
           </View>
@@ -235,6 +266,14 @@ export default function PulpitoTela() {
             style={estilos.controle}
           >
             <Text style={estilos.textoControle}>+</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Próxima página"
+            onPress={auto.proximaPagina}
+            style={estilos.controle}
+          >
+            <Text style={[estilos.textoControle, { fontSize: 15 }]}>Próxima ↓</Text>
           </Pressable>
           <Text style={estilos.velocidade}>
             {auto.nivel + 1}/{velocidades.length}
