@@ -184,6 +184,9 @@ export function lerParagrafos(xml: string, manterCores = false): Paragrafo[] {
 
 // --- Parágrafos -> caixas do sermão ---
 
+// A seta que o app põe antes dos subtópicos no Google Docs
+const reSeta = /^\s*[➢➤]\s*/;
+
 type Tipo = 'titulo' | 'subtitulo' | 'biblia' | 'efeito' | 'pergunta' | 'aplicacao' | 'citacao' | 'frase' | 'texto';
 
 // Matiz (0-360), saturação e luminosidade de uma cor "rrggbb"
@@ -336,7 +339,12 @@ export function sermaoDosParagrafos(
         continue;
       }
       // Os títulos viram subtópicos: as páginas seguem as quebras do documento original, não os títulos
-      adicionar({ tipo: opcoes.manterTopicos ? 'topico' : 'subtopico', texto: p.texto });
+      // Com a seta ➢ do app na frente, o título verde é um subtópico verde, não um tópico
+      const comSeta = reSeta.test(p.texto);
+      adicionar({
+        tipo: comSeta ? 'subtopicoVerde' : opcoes.manterTopicos ? 'topico' : 'subtopico',
+        texto: p.texto.replace(reSeta, ''),
+      });
       if (/^texto (de )?refer/i.test(nome) && lista[i]?.tipo === 'biblia' && !textoBase) {
         const [cab, verso] = [semChaves(lista[i].texto), semChaves(lista[i + 1]?.texto ?? '')];
         const n = verso.match(/^(\d+(?:\s*[-–]\s*\d+)?)/)?.[1];
@@ -387,7 +395,7 @@ export function sermaoDosParagrafos(
         adicionar({ tipo: 'quadro', texto: [p.texto, ...pontos].join('\n') });
         continue;
       }
-      adicionar({ tipo: 'subtopico', texto: p.texto });
+      adicionar({ tipo: 'subtopico', texto: p.texto.replace(reSeta, '') });
       continue;
     }
 

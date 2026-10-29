@@ -3,6 +3,7 @@ import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { modelos } from '../data/modelos';
 import {
+  partesDoTema,
   abreNovaPagina,
   tituloDaPagina,
   destacarTudo,
@@ -108,7 +109,9 @@ export function htmlDoSermao(s: Sermao) {
 </style></head>
 <body>
   ${s.culto || s.data ? `<div class="meta">${escapar([s.culto, s.data].filter(Boolean).join(' · '))}</div>` : ''}
-  <h1><span>${escapar(s.titulo || 'Sermão sem título')}</span></h1>
+  <h1><span>${partesDoTema(s.titulo || 'Sermão sem título')
+    .map((p) => (p.chave ? `<u>${escapar(p.texto.replace(/\*/g, ''))}</u>` : escapar(p.texto.replace(/\*/g, ''))))
+    .join('')}</span></h1>
   <div class="meta">${[s.textoBase, modelo, `cerca de ${minutosEstimados(s)} min`].filter(Boolean).map(escapar).join(' · ')}</div>
   ${blocos}
 </body></html>`;
