@@ -55,6 +55,7 @@ function paragrafo(conteudo: string, estilo: string, lista: boolean) {
   const base = comEstilo({}, estilo);
   const pPr = [
     lista && '<w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>',
+    /text-indent:-17pt/.test(estilo) && '<w:ind w:left="0" w:hanging="340"/>',
     /text-align:center/.test(estilo) && '<w:jc w:val="center"/>',
   ]
     .filter(Boolean)
