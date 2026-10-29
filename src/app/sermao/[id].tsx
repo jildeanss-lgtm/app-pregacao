@@ -29,6 +29,8 @@ export default function EditorTela() {
   const sermao = useSermao(id);
   const { atualizar, adicionarBloco, remover, mudarEstudo } = useSermoes();
   const [vendoEstudo, setVendoEstudo] = useState(true);
+  // Caixa concluída por último: só ela mostra o "+ Inserir" clarinho embaixo
+  const [ultimaConcluida, setUltimaConcluida] = useState<string>();
   const largo = useWindowDimensions().width >= 900;
   // Altura de cada parte da folha e largura da folha, medidas na tela, para separar as páginas A4
   const [alturas, setAlturas] = useState<Record<string, number>>({});
@@ -57,6 +59,8 @@ export default function EditorTela() {
   const apagarBloco = (blocoId: string) =>
     atualizar(sermao.id, (s) => ({ ...s, blocos: s.blocos.filter((b) => b.id !== blocoId) }));
 
+  // Antes de concluir alguma caixa, o "+ Inserir" fica na última caixa preenchida
+  const ultimaPreenchida = [...sermao.blocos].reverse().find((b) => b.texto.trim())?.id;
   const numerosTopico = sermao.blocos.reduce<number[]>(
     (acc, b) => [...acc, (acc.at(-1) ?? 0) + (b.tipo === 'topico' ? 1 : 0)],
     [],
@@ -196,6 +200,8 @@ export default function EditorTela() {
                       onDescer={() => mover(i, 1)}
                       onApagar={() => apagarBloco(bloco.id)}
                       onInserir={(tipo) => adicionarBloco(sermao.id, tipo, '', bloco.id)}
+                      mostrarInserir={bloco.id === (ultimaConcluida ?? ultimaPreenchida)}
+                      onConcluir={() => setUltimaConcluida(bloco.id)}
                     />
                   </>
                 ),
@@ -254,6 +260,9 @@ type BlocoEditorProps = {
   onDescer: () => void;
   onApagar: () => void;
   onInserir: (tipo: TipoBloco) => void;
+  // "+ Inserir" clarinho embaixo (só na caixa concluída por último)
+  mostrarInserir: boolean;
+  onConcluir: () => void;
 };
 
 const dicas: Partial<Record<TipoBloco, string>> = {
@@ -261,7 +270,17 @@ const dicas: Partial<Record<TipoBloco, string>> = {
   versiculo: 'Ex.: 1 Tessalonicenses 5:21 - *Examinai* *tudo*. *Retende* o *bem*',
 };
 
-function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar, onInserir }: BlocoEditorProps) {
+function BlocoEditor({
+  bloco,
+  rotulo,
+  onMudar,
+  onSubir,
+  onDescer,
+  onApagar,
+  onInserir,
+  mostrarInserir,
+  onConcluir,
+}: BlocoEditorProps) {
   const [editando, setEditando] = useState(!bloco.texto.trim());
   const [selecao, setSelecao] = useState({ start: 0, end: 0 });
   const [campo, setCampo] = useState(0);
@@ -279,7 +298,10 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar, onIn
   const sair = () => {
     saida.current = setTimeout(() => {
       setFocado(false);
-      if (bloco.texto.trim()) setEditando(false);
+      if (bloco.texto.trim()) {
+        setEditando(false);
+        onConcluir();
+      }
     }, 250);
   };
 
@@ -426,7 +448,16 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar, onIn
             <View style={estilos.ferramentas}>
               <Ferramenta titulo="Destacar seleção" onPress={destacar} />
               {ehQuadro && <Ferramenta titulo={`+ ${nomeItem}`} onPress={() => onMudar(`${campos.join('\n')}\n`)} />}
-              {bloco.texto.trim() ? <Ferramenta titulo="Pronto" principal onPress={() => setEditando(false)} /> : null}
+              {bloco.texto.trim() ? (
+                <Ferramenta
+                  titulo="Pronto"
+                  principal
+                  onPress={() => {
+                    setEditando(false);
+                    onConcluir();
+                  }}
+                />
+              ) : null}
             </View>
           )}
         </>
@@ -441,7 +472,7 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar, onIn
         </Pressable>
       )}
       {/* Caixa já concluída: um "+ Inserir" clarinho logo abaixo cria a próxima sem abrir esta de novo */}
-      {!focado && !inserindo && !vazio ? (
+      {mostrarInserir && !focado && !inserindo && !vazio ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Inserir caixa abaixo"
