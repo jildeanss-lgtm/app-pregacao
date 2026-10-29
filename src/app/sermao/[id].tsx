@@ -408,11 +408,7 @@ export default function EditorTela() {
               // Sermão ligado a um Google Docs: o Salvar grava nele também
               try {
                 const r = await salvarNoDocsLigado(await pedirToken(), sermao);
-                if (r === 'mudou')
-                  setSalvoDocs(
-                    'O Google Docs foi editado pelo Drive e não gravei por cima. Toque em Atualizar do Docs para trazer essas edições.',
-                  );
-                else if (r) {
+                if (r) {
                   atualizar(sermao.id, (s) => ({ ...s, docId: r.id, docEm: r.modifiedTime }));
                   setSalvoDocs(`Google Docs "${sermao.titulo || 'Sermão sem título'}" atualizado.`);
                 }

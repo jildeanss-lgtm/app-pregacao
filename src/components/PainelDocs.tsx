@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
-import { gravarNoDocs, juntarComApp, lerDoDocs, linkDoDocs, quandoMudouNoDocs } from '../exportar/docs';
+import { editadoNoDrive, gravarNoDocs, juntarComApp, lerDoDocs, linkDoDocs, quandoMudouNoDocs } from '../exportar/docs';
 import { pedirToken } from '../ia/drive';
 import type { Sermao } from '../store/sermoes';
 import { cores } from '../theme';
@@ -50,7 +50,7 @@ export function PainelDocs({
         const t = await pedirToken();
         if (sermao.docId && sermao.docEm && !porCima) {
           const mudou = await quandoMudouNoDocs(t, sermao.docId).catch(() => undefined);
-          if (mudou && mudou > sermao.docEm) {
+          if (mudou && editadoNoDrive(mudou, sermao.docEm)) {
             setMudouNoDrive(true);
             if (aba) aba.location.href = linkDoDocs(sermao.docId);
             return;
