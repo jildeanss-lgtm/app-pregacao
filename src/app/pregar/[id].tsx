@@ -32,6 +32,9 @@ const larguraA4 = 794;
 // Tamanhos de letra do botão Aa, como num leitor de livros: 15 é o tamanho do Doc
 const tamanhosLetra = [15, 17, 19, 22, 25, 29];
 const CHAVE_LETRA = 'pregar:letra';
+const CHAVE_ESCURO = 'pregar:escuro';
+// Fundo preto: a tela inteira é invertida e as cores voltam ao mesmo tom (vermelho continua vermelho, verde continua verde)
+const filtroEscuro = { filter: 'invert(1) hue-rotate(180deg)' } as const;
 
 // Rolagem automática: velocidades em pixels da tela por segundo, da mais lenta à mais rápida
 const velocidades = [8, 12, 16, 22, 30, 40, 55, 75];
@@ -150,11 +153,12 @@ export default function PulpitoTela() {
   const rolagem = useRef<ScrollViewInstance>(null);
   const auto = useRolagemAutomatica(rolagem, escala);
   const [letra, setLetra] = useState(0);
-  const [vendoLetra, setVendoLetra] = useState(false);
+  const [escuro, setEscuro] = useState(false);
   useEffect(() => {
     AsyncStorage.getItem(CHAVE_LETRA).then((v) => {
       if (v !== null && tamanhosLetra[Number(v)]) setLetra(Number(v));
     });
+    AsyncStorage.getItem(CHAVE_ESCURO).then((v) => setEscuro(v === '1'));
   }, []);
   const mudarLetra = (delta: number) =>
     setLetra((n) => {
@@ -179,8 +183,8 @@ export default function PulpitoTela() {
   const progresso = Math.min(1, segundos / (total * 60));
 
   return (
-    <SafeAreaView style={estilos.tela}>
-      <StatusBar style="dark" />
+    <SafeAreaView style={[estilos.tela, escuro && filtroEscuro]}>
+      <StatusBar style={escuro ? 'light' : 'dark'} />
       <View style={estilos.topo}>
         <View style={estilos.lado}>
           <Pressable accessibilityRole="button" onPress={() => router.back()} style={estilos.sair}>
@@ -198,41 +202,26 @@ export default function PulpitoTela() {
           <Text style={estilos.hora} accessibilityLabel="Hora atual">
             {agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           </Text>
+          {/* Canto superior direito: troca o fundo entre branco e preto */}
           <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Tamanho da letra"
-            accessibilityState={{ expanded: vendoLetra }}
-            onPress={() => setVendoLetra((v) => !v)}
-            style={[estilos.aa, vendoLetra && estilos.aaAberto]}
+            accessibilityRole="switch"
+            accessibilityLabel="Fundo preto"
+            accessibilityState={{ checked: escuro }}
+            onPress={() =>
+              setEscuro((e) => {
+                AsyncStorage.setItem(CHAVE_ESCURO, e ? '0' : '1');
+                return !e;
+              })
+            }
+            style={estilos.fundo}
           >
-            <Text style={estilos.textoAa}>Aa</Text>
+            {/* Círculo meio preto, meio branco */}
+            <View style={estilos.circulo}>
+              <View style={estilos.metade} />
+            </View>
           </Pressable>
         </View>
       </View>
-      {/* Aa, como no Kindle: diminui ou aumenta a letra da folha */}
-      {vendoLetra ? (
-        <View style={estilos.letra}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Letra menor"
-            onPress={() => mudarLetra(-1)}
-            style={estilos.controle}
-          >
-            <Text style={[estilos.textoControle, { fontSize: 14 }]}>A−</Text>
-          </Pressable>
-          <Text style={estilos.velocidade}>
-            letra {letra + 1}/{tamanhosLetra.length}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Letra maior"
-            onPress={() => mudarLetra(1)}
-            style={estilos.controle}
-          >
-            <Text style={[estilos.textoControle, { fontSize: 22 }]}>A+</Text>
-          </Pressable>
-        </View>
-      ) : null}
       <View style={estilos.barra}>
         <View style={[estilos.barraCheia, { width: `${progresso * 100}%` }]} />
       </View>
@@ -292,6 +281,24 @@ export default function PulpitoTela() {
       </ScrollView>
       {/* No canto de baixo, uma coluna: + e − da velocidade em cima do play. O toque na folha passa de página */}
       <View style={estilos.controles}>
+        {/* Letra maior e menor, como no Kindle, em cima da velocidade */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Letra maior"
+          onPress={() => mudarLetra(1)}
+          style={estilos.controle}
+        >
+          <Text style={[estilos.textoControle, { fontSize: 18 }]}>A+</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Letra menor"
+          onPress={() => mudarLetra(-1)}
+          style={estilos.controle}
+        >
+          <Text style={[estilos.textoControle, { fontSize: 13 }]}>A−</Text>
+        </Pressable>
+        <View style={estilos.divisoria} />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Mais rápido"
@@ -336,7 +343,7 @@ const estilos = StyleSheet.create({
   },
   lado: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   centro: { alignItems: 'center' },
-  aa: {
+  fundo: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -345,9 +352,9 @@ const estilos = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#DADCE0',
   },
-  aaAberto: { backgroundColor: '#F1F3F4' },
-  textoAa: { fontSize: 16, fontWeight: '700', color: cores.texto },
-  letra: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12, paddingTop: 8 },
+  circulo: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: cores.texto, overflow: 'hidden' },
+  metade: { width: 8, height: 16, backgroundColor: cores.texto },
+  divisoria: { width: 28, height: 1, backgroundColor: '#DADCE0', marginVertical: 2 },
   hora: {
     flex: 1,
     textAlign: 'center',
