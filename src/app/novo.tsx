@@ -94,7 +94,10 @@ export default function NovoSermaoTela() {
     };
   }, [ehEBD, textoBase]);
   // A capa como vai para o sermão: com o texto de referência já escrito
-  const capaCom = (versos: string) => (ehEBD && versos ? { ...capa, texto: `${textoBase} - ${versos}` } : capa);
+  // O texto de referência já escrito à mão ("Salmos 139:6 - TAL CONHECIMENTO...") vale como está
+  const textoDaCapa = (versos: string) =>
+    textoBase.includes(' - ') ? textoBase.trim() : versos ? `${textoBase} - ${versos}` : '';
+  const capaCom = (versos: string) => (ehEBD && textoDaCapa(versos) ? { ...capa, texto: textoDaCapa(versos) } : capa);
   const [introducao, setIntroducao] = useState<OpcaoIntroducao>(inicio?.introducao ?? 'citacoes');
   // As introduções como o JILDEAN editou (lidas de novo ao voltar da página de edição)
   const [intros, setIntros] = useState<Partial<Record<OpcaoIntroducao, IntroducaoEditada>>>({});
@@ -372,8 +375,8 @@ export default function NovoSermaoTela() {
                 <View style={{ gap: 4 }}>
                   <Text style={estilos.rotuloCapa}>Texto de referência</Text>
                   {campoTexto}
-                  {versosCapa ? (
-                    <TextoFormatado tipo="versiculo" texto={`${textoBase} - ${versosCapa}`} tamanho={15} semMoldura />
+                  {textoDaCapa(versosCapa) ? (
+                    <TextoFormatado tipo="versiculo" texto={textoDaCapa(versosCapa)} tamanho={15} semMoldura />
                   ) : null}
                 </View>
               </>
