@@ -43,6 +43,8 @@ const margemMesa = 8;
 // leva ao começo da seguinte. Se o pregador rolar com o dedo, a rolagem continua de onde ele parou
 function useRolagemAutomatica(rolagem: RefObject<ScrollViewInstance | null>, escala: number) {
   const [rolando, setRolando] = useState(false);
+  // Ligada pelo pregador: ao passar de página, a rolagem continua sozinha; só "Pausar" desliga
+  const ligada = useRef(false);
   const [nivel, setNivel] = useState(2);
   const posicao = useRef(0);
   const alturas = useRef({ tela: 0, conteudo: 0 });
@@ -95,7 +97,11 @@ function useRolagemAutomatica(rolagem: RefObject<ScrollViewInstance | null>, esc
   return {
     rolando,
     nivel,
-    alternar: () => setRolando((v) => !v),
+    alternar: () =>
+      setRolando((v) => {
+        ligada.current = !v;
+        return !v;
+      }),
     mudarVelocidade,
     // A tela avisa onde a folha está; um salto maior que 2 px é o dedo do pregador
     aoRolar: (y: number) => {
@@ -108,6 +114,13 @@ function useRolagemAutomatica(rolagem: RefObject<ScrollViewInstance | null>, esc
       if (!folhas.current[n]) return;
       posicao.current = topoNaTela(n) - margemMesa;
       rolagem.current?.scrollTo({ y: posicao.current, animated: true });
+      // Depois de chegar ao topo da página, volta a rolar na mesma velocidade
+      if (ligada.current) {
+        setRolando(false);
+        setTimeout(() => {
+          if (ligada.current) setRolando(true);
+        }, 700);
+      }
     },
     medirConteudo: (altura: number) => (alturas.current.conteudo = altura),
   };
