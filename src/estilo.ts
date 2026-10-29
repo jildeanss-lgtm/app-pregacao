@@ -68,9 +68,10 @@ export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
   },
   frase: { cor: coresPregacao.frase, seta: true },
   pontos: { cor: coresPregacao.texto, lista: true, autoDestaque: true },
-  // Os mesmos pontos em roxo e em vermelho, em itálico como nos esboços do Jildean
+  // Os mesmos pontos em roxo, em vermelho e em azul claro, em itálico como nos esboços do Jildean
   pontosRoxo: { cor: '#9900FF', italico: true, lista: true, autoDestaque: true },
   pontosVermelho: { cor: coresPregacao.textoBiblico, italico: true, lista: true, autoDestaque: true },
+  pontosAzul: { cor: coresPregacao.pergunta, italico: true, lista: true, autoDestaque: true },
   versiculo: { cor: coresPregacao.textoBiblico, italico: true, autoDestaque: true, referencia: true },
   citacao: { cor: coresPregacao.citacao, italico: true },
   efeito: { cor: coresPregacao.efeito, italico: true, centralizado: true },

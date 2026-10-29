@@ -101,11 +101,12 @@ function blocoParaDocs(b: Bloco, quebra: boolean): string {
         )
       );
     case 'pontosVermelho':
+    case 'pontosAzul':
       return (
         (quebra ? paragrafo('', base) : '') +
         lista(
           b.texto.split('\n').filter((l) => l.trim()),
-          { cor: '#990000', italico: true },
+          { cor: b.tipo === 'pontosAzul' ? '#3C78D8' : '#990000', italico: true },
         )
       );
   }

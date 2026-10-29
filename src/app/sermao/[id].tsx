@@ -478,15 +478,19 @@ function BlocoEditor({
   const ehQuadro = !!estiloBloco[bloco.tipo].quadro;
   const nomeItem = estiloBloco[bloco.tipo].nomeItem ?? 'Ponto';
   const nomeTopo = estiloBloco[bloco.tipo].topo?.nome ?? 'Subtópico';
+  // Os Pontos (preto, roxo, vermelho e azul claro) também: uma linha para cada ponto, três para começar
+  const ehLista = !ehQuadro && !!estiloBloco[bloco.tipo].lista;
   const linhas = bloco.texto.split('\n');
   const campos = ehQuadro
     ? Array.from({ length: Math.max(pontosDoQuadro + 1, linhas.length) }, (_, i) => linhas[i] ?? '')
-    : [bloco.texto];
+    : ehLista
+      ? Array.from({ length: Math.max(pontosDoQuadro, linhas.length) }, (_, i) => linhas[i] ?? '')
+      : [bloco.texto];
   const mudarCampo = (i: number, texto: string) => {
-    if (!ehQuadro) return onMudar(texto);
+    if (!ehQuadro && !ehLista) return onMudar(texto);
     const novos = [...campos];
     // No subtópico o Enter abre outra linha; nos pontos não
-    novos[i] = i === 0 ? texto.replace(/\n/g, quebraNoTopo) : texto.replace(/\n/g, ' ');
+    novos[i] = i === 0 && ehQuadro ? texto.replace(/\n/g, quebraNoTopo) : texto.replace(/\n/g, ' ');
     onMudar(novos.join('\n'));
   };
 
@@ -622,6 +626,26 @@ function BlocoEditor({
                 ),
               )}
             </View>
+          ) : ehLista ? (
+            <View style={estilos.quadro}>
+              {campos.map((valor, i) => (
+                <View key={i} style={estilos.itemQuadro}>
+                  <Text style={[estilos.marcador, { color: e.cor }]}>●</Text>
+                  <TextInput
+                    accessibilityLabel={`${nomeItem} ${i + 1}`}
+                    value={valor}
+                    onChangeText={(t) => mudarCampo(i, t)}
+                    autoFocus={i === 0 && !bloco.texto.trim()}
+                    onFocus={() => entrar(i)}
+                    onBlur={sair}
+                    onSelectionChange={(ev) => setSelecao(ev.nativeEvent.selection)}
+                    placeholder={`${nomeItem} ${i + 1}`}
+                    placeholderTextColor={cores.textoSuave}
+                    style={[estilos.entrada, visual, { flex: 1 }]}
+                  />
+                </View>
+              ))}
+            </View>
           ) : (
             <CampoCrescente
               accessibilityLabel={rotulo}
@@ -651,7 +675,9 @@ function BlocoEditor({
           {focado && (
             <View style={estilos.ferramentas}>
               <Ferramenta titulo="Destacar seleção" onPress={destacar} />
-              {ehQuadro && <Ferramenta titulo={`+ ${nomeItem}`} onPress={() => onMudar(`${campos.join('\n')}\n`)} />}
+              {(ehQuadro || ehLista) && (
+                <Ferramenta titulo={`+ ${nomeItem}`} onPress={() => onMudar(`${campos.join('\n')}\n`)} />
+              )}
               {bloco.texto.trim() ? (
                 <Ferramenta
                   titulo="Pronto"
