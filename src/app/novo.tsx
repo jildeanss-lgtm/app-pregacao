@@ -1,8 +1,9 @@
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Botao, Cartao, Rotulo } from '../components/ui';
 import { BarraAbas } from '../components/BarraAbas';
+import { TextoFormatado } from '../components/TextoFormatado';
 import {
   camposCapa,
   inicioObjetivo,
@@ -79,6 +80,21 @@ export default function NovoSermaoTela() {
   const [capa, setCapa] = useState<Record<string, string>>(original?.capa ?? {});
   const campos = camposCapa[tipoObjetivo];
   const ehEBD = tipoObjetivo === 'Aula EBD';
+  // Na capa da EBD, o texto bíblico do Texto de referência aparece logo abaixo dele (JILDEAN, 29/10/2026)
+  const [versosCapa, setVersosCapa] = useState('');
+  useEffect(() => {
+    let vale = true;
+    if (ehEBD && textoBase.trim())
+      textoDosVersiculos(textoBase)
+        .catch(() => '')
+        .then((v) => vale && setVersosCapa(v));
+    else setVersosCapa('');
+    return () => {
+      vale = false;
+    };
+  }, [ehEBD, textoBase]);
+  // A capa como vai para o sermão: com o texto de referência já escrito
+  const capaCom = (versos: string) => (ehEBD && versos ? { ...capa, texto: `${textoBase} - ${versos}` } : capa);
   const [introducao, setIntroducao] = useState<OpcaoIntroducao>(inicio?.introducao ?? 'citacoes');
   // As introduções como o JILDEAN editou (lidas de novo ao voltar da página de edição)
   const [intros, setIntros] = useState<Partial<Record<OpcaoIntroducao, IntroducaoEditada>>>({});
@@ -109,8 +125,11 @@ export default function NovoSermaoTela() {
               }
             : b,
         );
-      if (tipoObjetivo !== (inicio.tipoObjetivo || 'Pregação') || JSON.stringify(capa) !== JSON.stringify(s.capa ?? {}))
-        blocos = trocarCapa(blocos, tipoObjetivo, capa);
+      if (
+        tipoObjetivo !== (inicio.tipoObjetivo || 'Pregação') ||
+        JSON.stringify(capaCom(versosCapa)) !== JSON.stringify(s.capa ?? {})
+      )
+        blocos = trocarCapa(blocos, tipoObjetivo, capaCom(versosCapa));
       if (introducao !== inicio.introducao)
         blocos = blocos.map((b) =>
           b.tipo === 'introducao'
@@ -131,7 +150,7 @@ export default function NovoSermaoTela() {
         modelo,
         genero,
         saudacao: saudacao === ATUAL ? s.saudacao : saudacao,
-        capa,
+        capa: capaCom(versosCapa),
         introducao,
         blocos,
       };
@@ -162,7 +181,7 @@ export default function NovoSermaoTela() {
       data,
       genero,
       saudacao,
-      capa,
+      capa: capaCom(versos),
       introducao,
       etapa: ETAPA_MONTAGEM,
       // O estudo feito para este texto vai junto e aparece em "Seu estudo" na montagem
@@ -180,7 +199,7 @@ export default function NovoSermaoTela() {
         textoBase,
         objetivo: objetivos,
         tipoObjetivo,
-        capa,
+        capa: capaCom(versos),
         versos,
         introducao,
         introducaoEditada: intros[introducao],
@@ -330,6 +349,11 @@ export default function NovoSermaoTela() {
             {campos ? (
               <>
                 <Text style={estilos.tituloCapa}>Capa da {tipoObjetivo}</Text>
+                {/* Os objetivos abrem a capa (JILDEAN, 29/10/2026) */}
+                <View style={{ gap: 8, marginBottom: 6 }}>
+                  <Text style={estilos.rotuloCapa}>Objetivos da lição</Text>
+                  {objetivoCampos}
+                </View>
                 {campos.map((c) => (
                   <View key={c.id} style={{ gap: 4 }}>
                     <Text style={estilos.rotuloCapa}>{c.nome}</Text>
@@ -340,21 +364,17 @@ export default function NovoSermaoTela() {
                       placeholder={c.dica}
                       placeholderTextColor={cores.textoSuave}
                       multiline={(c.linhas ?? 1) > 1}
-                      keyboardType={c.id === 'licao' ? 'numeric' : 'default'}
                       style={[estilos.entrada, (c.linhas ?? 1) > 1 && { minHeight: 64, textAlignVertical: 'top' }]}
                     />
-                    {c.id === 'licao' ? (
-                      <View style={{ gap: 8, marginTop: 6 }}>
-                        <Text style={estilos.rotuloCapa}>Objetivos da lição</Text>
-                        {objetivoCampos}
-                      </View>
-                    ) : null}
                   </View>
                 ))}
                 {/* Na Aula EBD o texto de referência fecha a capa (JILDEAN, 29/10/2026) */}
                 <View style={{ gap: 4 }}>
                   <Text style={estilos.rotuloCapa}>Texto de referência</Text>
                   {campoTexto}
+                  {versosCapa ? (
+                    <TextoFormatado tipo="versiculo" texto={`${textoBase} - ${versosCapa}`} tamanho={15} semMoldura />
+                  ) : null}
                 </View>
               </>
             ) : (
