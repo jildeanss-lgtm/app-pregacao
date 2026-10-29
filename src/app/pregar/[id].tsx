@@ -145,6 +145,8 @@ export default function PulpitoTela() {
   const sermao = useSermao(id);
   // A folha tem sempre a largura de um A4 (794 px) e é reduzida para caber na largura da tela, como um doc
   const largura = useWindowDimensions().width;
+  // No celular os botões do canto ficam menores, para não cobrir o texto (JILDEAN, 29/10/2026)
+  const celular = largura < 600;
   const escala = Math.min(1, (largura - 2 * margemMesa) / larguraA4);
   const [alturaFolha, setAlturaFolha] = useState(0);
   const [segundos, setSegundos] = useState(0);
@@ -290,51 +292,51 @@ export default function PulpitoTela() {
         </View>
       </ScrollView>
       {/* No canto de baixo, uma coluna: + e − da velocidade em cima do play. O toque na folha passa de página */}
-      <View style={estilos.controles}>
+      <View style={[estilos.controles, celular && estilos.controlesCelular]}>
         {/* Letra maior e menor, como no Kindle, em cima da velocidade */}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Letra maior"
           onPress={() => mudarLetra(1)}
-          style={estilos.controle}
+          style={[estilos.controle, celular && estilos.controleCelular]}
         >
-          <Text style={[estilos.textoControle, { fontSize: 18 }]}>A+</Text>
+          <Text style={[estilos.textoControle, { fontSize: celular ? 13 : 18 }]}>A+</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Letra menor"
           onPress={() => mudarLetra(-1)}
-          style={estilos.controle}
+          style={[estilos.controle, celular && estilos.controleCelular]}
         >
-          <Text style={[estilos.textoControle, { fontSize: 13 }]}>A−</Text>
+          <Text style={[estilos.textoControle, { fontSize: celular ? 10 : 13 }]}>A−</Text>
         </Pressable>
-        <View style={estilos.divisoria} />
+        <View style={[estilos.divisoria, celular && { width: 20 }]} />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Mais rápido"
           onPress={() => auto.mudarVelocidade(1)}
-          style={estilos.controle}
+          style={[estilos.controle, celular && estilos.controleCelular]}
         >
-          <Text style={estilos.textoControle}>+</Text>
+          <Text style={[estilos.textoControle, celular && estilos.textoCelular]}>+</Text>
         </Pressable>
-        <Text style={estilos.velocidade}>
+        <Text style={[estilos.velocidade, celular && { fontSize: 10, paddingRight: 0 }]}>
           {auto.nivel + 1}/{velocidades.length}
         </Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Mais devagar"
           onPress={() => auto.mudarVelocidade(-1)}
-          style={estilos.controle}
+          style={[estilos.controle, celular && estilos.controleCelular]}
         >
-          <Text style={estilos.textoControle}>−</Text>
+          <Text style={[estilos.textoControle, celular && estilos.textoCelular]}>−</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={auto.ligada ? 'Pausar rolagem' : 'Rolar sozinho'}
           onPress={auto.alternar}
-          style={estilos.rolar}
+          style={[estilos.rolar, celular && estilos.rolarCelular]}
         >
-          <Text style={estilos.textoRolar}>{auto.ligada ? '❚❚' : '▶'}</Text>
+          <Text style={[estilos.textoRolar, celular && { fontSize: 14 }]}>{auto.ligada ? '❚❚' : '▶'}</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -423,6 +425,10 @@ const estilos = StyleSheet.create({
     backgroundColor: cores.destaque,
   },
   textoRolar: { fontSize: 20, fontWeight: '700', color: '#FFFFFF' },
+  controlesCelular: { right: 8, bottom: 12, gap: 2, padding: 3, borderRadius: 22 },
+  controleCelular: { minWidth: 30, height: 30, borderRadius: 15, paddingHorizontal: 6 },
+  rolarCelular: { width: 38, height: 38, borderRadius: 19 },
+  textoCelular: { fontSize: 15 },
   textoControle: { fontSize: 20, fontWeight: '700', color: cores.texto },
   velocidade: { fontSize: 12, color: cores.textoSuave, paddingRight: 6 },
   sair: { minHeight: 44, justifyContent: 'center' },
