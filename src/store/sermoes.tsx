@@ -69,6 +69,8 @@ export type Sermao = {
   capa?: Record<string, string>;
   // Opção de introdução escolhida ao criar o sermão
   introducao?: OpcaoIntroducao;
+  // Tipo de sermão (Pregação, Doutrinário, Estudo, Aula EBD)
+  tipoSermao?: string;
   // Enquanto a IA escreve o objetivo e a introdução de um sermão novo, e o erro se não der certo
   iaPreparando?: boolean;
   iaErro?: string;
@@ -124,7 +126,7 @@ function migrar(s: Sermao): Sermao {
   return { ...s, versao: 3, etapa: etapaV2[v2] ?? 2 };
 }
 
-function novoId() {
+export function novoId() {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 }
 
@@ -141,6 +143,7 @@ export type NovoSermao = {
   saudacao?: string;
   capa?: Record<string, string>;
   introducao?: OpcaoIntroducao;
+  tipoSermao?: string;
   blocos: BlocoInicial[];
 };
 

@@ -20,7 +20,7 @@ import { ETAPA_MONTAGEM } from '../data/etapas';
 import { lerChave, prepararSermao, textoDosVersiculos } from '../ia/estudo';
 import { lerSaudacao } from '../store/saudacoes';
 import { lerIntroducoes, type IntroducaoEditada } from '../store/introducoes';
-import { trocarCapa, trocarSaudacao, useSermao, useSermoes, type Sermao } from '../store/sermoes';
+import { novoId, trocarCapa, trocarSaudacao, useSermao, useSermoes, type Sermao } from '../store/sermoes';
 import { cores, larguraConteudo } from '../theme';
 
 function hoje() {
@@ -33,16 +33,43 @@ const ROTULO_INTRODUCAO = 'Introdução: ';
 // Saudação que já está no sermão, quando ele foi criado antes de o app guardar qual foi escolhida
 const ATUAL = 'atual';
 
+// Sermão trazido do Google Docs: o objetivo vem como um título "OBJETIVO" com a lista de pontos embaixo
+const tiposTitulo = ['topico', 'subtopico', 'subtopicoVerde'];
+function objetivoImportado(blocos: Sermao['blocos']) {
+  const h = blocos.findIndex(
+    (b) =>
+      tiposTitulo.includes(b.tipo) &&
+      /^OBJETIVOS?( D[AO] (LIÇÃO|SERMÃO|AULA))?:?$/.test(
+        b.texto
+          .replace(/\*|\[[^\]]*\]/g, '')
+          .trim()
+          .toUpperCase(),
+      ),
+  );
+  const lista = blocos[h + 1];
+  if (h < 0 || !lista || !lista.tipo.startsWith('pontos')) return undefined;
+  return { h, linhas: lista.texto.replace(/\[[^\]]*\]/g, '').trim() };
+}
+
 // O que foi escolhido ao criar o sermão, lido dos blocos dele, para abrir esta tela de novo e mudar
 function escolhasDoSermao(s: Sermao) {
   const obj = s.blocos.find((b) => b.tipo === 'objetivo');
+  const importado = obj ? undefined : objetivoImportado(s.blocos);
   const intro = s.blocos.find((b) => b.tipo === 'introducao');
   const ateTexto = s.blocos.findIndex((b) => b.tipo === 'versiculo' && b.rotulo === 'Texto');
   const temSaudacao = ateTexto > 0 && s.blocos.slice(0, ateTexto).some((b) => b.tipo !== 'objetivo');
   return {
-    tipoObjetivo: obj?.rotulo?.startsWith(ROTULO_OBJETIVO) ? obj.rotulo.slice(ROTULO_OBJETIVO.length) : '',
+    tipoObjetivo:
+      s.tipoSermao ??
+      (obj?.rotulo?.startsWith(ROTULO_OBJETIVO)
+        ? obj.rotulo.slice(ROTULO_OBJETIVO.length)
+        : s.capa && Object.keys(s.capa).length
+          ? 'Aula EBD'
+          : ''),
     objetivo:
-      obj?.texto.replace(/^(O \*OBJETIVO\* deste \*SERMÃO\* é|Os \*OBJETIVOS\* desta \*LIÇÃO\* são):\n/, '') ?? '',
+      obj?.texto.replace(/^(O \*OBJETIVO\* deste \*SERMÃO\* é|Os \*OBJETIVOS\* desta \*LIÇÃO\* são):\n/, '') ??
+      importado?.linhas ??
+      '',
     // Sermões novos guardam a opção pela dica da caixa; os antigos, pelo nome dela
     introducao:
       s.introducao ??
@@ -118,6 +145,21 @@ export default function NovoSermaoTela() {
     const intro = opcoesIntroducao.find((o) => o.id === introducao)!;
     atualizar(original.id, (s) => {
       let blocos = s.blocos;
+      // Sem o quadro do objetivo (sermão trazido do Docs): ele entra na capa no lugar do título "OBJETIVO" e da lista
+      let semObjetivo = !blocos.some((b) => b.tipo === 'objetivo');
+      if (semObjetivo && objetivos) {
+        const importado = objetivoImportado(blocos);
+        if (importado) blocos = blocos.filter((_, k) => k !== importado.h && k !== importado.h + 1);
+        blocos = [
+          {
+            id: novoId(),
+            tipo: 'objetivo',
+            rotulo: `${ROTULO_OBJETIVO}${tipoObjetivo}`,
+            texto: `${inicioObjetivo(tipoObjetivo)}${objetivos}`,
+          },
+          ...blocos,
+        ];
+      } else semObjetivo = false;
       if (objetivo !== inicio.objetivo || tipoObjetivo !== (inicio.tipoObjetivo || 'Pregação'))
         blocos = blocos.map((b) =>
           b.tipo === 'objetivo'
@@ -129,6 +171,7 @@ export default function NovoSermaoTela() {
             : b,
         );
       if (
+        semObjetivo ||
         tipoObjetivo !== (inicio.tipoObjetivo || 'Pregação') ||
         JSON.stringify(capaCom(versosCapa)) !== JSON.stringify(s.capa ?? {})
       )
@@ -155,6 +198,7 @@ export default function NovoSermaoTela() {
         saudacao: saudacao === ATUAL ? s.saudacao : saudacao,
         capa: capaCom(versosCapa),
         introducao,
+        tipoSermao: tipoObjetivo,
         blocos,
       };
     });
@@ -186,6 +230,7 @@ export default function NovoSermaoTela() {
       saudacao,
       capa: capaCom(versos),
       introducao,
+      tipoSermao: tipoObjetivo,
       etapa: ETAPA_MONTAGEM,
       // O estudo feito para este texto vai junto e aparece em "Seu estudo" na montagem
       ...(doEstudo
