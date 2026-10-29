@@ -213,6 +213,30 @@ export default function NovoSermaoTela() {
     }
   };
 
+  // As 3 linhas do objetivo: na Aula EBD ficam dentro da capa, logo depois da Lição nº (JILDEAN, 29/10/2026)
+  const objetivoCampos = (
+    <>
+      <Text style={estilos.objetivoTopo}>{ehEBD ? 'Os OBJETIVOS desta LIÇÃO são:' : 'O OBJETIVO deste SERMÃO é:'}</Text>
+      {camposObjetivo.map((valor, i) => (
+        <View key={i} style={estilos.linhaObjetivo}>
+          <Text style={estilos.marcadorObjetivo}>●</Text>
+          <TextInput
+            accessibilityLabel={`Objetivo ${i + 1}`}
+            value={valor}
+            onChangeText={(t) => mudarObjetivo(i, t)}
+            placeholder={
+              i === 0
+                ? 'Opcional. Ex.: mostrar que Deus age mesmo quando o coração endurece'
+                : `Objetivo ${i + 1} (opcional)`
+            }
+            placeholderTextColor={cores.textoSuave}
+            style={[estilos.entrada, { flex: 1 }]}
+          />
+        </View>
+      ))}
+    </>
+  );
+
   return (
     <View style={{ flex: 1 }}>
       {original ? <Stack.Screen options={{ title: 'Dados do sermão' }} /> : null}
@@ -289,6 +313,12 @@ export default function NovoSermaoTela() {
                 <Text style={estilos.tituloCapa}>Capa da {tipoObjetivo}</Text>
                 {campos.map((c) => (
                   <View key={c.id} style={{ gap: 4 }}>
+                    {c.id === 'versiculo' ? (
+                      <View style={{ gap: 8, marginBottom: 6 }}>
+                        <Text style={estilos.rotuloCapa}>Objetivos da lição</Text>
+                        {objetivoCampos}
+                      </View>
+                    ) : null}
                     <Text style={estilos.rotuloCapa}>{c.nome}</Text>
                     <TextInput
                       accessibilityLabel={c.nome}
@@ -302,7 +332,6 @@ export default function NovoSermaoTela() {
                     />
                   </View>
                 ))}
-                <Text style={estilos.suave}>Os objetivos da lição ficam no quadro do objetivo, mais abaixo.</Text>
               </>
             ) : (
               <Text style={estilos.suave}>
@@ -325,29 +354,12 @@ export default function NovoSermaoTela() {
           ))}
         </Cartao>
 
-        <Cartao style={{ gap: 8 }}>
-          <Rotulo>{ehEBD ? 'Objetivos da lição' : 'Objetivo do sermão'}</Rotulo>
-          <Text style={estilos.objetivoTopo}>
-            {ehEBD ? 'Os OBJETIVOS desta LIÇÃO são:' : 'O OBJETIVO deste SERMÃO é:'}
-          </Text>
-          {camposObjetivo.map((valor, i) => (
-            <View key={i} style={estilos.linhaObjetivo}>
-              <Text style={estilos.marcadorObjetivo}>●</Text>
-              <TextInput
-                accessibilityLabel={`Objetivo ${i + 1}`}
-                value={valor}
-                onChangeText={(t) => mudarObjetivo(i, t)}
-                placeholder={
-                  i === 0
-                    ? 'Opcional. Ex.: mostrar que Deus age mesmo quando o coração endurece'
-                    : `Objetivo ${i + 1} (opcional)`
-                }
-                placeholderTextColor={cores.textoSuave}
-                style={[estilos.entrada, { flex: 1 }]}
-              />
-            </View>
-          ))}
-        </Cartao>
+        {ehEBD ? null : (
+          <Cartao style={{ gap: 8 }}>
+            <Rotulo>Objetivo do sermão</Rotulo>
+            {objetivoCampos}
+          </Cartao>
+        )}
 
         <Cartao style={{ gap: 8 }}>
           <Rotulo>Introdução</Rotulo>

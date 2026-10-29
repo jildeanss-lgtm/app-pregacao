@@ -155,12 +155,18 @@ export function blocosDaCapa(tipo: string | undefined, capa: Record<string, stri
         ]
       : [];
   const licao = valor('licao').replace(/^li[çc][ãa]o\s*/i, '');
-  const antes: BlocoInicial[] = [
-    ...(licao ? [{ tipo: 'subtopico' as const, texto: `*LIÇÃO ${licao.toUpperCase()}*`, capa: 'licao' }] : []),
-    ...comTitulo('versiculo', 'VERSÍCULO DO DIA', 'versiculo'),
-    ...comTitulo('verdade', 'VERDADE APLICADA', 'efeito'),
-  ];
-  return { antes, depois: comTitulo('oracao', 'MOMENTO DE ORAÇÃO', 'palavra') };
+  // Os objetivos vêm logo depois da Lição (JILDEAN, 29/10/2026)
+  const antes: BlocoInicial[] = licao
+    ? [{ tipo: 'subtopico', texto: `*LIÇÃO ${licao.toUpperCase()}*`, capa: 'licao' }]
+    : [];
+  return {
+    antes,
+    depois: [
+      ...comTitulo('versiculo', 'VERSÍCULO DO DIA', 'versiculo'),
+      ...comTitulo('verdade', 'VERDADE APLICADA', 'efeito'),
+      ...comTitulo('oracao', 'MOMENTO DE ORAÇÃO', 'palavra'),
+    ],
+  };
 }
 
 // Saudações salvas para escolher ao criar o sermão. "antes" vai na página da saudação (saudação, qual texto,
