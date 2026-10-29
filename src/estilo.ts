@@ -160,6 +160,8 @@ export function tituloDaPagina(blocos: BlocoDaPagina[], i: number) {
 }
 
 export function rotuloVisivel(b: { tipo: TipoBloco; rotulo?: string }) {
+  // O nome "Texto" não aparece em cima da caixa escrita (JILDEAN, 29/10/2026)
+  if (b.rotulo?.trim().toLowerCase() === 'texto') return undefined;
   return b.rotulo ?? (semCorPropria.has(b.tipo) ? nomesBloco[b.tipo] : undefined);
 }
 
