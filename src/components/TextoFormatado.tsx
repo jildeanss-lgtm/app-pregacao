@@ -91,8 +91,9 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false, 
     return (
       <View style={{ gap: 2 }}>
         {linhas.map((l, i) => (
-          <View key={i} style={estilos.item}>
-            <Text style={[base, estilos.marcador]}>•</Text>
+          // Mesmo recuo e mesma bolinha dos pontos do Texto (quadro)
+          <View key={i} style={[estilos.item, { paddingLeft: larguraSeta + 8 }]}>
+            <Text style={[base, estilos.marcador]}>●</Text>
             <Text style={[base, { flex: 1 }]}>{linha(l)}</Text>
           </View>
         ))}
