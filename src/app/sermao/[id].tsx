@@ -30,7 +30,9 @@ const relogio = () => Date.now();
 export default function EditorTela() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const sermao = useSermao(id);
-  const { atualizar, adicionarBloco, remover, mudarEstudo } = useSermoes();
+  const { atualizar, adicionarBloco, remover, mudarEstudo, nuvem, sincronizarAgora } = useSermoes();
+  // Aviso do botão Salvar no fim da edição
+  const [salvo, setSalvo] = useState('');
   const [vendoEstudo, setVendoEstudo] = useState(true);
   // Caixa concluída por último: só ela mostra o "+ Inserir" clarinho embaixo
   const [ultimaConcluida, setUltimaConcluida] = useState<string>();
@@ -264,6 +266,25 @@ export default function EditorTela() {
           <Text style={estilos.meta}>Inserir</Text>
           <ChipsInserir onEscolher={(tipo) => inserirBloco(tipo)} />
         </View>
+        {/* Tudo já é guardado enquanto se escreve; o Salvar confirma e, com o Drive ligado, envia na hora */}
+        <Botao
+          titulo={nuvem.estado === 'sincronizando' ? 'Salvando...' : 'Salvar'}
+          onPress={async () => {
+            setSalvo('');
+            if (!nuvem.ligada) return setSalvo('Sermão salvo neste aparelho.');
+            await sincronizarAgora();
+            setSalvo('pronto');
+          }}
+        />
+        {salvo ? (
+          <Text style={estilos.avisoSalvo}>
+            {salvo !== 'pronto'
+              ? salvo
+              : nuvem.estado === 'ok'
+                ? 'Sermão salvo neste aparelho e no Google Drive.'
+                : `Sermão salvo neste aparelho. ${nuvem.erro ?? 'Não deu para enviar ao Google Drive.'}`}
+          </Text>
+        ) : null}
         <View style={estilos.acoesSermao}>
           <Botao titulo="Pregar" onPress={() => router.push(`/pregar/${sermao.id}`)} style={estilos.acaoSermao} />
           <Botao
@@ -665,6 +686,7 @@ const estilos = StyleSheet.create({
     marginHorizontal: -1,
   },
   linhaMeta: { flexDirection: 'row', gap: 12 },
+  avisoSalvo: { fontSize: 14, fontWeight: '600', color: '#38761D', textAlign: 'center' },
   botoesTopo: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   entradaMeta: {
     fontSize: 13,
