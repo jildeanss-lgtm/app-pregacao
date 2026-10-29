@@ -128,6 +128,17 @@ export default function EditorTela() {
     });
   };
 
+  // Troca o tipo da caixa e mantém o texto; o nome antigo (ex.: "Texto") sai junto
+  const mudarTipo = (blocoId: string, tipo: TipoBloco) => {
+    guardarPasso();
+    atualizar(sermao.id, (s) => ({
+      ...s,
+      blocos: s.blocos.map((b) =>
+        b.id === blocoId ? { id: b.id, tipo, texto: b.texto, novaPagina: b.novaPagina } : b,
+      ),
+    }));
+  };
+
   const apagarBloco = (blocoId: string) => {
     guardarPasso();
     atualizar(sermao.id, (s) => ({ ...s, blocos: s.blocos.filter((b) => b.id !== blocoId) }));
@@ -285,6 +296,7 @@ export default function EditorTela() {
                       onDescer={() => mover(i, 1)}
                       onApagar={() => apagarBloco(bloco.id)}
                       onInserir={(tipo) => inserirBloco(tipo, bloco.id)}
+                      onMudarTipo={(tipo) => mudarTipo(bloco.id, tipo)}
                       mostrarInserir={bloco.id === (ultimaConcluida ?? ultimaPreenchida)}
                       onConcluir={() => setUltimaConcluida(bloco.id)}
                     />
@@ -381,6 +393,7 @@ type BlocoEditorProps = {
   onDescer: () => void;
   onApagar: () => void;
   onInserir: (tipo: TipoBloco) => void;
+  onMudarTipo: (tipo: TipoBloco) => void;
   // "+ Inserir" clarinho embaixo (só na caixa concluída por último)
   mostrarInserir: boolean;
   onConcluir: () => void;
@@ -399,6 +412,7 @@ function BlocoEditor({
   onDescer,
   onApagar,
   onInserir,
+  onMudarTipo,
   mostrarInserir,
   onConcluir,
 }: BlocoEditorProps) {
@@ -498,6 +512,15 @@ function BlocoEditor({
               setInserindo(false);
               setFocado(false);
               onInserir(tipo);
+            }}
+          />
+          <Text style={[estilos.meta, { marginTop: 10 }]}>Mudar esta caixa para</Text>
+          <ChipsInserir
+            sem={bloco.tipo}
+            onEscolher={(tipo) => {
+              setInserindo(false);
+              setFocado(false);
+              onMudarTipo(tipo);
             }}
           />
         </View>

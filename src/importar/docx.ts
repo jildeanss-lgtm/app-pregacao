@@ -49,6 +49,8 @@ export type Paragrafo = {
   centro: boolean;
   lista: boolean;
   italico: boolean;
+  // Quebra de página antes deste parágrafo no documento original
+  quebra?: boolean;
   // Estilo de título do Word/Docs: 1 = Título 1, 2 = Título 2 ou 3
   estilo?: 1 | 2;
 };
@@ -114,6 +116,7 @@ export function lerParagrafos(xml: string): Paragrafo[] {
       fundo: maior(pesoFundo),
       centro: /<w:jc w:val="center"/.test(props),
       lista: props.includes('<w:numPr>'),
+      quebra: /<w:pageBreakBefore(?: w:val="(?:1|true|on)")?\s*\/>/.test(props) || p.includes('w:type="page"'),
       italico: letras > 0 && italicos / letras > 0.6,
       estilo: /<w:pStyle w:val="(?:Heading|Ttulo|Titulo|Title)1?"/i.test(props)
         ? 1
@@ -239,8 +242,16 @@ export function sermaoDosParagrafos(paragrafos: Paragrafo[], nomeArquivo = ''): 
     return pontos;
   };
 
+  let quebrar = false;
+  // A caixa que vem depois de uma quebra de página do documento começa uma página nova
+  const adicionar = (b: BlocoInicial) => {
+    blocos.push(quebrar ? { ...b, novaPagina: true } : b);
+    quebrar = false;
+  };
+
   while (i < lista.length) {
     const p = lista[i++];
+    if (p.quebra) quebrar = true;
     const nome = semChaves(p.texto);
 
     if (p.tipo === 'titulo') {
@@ -252,7 +263,8 @@ export function sermaoDosParagrafos(paragrafos: Paragrafo[], nomeArquivo = ''): 
         }
         continue;
       }
-      blocos.push({ tipo: 'topico', texto: p.texto });
+      // Os títulos viram subtópicos: as páginas seguem as quebras do documento original, não os títulos
+      adicionar({ tipo: 'subtopico', texto: p.texto });
       if (/^texto (de )?refer/i.test(nome) && lista[i]?.tipo === 'biblia' && !textoBase) {
         const [cab, verso] = [semChaves(lista[i].texto), semChaves(lista[i + 1]?.texto ?? '')];
         const n = verso.match(/^(\d+(?:\s*[-–]\s*\d+)?)/)?.[1];
@@ -271,12 +283,12 @@ export function sermaoDosParagrafos(paragrafos: Paragrafo[], nomeArquivo = ''): 
         const [primeiro, ...resto] = linhas.slice(1);
         const verso = primeiro.replace(/^\s*\*?(\d+)\*?\s*[-–]?\s*/, '$1 - ');
         const m = verso.match(/^(\d+) - (.*)$/s);
-        blocos.push({
+        adicionar({
           tipo: 'versiculo',
           texto: [m ? `${cab}:${m[1]} - ${m[2]}` : `${cab}\n${primeiro}`, ...resto].join('\n'),
         });
       } else {
-        blocos.push({ tipo: 'versiculo', texto: linhas.join('\n') });
+        adicionar({ tipo: 'versiculo', texto: linhas.join('\n') });
       }
       continue;
     }
@@ -284,7 +296,7 @@ export function sermaoDosParagrafos(paragrafos: Paragrafo[], nomeArquivo = ''): 
     if (p.tipo === 'efeito') {
       const linhas = [p.texto];
       while (lista[i]?.tipo === 'efeito') linhas.push(lista[i++].texto);
-      blocos.push({ tipo: 'efeito', texto: linhas.join('\n') });
+      adicionar({ tipo: 'efeito', texto: linhas.join('\n') });
       continue;
     }
 
@@ -292,15 +304,15 @@ export function sermaoDosParagrafos(paragrafos: Paragrafo[], nomeArquivo = ''): 
       // Linha azul-escura com uma lista embaixo: é a frase de um quadro, não um subtópico
       const pontos = p.fundo ? [] : pontosDepois();
       if (pontos.length) {
-        blocos.push({ tipo: 'quadro', texto: [p.texto, ...pontos].join('\n') });
+        adicionar({ tipo: 'quadro', texto: [p.texto, ...pontos].join('\n') });
         continue;
       }
-      blocos.push({ tipo: 'subtopico', texto: p.texto });
+      adicionar({ tipo: 'subtopico', texto: p.texto });
       continue;
     }
 
     if (p.tipo === 'citacao') {
-      blocos.push({ tipo: 'citacao', texto: p.texto });
+      adicionar({ tipo: 'citacao', texto: p.texto });
       continue;
     }
 
@@ -308,18 +320,18 @@ export function sermaoDosParagrafos(paragrafos: Paragrafo[], nomeArquivo = ''): 
       const pontos = pontosDepois();
       if (pontos.length) {
         const tipo = p.tipo === 'pergunta' ? 'quadroPerguntas' : p.tipo === 'aplicacao' ? 'aplicacao' : 'quadro';
-        blocos.push({ tipo, texto: [p.texto, ...pontos].join('\n') });
+        adicionar({ tipo, texto: [p.texto, ...pontos].join('\n') });
       } else if (p.tipo === 'texto') {
-        blocos.push({ tipo: 'palavra', rotulo: ROTULO_TEXTO, texto: p.texto });
+        adicionar({ tipo: 'palavra', rotulo: ROTULO_TEXTO, texto: p.texto });
       } else {
-        blocos.push({ tipo: p.tipo, texto: p.texto });
+        adicionar({ tipo: p.tipo, texto: p.texto });
       }
       continue;
     }
 
     // Lista em preto sem frase em cima
     const pontos = [p.texto, ...pontosDepois()];
-    blocos.push({ tipo: 'pontos', texto: pontos.join('\n') });
+    adicionar({ tipo: 'pontos', texto: pontos.join('\n') });
   }
 
   return {
