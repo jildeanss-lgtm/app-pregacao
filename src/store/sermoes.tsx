@@ -69,6 +69,8 @@ export type Sermao = {
   capa?: Record<string, string>;
   // Opção de introdução escolhida ao criar o sermão
   introducao?: OpcaoIntroducao;
+  // As caixas da capa já foram coladas nos títulos uma vez (depois a escolha de cada caixa vale)
+  capaColada?: boolean;
   // Tipo de sermão (Pregação, Doutrinário, Estudo, Aula EBD)
   tipoSermao?: string;
   // Enquanto a IA escreve o objetivo e a introdução de um sermão novo, e o erro se não der certo
@@ -144,6 +146,7 @@ export type NovoSermao = {
   capa?: Record<string, string>;
   introducao?: OpcaoIntroducao;
   tipoSermao?: string;
+  capaColada?: boolean;
   blocos: BlocoInicial[];
 };
 
@@ -367,6 +370,17 @@ function migrarCapa(s: Sermao): Sermao {
         { ...obj, texto: `\n${obj.texto.slice(fraseEBD.length)}` },
         ...s.blocos.slice(objetivoEBD + 1),
       ],
+    };
+  }
+  // Uma vez só: as caixas da capa ficam sem espaço embaixo do título (JILDEAN, 29/10/2026)
+  if (!s.capaColada && s.blocos?.some((b) => b.capa)) {
+    const titulos = new Set(s.blocos.filter((b) => b.capa && b.tipo.startsWith('subtopico')).map((b) => b.id));
+    s = {
+      ...s,
+      capaColada: true,
+      blocos: s.blocos.map((b, i) =>
+        i > 0 && titulos.has(s.blocos[i - 1].id) && !titulos.has(b.id) ? { ...b, colado: true } : b,
+      ),
     };
   }
   if (!s.blocos?.some((b) => b.capa && (b.tipo === 'subtopico' || repetido(b.texto)))) return s;

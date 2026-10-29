@@ -156,6 +156,7 @@ export default function NovoSermaoTela() {
             tipo: 'objetivo',
             rotulo: `${ROTULO_OBJETIVO}${tipoObjetivo}`,
             texto: `${inicioObjetivo(tipoObjetivo)}${objetivos}`,
+            ...(ehEBD ? { colado: true } : {}),
           },
           ...blocos,
         ];
@@ -167,6 +168,7 @@ export default function NovoSermaoTela() {
                 ...b,
                 rotulo: `${ROTULO_OBJETIVO}${tipoObjetivo}`,
                 texto: objetivos ? `${inicioObjetivo(tipoObjetivo)}${objetivos}` : '',
+                colado: ehEBD || undefined,
               }
             : b,
         );
@@ -231,6 +233,7 @@ export default function NovoSermaoTela() {
       capa: capaCom(versos),
       introducao,
       tipoSermao: tipoObjetivo,
+      capaColada: true,
       etapa: ETAPA_MONTAGEM,
       // O estudo feito para este texto vai junto e aparece em "Seu estudo" na montagem
       ...(doEstudo

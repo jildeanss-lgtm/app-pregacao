@@ -109,6 +109,8 @@ export type BlocoInicial = {
   novaPagina?: boolean;
   // Caixa da capa do tipo de sermão (ver camposCapa), refeita quando os dados do sermão mudam
   capa?: string;
+  // Sem o espaço que separa esta caixa da de cima
+  colado?: boolean;
 };
 
 export type OpcoesNovoSermao = {
@@ -154,7 +156,7 @@ export function blocosDaCapa(tipo: string | undefined, capa: Record<string, stri
     valor(id)
       ? [
           { tipo: 'subtopicoVerde', texto: `*${titulo}*`, capa: id },
-          { tipo: tipoBloco, rotulo: '', texto: valor(id), capa: id },
+          { tipo: tipoBloco, rotulo: '', texto: valor(id), capa: id, colado: true },
         ]
       : [];
   // Os objetivos abrem a capa; as outras caixas vêm logo depois deles (JILDEAN, 29/10/2026)
@@ -171,7 +173,7 @@ export function blocosDaCapa(tipo: string | undefined, capa: Record<string, stri
       ...(tipo === 'Aula EBD' && capa?.texto?.trim()
         ? [
             { tipo: 'subtopicoVerde' as const, texto: '*TEXTO DE REFERÊNCIA*', capa: 'texto' },
-            { tipo: 'versiculo' as const, texto: capa.texto.trim(), capa: 'texto' },
+            { tipo: 'versiculo' as const, texto: capa.texto.trim(), capa: 'texto', colado: true },
           ]
         : []),
     ],
@@ -389,6 +391,8 @@ export function montarBlocos(o: OpcoesNovoSermao): BlocoInicial[] {
       tipo: 'objetivo',
       rotulo: o.tipoObjetivo ? `Objetivo do sermão: ${o.tipoObjetivo}` : 'Objetivo do sermão',
       texto: o.objetivo.trim() ? `${inicioObjetivo(o.tipoObjetivo)}${o.objetivo.trim()}` : '',
+      // Na capa da EBD as caixas ficam coladas no título de cima (JILDEAN, 29/10/2026)
+      ...(o.tipoObjetivo === 'Aula EBD' ? { colado: true } : {}),
     },
     ...capa.depois,
     ...(o.saudacao?.antes ?? []).map(comTexto),
