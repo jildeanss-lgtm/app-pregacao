@@ -103,8 +103,8 @@ export type OpcoesNovoSermao = {
   // Texto dos versículos, que já entra no bloco Texto referência
   versos?: string;
   introducao: OpcaoIntroducao;
-  // id de uma das saudações salvas; vazio = sem saudação
-  saudacao?: string;
+  // Blocos da saudação escolhida (já com as edições do JILDEAN); sem ela, o sermão começa no texto
+  saudacao?: BlocosSaudacao;
 };
 
 // Saudações salvas para escolher ao criar o sermão. "antes" vai na página da saudação (saudação, qual texto,
@@ -153,6 +153,14 @@ const agradecimentos: BlocoInicial[] = [
     ].join('\n'),
   },
 ];
+
+// Na saudação guardada, o lugar do texto do sermão (ex.: "ABRA sua BÍBLIA: {texto}")
+export const MARCA_TEXTO = '{texto}';
+export type BlocosSaudacao = { antes: BlocoInicial[]; depois: BlocoInicial[] };
+export const saudacaoOriginal = (id: string): BlocosSaudacao | undefined => {
+  const s = saudacoes.find((x) => x.id === id);
+  return s && { antes: s.antes(MARCA_TEXTO), depois: s.depois };
+};
 
 export const saudacoes: Saudacao[] = [
   {
@@ -299,21 +307,21 @@ function topico(n: number, modelo: Modelo): BlocoInicial[] {
 // texto referência, introdução, três tópicos e conclusão
 export function montarBlocos(o: OpcoesNovoSermao): BlocoInicial[] {
   const intro = opcoesIntroducao.find((i) => i.id === o.introducao)!;
-  const saudacao = saudacoes.find((x) => x.id === o.saudacao);
+  const comTexto = (b: BlocoInicial) => ({ ...b, texto: b.texto?.split(MARCA_TEXTO).join(o.textoBase || '...') });
   return [
     {
       tipo: 'objetivo',
       rotulo: o.tipoObjetivo ? `Objetivo do sermão: ${o.tipoObjetivo}` : 'Objetivo do sermão',
       texto: o.objetivo.trim() ? `O *OBJETIVO* deste *SERMÃO* é:\n${o.objetivo.trim()}` : '',
     },
-    ...(saudacao?.antes(o.textoBase) ?? []),
+    ...(o.saudacao?.antes ?? []).map(comTexto),
     {
       tipo: 'versiculo',
       rotulo: 'Texto',
       texto: o.versos ? `${o.textoBase} - ${o.versos}` : '',
       dica: o.textoBase ? `${o.textoBase} - cole ou escreva o texto` : undefined,
     },
-    ...(saudacao?.depois ?? []),
+    ...(o.saudacao?.depois ?? []).map(comTexto),
     { tipo: 'introducao', rotulo: `Introdução: ${intro.nome}`, dica: intro.dica },
     ...[1, 2, 3].flatMap((n) => topico(n, o.modelo)),
     { tipo: 'conclusao' },

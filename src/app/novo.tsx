@@ -15,6 +15,7 @@ import {
 import { generos, sugerirGenero, type Genero } from '../data/roteiro';
 import { ETAPA_MONTAGEM } from '../data/etapas';
 import { lerChave, prepararSermao, textoDosVersiculos } from '../ia/estudo';
+import { lerSaudacao } from '../store/saudacoes';
 import { useSermoes } from '../store/sermoes';
 import { cores, larguraConteudo } from '../theme';
 
@@ -49,7 +50,11 @@ export default function NovoSermaoTela() {
     setCriando(true);
     const intro = opcoesIntroducao.find((o) => o.id === introducao)!;
     const doEstudo = textoBase === estudo.textoBase;
-    const [versos, chave] = await Promise.all([textoDosVersiculos(textoBase).catch(() => ''), lerChave()]);
+    const [versos, chave, blocosSaudacao] = await Promise.all([
+      textoDosVersiculos(textoBase).catch(() => ''),
+      lerChave(),
+      saudacao ? lerSaudacao(saudacao) : undefined,
+    ]);
     const s = criar({
       titulo,
       textoBase,
@@ -68,7 +73,7 @@ export default function NovoSermaoTela() {
             resumo: estudo.resumo,
           }
         : {}),
-      blocos: montarBlocos({ modelo, textoBase, objetivo, tipoObjetivo, versos, introducao, saudacao }),
+      blocos: montarBlocos({ modelo, textoBase, objetivo, tipoObjetivo, versos, introducao, saudacao: blocosSaudacao }),
     });
     router.replace(`/sermao/${s.id}`);
     if (!chave || !textoBase.trim()) return;
@@ -245,6 +250,7 @@ export default function NovoSermaoTela() {
               titulo={o.nome}
               descricao={o.resumo}
               onPress={() => setSaudacao(o.id)}
+              onEditar={() => router.push(`/saudacao/${o.id}`)}
             />
           ))}
           <Escolha ativo={!saudacao} titulo="Sem saudação" onPress={() => setSaudacao('')} />
@@ -262,25 +268,40 @@ function Escolha({
   titulo,
   descricao,
   onPress,
+  onEditar,
 }: {
   ativo: boolean;
   titulo: string;
   descricao?: string;
   onPress: () => void;
+  // Botão "Editar" do lado direito (saudações)
+  onEditar?: () => void;
 }) {
   return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ checked: ativo }}
-      onPress={onPress}
-      style={[estilos.escolha, ativo && estilos.escolhaAtiva]}
-    >
-      <Text style={estilos.titulo}>
-        {ativo ? '◉ ' : '○ '}
-        {titulo}
-      </Text>
-      {descricao ? <Text style={estilos.suave}>{descricao}</Text> : null}
-    </Pressable>
+    <View style={[estilos.escolha, ativo && estilos.escolhaAtiva, estilos.linhaEscolha]}>
+      <Pressable
+        accessibilityRole="radio"
+        accessibilityState={{ checked: ativo }}
+        onPress={onPress}
+        style={{ flex: 1, padding: 12 }}
+      >
+        <Text style={estilos.titulo}>
+          {ativo ? '◉ ' : '○ '}
+          {titulo}
+        </Text>
+        {descricao ? <Text style={estilos.suave}>{descricao}</Text> : null}
+      </Pressable>
+      {onEditar ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Editar ${titulo}`}
+          onPress={onEditar}
+          style={estilos.editar}
+        >
+          <Text style={estilos.textoEditar}>Editar</Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
@@ -290,7 +311,18 @@ const estilos = StyleSheet.create({
   linha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   titulo: { fontSize: 16, fontWeight: '600', color: cores.texto },
   suave: { fontSize: 13, color: cores.textoSuave, marginTop: 2 },
-  escolha: { padding: 12, borderRadius: 10, borderWidth: 1, borderColor: cores.borda, minHeight: 44 },
+  escolha: { borderRadius: 10, borderWidth: 1, borderColor: cores.borda, minHeight: 44 },
+  linhaEscolha: { flexDirection: 'row', alignItems: 'center' },
+  editar: {
+    minHeight: 36,
+    paddingHorizontal: 14,
+    marginRight: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: cores.destaque,
+    justifyContent: 'center',
+  },
+  textoEditar: { fontSize: 14, fontWeight: '700', color: cores.destaque },
   escolhaAtiva: { borderColor: cores.destaque, backgroundColor: cores.destaqueFundo },
   pilula: {
     minHeight: 44,
