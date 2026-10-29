@@ -12,6 +12,7 @@ export const tiposParaAdicionar: TipoBloco[] = [
   'quadroPerguntas',
   'aplicacao',
   'subtopico',
+  'subtopicoVerde',
   'citacao',
 ];
 

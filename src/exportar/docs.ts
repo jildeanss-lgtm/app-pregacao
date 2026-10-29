@@ -71,6 +71,8 @@ function blocoParaDocs(b: Bloco, quebra: boolean): string {
       return paragrafo(comChaves(b.texto), { ...base, fundo: '#00FF00' });
     case 'subtopico':
       return paragrafo(comChaves(b.texto), { ...base, fundo: '#B6D7A8' });
+    case 'subtopicoVerde':
+      return paragrafo(comChaves(b.texto), { ...base, fundo: '#00FF00' });
     case 'versiculo': {
       // "Livro 1" numa linha e cada versículo na sua, como nos esboços: a leitura junta de novo
       const { cabecalho, linhas } = dividirVersiculo(b.texto);

@@ -51,6 +51,14 @@ export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
     simboloSeta: '➢',
     autoDestaque: true,
   },
+  // Subtópico com o mesmo fundo verde do tópico (JILDEAN, 29/10/2026)
+  subtopicoVerde: {
+    cor: coresPregacao.texto,
+    fundo: coresPregacao.fundoTopico,
+    seta: true,
+    simboloSeta: '➢',
+    autoDestaque: true,
+  },
   quadro: {
     cor: coresPregacao.texto,
     quadro: true,
