@@ -440,6 +440,17 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar, onIn
           <TextoFormatado tipo={bloco.tipo} texto={bloco.texto} semMoldura />
         </Pressable>
       )}
+      {/* Caixa já concluída: um "+ Inserir" clarinho logo abaixo cria a próxima sem abrir esta de novo */}
+      {!focado && !inserindo && !vazio ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Inserir caixa abaixo"
+          onPress={() => setInserindo(true)}
+          style={({ pressed }) => [estilos.inserirAbaixo, pressed && { opacity: 1 }]}
+        >
+          <Text style={estilos.textoInserirAbaixo}>+ Inserir</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -622,6 +633,19 @@ const estilos = StyleSheet.create({
   },
   botaoInserirAberto: { backgroundColor: cores.destaque },
   textoInserir: { fontSize: 12, fontWeight: '800', color: cores.destaque, letterSpacing: 0.4 },
+  inserirAbaixo: {
+    alignSelf: 'flex-start',
+    minHeight: 28,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#BDBDBD',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    opacity: 0.45,
+    marginTop: 4,
+  },
+  textoInserirAbaixo: { fontSize: 12, fontWeight: '600', color: '#737373' },
   menuInserir: { gap: 8, paddingVertical: 8 },
   acao: { width: 36, height: 32, alignItems: 'center', justifyContent: 'center' },
 });
