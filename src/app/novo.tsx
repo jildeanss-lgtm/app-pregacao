@@ -1,12 +1,13 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Botao, Cartao, Rotulo } from '../components/ui';
 import { BarraAbas } from '../components/BarraAbas';
 import {
   modelos,
   montarBlocos,
   opcoesIntroducao,
+  saudacoes,
   objetivosSermao,
   type Modelo,
   type OpcaoIntroducao,
@@ -36,7 +37,7 @@ export default function NovoSermaoTela() {
   const [introducao, setIntroducao] = useState<OpcaoIntroducao>('citacoes');
   const [generoEscolhido, setGenero] = useState<Genero>();
   // O corpo começa em branco: a saudação só entra se for pedida
-  const [comSaudacao, setComSaudacao] = useState(false);
+  const [saudacao, setSaudacao] = useState('');
   // Temas sugeridos pela IA no estudo deste texto
   const temas = textoBase === estudo.textoBase ? (estudo.temas ?? []) : [];
 
@@ -67,7 +68,7 @@ export default function NovoSermaoTela() {
             resumo: estudo.resumo,
           }
         : {}),
-      blocos: montarBlocos({ modelo, textoBase, objetivo, tipoObjetivo, versos, introducao, comSaudacao }),
+      blocos: montarBlocos({ modelo, textoBase, objetivo, tipoObjetivo, versos, introducao, saudacao }),
     });
     router.replace(`/sermao/${s.id}`);
     if (!chave || !textoBase.trim()) return;
@@ -235,17 +236,18 @@ export default function NovoSermaoTela() {
           <Text style={estilos.suave}>Usado no estudo do texto, na etapa de observação.</Text>
         </Cartao>
 
-        <Cartao style={[estilos.linha, { alignItems: 'center', justifyContent: 'space-between' }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={estilos.titulo}>Incluir minha saudação</Text>
-            <Text style={estilos.suave}>Louvado seja o nome de Jesus, gratidão, abra sua Bíblia, Mateus 13:19</Text>
-          </View>
-          <Switch
-            accessibilityLabel="Incluir minha saudação"
-            value={comSaudacao}
-            onValueChange={setComSaudacao}
-            trackColor={{ true: cores.destaque, false: cores.bordaForte }}
-          />
+        <Cartao style={{ gap: 8 }}>
+          <Rotulo>Saudação</Rotulo>
+          {saudacoes.map((o) => (
+            <Escolha
+              key={o.id}
+              ativo={saudacao === o.id}
+              titulo={o.nome}
+              descricao={o.resumo}
+              onPress={() => setSaudacao(o.id)}
+            />
+          ))}
+          <Escolha ativo={!saudacao} titulo="Sem saudação" onPress={() => setSaudacao('')} />
         </Cartao>
 
         <Botao titulo={criando ? 'Criando...' : 'Criar sermão'} onPress={criarSermao} />

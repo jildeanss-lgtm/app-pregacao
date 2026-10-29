@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import { modelos } from '../data/modelos';
 import {
   abreNovaPagina,
+  tituloDaPagina,
   destacarTudo,
   dividirDestaques,
   dividirQuadro,
@@ -21,11 +22,17 @@ function escapar(texto: string) {
 function comDestaques(texto: string, corChave?: string) {
   const abre = corChave ? `<b style="color:${corChave}"><u>` : '<b><u>';
   return dividirDestaques(texto)
-    .map((p) => (p.chave ? `${abre}${escapar(p.texto)}</u></b>` : escapar(p.texto)))
+    .map((p) => {
+      const trecho = p.chave ? `${p.marca ? '<b><u>' : abre}${escapar(p.texto)}</u></b>` : escapar(p.texto);
+      if (!p.marca) return trecho;
+      const { cor, fundo, italico } = p.marca;
+      const estilo = [cor && `color:${cor}`, fundo && `background:${fundo}`, italico && 'font-style:italic'];
+      return `<span style="${estilo.filter(Boolean).join(';')}">${trecho}</span>`;
+    })
     .join('');
 }
 
-function blocoHtml(b: Bloco) {
+function blocoHtml(b: Bloco, titulo?: string) {
   const e = estiloBloco[b.tipo];
   const estilo = [
     `color:${e.cor}`,
@@ -36,7 +43,7 @@ function blocoHtml(b: Bloco) {
     .filter(Boolean)
     .join(';');
 
-  const nome = rotuloVisivel(b);
+  const nome = titulo ? undefined : rotuloVisivel(b);
   const rotulo = nome ? `<span class="rotulo">${escapar(nome)}</span><br>` : '';
   if (e.quadro) {
     const { subtopico, pontos } = dividirQuadro(b.texto);
@@ -66,9 +73,14 @@ function blocoHtml(b: Bloco) {
 
 export function htmlDoSermao(s: Sermao) {
   const blocos = s.blocos
-    .map((b, i) => ({ b, nova: abreNovaPagina(s.blocos, i) }))
+    .map((b, i) => ({ b, nova: abreNovaPagina(s.blocos, i), titulo: tituloDaPagina(s.blocos, i) }))
     .filter(({ b }) => b.texto.trim())
-    .map(({ b, nova }) => (nova ? `<div class="nova-pagina"></div>${blocoHtml(b)}` : blocoHtml(b)))
+    .map(
+      ({ b, nova, titulo }) =>
+        (nova ? '<div class="nova-pagina"></div>' : '') +
+        (titulo ? `<p class="topico"><span style="background:#00FF00">${comDestaques(titulo)}</span></p>` : '') +
+        blocoHtml(b, titulo),
+    )
     .join('\n');
 
   const modelo = modelos.find((m) => m.id === s.modelo)?.nome ?? '';
@@ -83,7 +95,7 @@ export function htmlDoSermao(s: Sermao) {
   .meta { font-size: 10pt; color: #5B6470; margin-bottom: 18pt; }
   p { margin: 6pt 0; }
   ul { margin: 2pt 0 8pt; padding-left: 22pt; }
-  .topico { margin: 18pt 0 6pt; font-size: 14pt; }
+  .topico { margin: 18pt 0 6pt; font-size: 15.5pt; }
   .topico span { padding: 1pt 4pt; }
   .quadro { width: 100%; border-collapse: collapse; border: 1.5pt solid #000; margin: 8pt 0; }
   .quadro th { text-align: left; font-weight: normal; background: #F1EFE9; border-bottom: 1.5pt solid #000; padding: 4pt 8pt; }

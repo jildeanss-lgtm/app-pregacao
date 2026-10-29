@@ -103,45 +103,179 @@ export type OpcoesNovoSermao = {
   // Texto dos versículos, que já entra no bloco Texto referência
   versos?: string;
   introducao: OpcaoIntroducao;
-  comSaudacao: boolean;
+  // id de uma das saudações salvas; vazio = sem saudação
+  saudacao?: string;
 };
 
-function saudacao(textoBase: string): BlocoInicial[] {
-  return [
-    {
-      tipo: 'saudacao',
-      texto: [
-        '*LOUVADO* para *SEMPRE* o *NOME SANTO* de *JESUS*',
-        'Porque *DELE* e *POR ELE* são *TODAS* as *COISAS*, *GLÓRIA* pois *SOMENTE* a ele *ETERNAMENTE*',
-        'Queridos irmãos, *MINHA SAUDAÇÃO* é com a *PAZ DO SENHOR*!',
-      ].join('\n'),
-    },
-    { tipo: 'pergunta', texto: '*QUEM VEIO ADORAR* ao *SENHOR*?' },
-    { tipo: 'frase', texto: `*ABRA* sua *BÍBLIA*: ${textoBase || '...'}` },
-    {
-      tipo: 'pontos',
-      rotulo: 'Enquanto você procura, eu queria',
-      texto: [
-        '*TRIBUTAR* a Deus a minha gratidão pelo privilégio de estar com os irmãos',
-        '*ESTENDER GRATIDÃO* ao pastor ... pelo convite',
-        '*DEIXAR MEU RESPEITO* aos homens de Deus que já ministraram aqui',
-        '*TRAGO* o *ABRAÇO* do meu pastor',
-      ].join('\n'),
-    },
-    { tipo: 'frase', texto: '*DIGA AO SEU IRMÃO*: Deus tem uma *PALAVRA* para o seu *CORAÇÃO*' },
-    {
-      tipo: 'pontos',
-      rotulo: 'Para isso, eu preciso',
-      texto: 'Dos próximos minutos da sua *atenção*\nPara você *ENTENDER* a *MENSAGEM* que *DEUS* tem',
-    },
-    {
-      tipo: 'versiculo',
-      texto:
-        'Mateus 13:19 - Quando alguém ouve a *palavra do Reino* e *não a entende*, o maligno vem e *arranca* o que foi semeado em seu *coração*',
-    },
-    { tipo: 'efeito', texto: '*PALAVRA* de Deus *NÃO VOLTA VAZIA*, mas a *TERRA* do seu *CORAÇÃO* tem que *SER BOA*' },
-  ];
-}
+// Saudações salvas para escolher ao criar o sermão. "antes" vai na página da saudação (saudação, qual texto,
+// agradecimentos); "depois" vem logo após a leitura do texto. Cores dentro da linha: [fundo verde]...[/] etc.
+export type Saudacao = {
+  id: string;
+  nome: string;
+  resumo: string;
+  antes: (textoBase: string) => BlocoInicial[];
+  depois: BlocoInicial[];
+};
+
+const depoisPadrao: BlocoInicial[] = [
+  {
+    tipo: 'frase',
+    texto: '[fundo verde]*ASSENTE-SE E DIGA IRMÃO*[/]: [fundo verde]*DEUS TEM* uma *PALAVRA* ao seu *CORAÇÃO*[/]',
+  },
+  {
+    tipo: 'aplicacao',
+    texto: [
+      '*PARA ISSO*, eu *PRECISO* dos *próximos minutos* de sua *atenção*',
+      '*Nós já cantamos*, *alegramos*, *Esqueça Celular*, *Irmão*',
+      'Para você *ENTENDER* a *MENSAGEM* que *DEUS* tem',
+    ].join('\n'),
+  },
+  {
+    tipo: 'versiculo',
+    texto:
+      'Mateus 13:19 - *Alguém ouve* a *palavra do reino* e *não entende*, *vem o maligno* e *arrebata* o que foi *semeado* no *coração*',
+  },
+  {
+    tipo: 'efeito',
+    texto: '*PALAVRA* de Deus *NÃO VOLTA VAZIA*,\nMas a *TERRA* do seu *CORAÇÃO* tem que *SER BOA*',
+  },
+];
+
+const agradecimentos: BlocoInicial[] = [
+  { tipo: 'frase', texto: '[fundo verde]*AGRADECIMENTOS*[/]:' },
+  {
+    tipo: 'pontos',
+    rotulo: 'Enquanto você procura, eu queria',
+    texto: [
+      '[azul]*Tributar a Deus* a *minha gratidão* pelo *privilégio de estar* com os irmãos para juntos adorarmos aquele que é digno de toda honra, glória e louvor[/]',
+      '[azul]*Estender meus agradecimentos* ao *anjo* da igreja, ao *líder espiritual* desta casa, ao *mui digno* e *nobre* Pr. ...[/]',
+      '[azul]*Minha gratidão se estende* a todo o *corpo de obreiros* e *membros desta casa*. *É uma honra servir* a essa *casa*[/]',
+    ].join('\n'),
+  },
+];
+
+export const saudacoes: Saudacao[] = [
+  {
+    id: 'louvado',
+    nome: 'Louvado seja o nome de Jesus',
+    resumo: 'Louvado seja, quem veio adorar, abra sua Bíblia, gratidão',
+    antes: (textoBase) => [
+      {
+        tipo: 'saudacao',
+        texto: [
+          '*LOUVADO* para *SEMPRE* o *NOME SANTO* de *JESUS*',
+          'Porque *DELE* e *POR ELE* são *TODAS* as *COISAS*, *GLÓRIA* pois *SOMENTE* a ele *ETERNAMENTE*',
+          'Queridos irmãos, *MINHA SAUDAÇÃO* é com a *PAZ DO SENHOR*!',
+        ].join('\n'),
+      },
+      { tipo: 'pergunta', texto: '*QUEM VEIO ADORAR* ao *SENHOR*?' },
+      { tipo: 'frase', texto: `[fundo verde]*ABRA* sua *BÍBLIA*[/]: [vermelho]*${textoBase || '...'}*[/]` },
+      ...agradecimentos,
+    ],
+    depois: depoisPadrao,
+  },
+  {
+    id: 'adoracao',
+    nome: 'Jesus está neste lugar (adoração)',
+    resumo: 'Paz do Senhor, Jesus está neste lugar, Deus não precisa da nossa adoração',
+    antes: (textoBase) => [
+      { tipo: 'frase', texto: '[fundo verde]*Meus irmãos, recebam todos a PAZ DO SENHOR!!*[/]' },
+      { tipo: 'frase', texto: '*JESUS* está *NESTE LUGAR*' },
+      {
+        tipo: 'pontos',
+        texto:
+          '[vermelho]*Onde estiver* 2 *ou* 3, *Reunidos* em *meu nome* *Ali me faço presente*[/]\n*Não é qualquer reunião*, *ajuntamento*',
+      },
+      { tipo: 'efeito', texto: '*QUANTOS VIERAM ADORAR*?' },
+      { tipo: 'frase', texto: '*APRENDI* na *BÍBLIA* que' },
+      {
+        tipo: 'pontos',
+        texto: [
+          '*Deus só vem* em *um lugar quando:*',
+          '*Preparamos* o *ambiente* para Ele',
+          '*A glória só desceu* depois *tabernáculo* todo *preparado*',
+        ].join('\n'),
+      },
+      { tipo: 'frase', texto: '*DEUS* não *PRECISA* da *NOSSA ADORAÇÃO*' },
+      {
+        tipo: 'pontos',
+        texto: '*Se eu não adorar*\n*Ele continua* sendo *adorado*\n*ANJOS*: [vermelho]*Santo*, *Santo*, *Santo*[/]',
+      },
+      { tipo: 'frase', texto: '*SABE POR QUE, ELE PEDE* para você *ADORAR*?' },
+      { tipo: 'efeito', texto: '*ADORAÇÃO DEIXA* você *PARECIDO*\n*COM AQUILO* que você *ADORA*' },
+      { tipo: 'palavra', rotulo: '', texto: '[verde]*SE ADORA*[/]' },
+      {
+        tipo: 'pontos',
+        texto: [
+          '[verde]*COISAS*, se torna *IDOLATRA*[/]',
+          '[verde]*DINHEIRO*, se torna *AVARENTA*[/]',
+          '[verde]*DEUS*, se torna *AQUILO NASCEU SER*:[/] [vermelho]*IMAGEM* e *SEMELHANÇA*[/]',
+        ].join('\n'),
+      },
+      { tipo: 'frase', texto: `[fundo verde]*ABRA* sua *BÍBLIA*[/]: [fundo amarelo]*${textoBase || '...'}*[/]` },
+      ...agradecimentos,
+    ],
+    depois: depoisPadrao,
+  },
+  {
+    id: 'autoridade',
+    nome: 'Quem tem autoridade (corpo, alma e espírito)',
+    resumo: 'Paz do Senhor, quem tem autoridade no ambiente, repita esse versículo',
+    antes: (textoBase) => [
+      { tipo: 'frase', texto: '[fundo verde]*Meus irmãos, recebam todos a PAZ DO SENHOR!!*[/]' },
+      { tipo: 'frase', texto: '*JESUS* está *NESTE LUGAR*' },
+      {
+        tipo: 'pontos',
+        texto:
+          '[vermelho]*Onde estiver* 2 *ou* 3[/]\n[vermelho]*Reunidos* em *meu nome*[/]\n[vermelho]*Ali me faço presente*[/] (*Não é qualquer reunião*, *ajuntamento*)',
+      },
+      { tipo: 'efeito', texto: '[roxo]*QUANTOS VIERAM ADORAR?*[/]' },
+      { tipo: 'frase', texto: '*APRENDI* na *BÍBLIA* que' },
+      {
+        tipo: 'pontos',
+        texto: [
+          '*Deus só vem* em *um lugar quando:*',
+          '*Preparamos* o *ambiente* para Ele',
+          '*A glória só desceu* depois *tabernáculo* todo *preparado*',
+        ].join('\n'),
+      },
+      { tipo: 'frase', texto: 'Sabe *QUEM TEM AUTORIDADE* em um *AMBIENTE*?' },
+      { tipo: 'pontos', texto: 'Quem é *Adorado*/ *Reverenciado* naquele *ambiente*' },
+      { tipo: 'frase', texto: '*SABE POR QUE*, Deus *PEDE* para você *ADORAR*?' },
+      { tipo: 'efeito', texto: '[roxo]*ADORAÇÃO DEIXA* você *PARECIDO*\n*COM AQUILO* que você *ADORA*[/]' },
+      {
+        tipo: 'efeito',
+        texto:
+          '[roxo]*SE VOCÊ ADORA*\n*COISAS* se torna *IDOLATRA*\n*DINHEIRO* se torna *AVARENTO*\n*DEUS*, se torna *AQUILO NASCEU SER*:[/] [vermelho]*IMAGEM* e *SEMELHANÇA*[/]',
+      },
+      {
+        tipo: 'frase',
+        texto: `[fundo verde]*ENQUANTO VOCÊ ABRE* sua *BÍBLIAS*[/]: [fundo amarelo]*${textoBase || '...'}*[/]`,
+      },
+      { tipo: 'frase', texto: '[fundo verde]*EU QUERIA*[/]' },
+      {
+        tipo: 'pontos',
+        texto: [
+          '[azul]*QUERIA TRIBUTAR*[/] [fundo laranja]*DEUS*[/][azul], *minha gratidão* pelo *privilégio estar* com irmãos, juntos *adorarmos Aquele* é *digno* toda *honra*, *glória* e *louvor*[/]',
+          '[azul]*QUERIA ESTENDER* meus *AGRADECIMENTOS* ao[/] [fundo laranja]*IR. ...*[/] [azul]pelo *convite* e ao[/] [fundo laranja]*PR. ...*[/] [azul]pela *confiança*[/]',
+          '[azul]*É sempre uma honra servir* a essa *casa*[/]',
+        ].join('\n'),
+      },
+    ],
+    depois: [
+      { tipo: 'palavra', rotulo: '', texto: '*SE VOCÊ AMA* a *PALAVRA DE DEUS* “*REPITA ESSE VERSÍCULO*!!”' },
+      { tipo: 'frase', texto: '[fundo verde]*ASSENTE-SE*[/] e [fundo verde]*DIGA AO IRMÃO*[/]:' },
+      { tipo: 'palavra', rotulo: '', texto: '[roxo]*DEUS* tem uma *PALAVRA* *CORAÇÃO*[/]' },
+      {
+        tipo: 'aplicacao',
+        texto:
+          '*PARA ISSO*, eu *PRECISO*:\n*PRÓXIMOS MINUTOS*\nPara você *COMPREENDER*. (*OBJETIVO* - *EMOÇÕES*. X *INTELECTO*)',
+      },
+      depoisPadrao[2],
+      depoisPadrao[3],
+    ],
+  },
+];
 
 // Cada tópico: Tópico, Texto (subtópico e pontos), Texto bíblico, Frase de efeito, Aplicação e Pergunta
 function topico(n: number, modelo: Modelo): BlocoInicial[] {
@@ -165,19 +299,21 @@ function topico(n: number, modelo: Modelo): BlocoInicial[] {
 // texto referência, introdução, três tópicos e conclusão
 export function montarBlocos(o: OpcoesNovoSermao): BlocoInicial[] {
   const intro = opcoesIntroducao.find((i) => i.id === o.introducao)!;
+  const saudacao = saudacoes.find((x) => x.id === o.saudacao);
   return [
     {
       tipo: 'objetivo',
       rotulo: o.tipoObjetivo ? `Objetivo do sermão: ${o.tipoObjetivo}` : 'Objetivo do sermão',
       texto: o.objetivo.trim() ? `O *OBJETIVO* deste *SERMÃO* é:\n${o.objetivo.trim()}` : '',
     },
-    ...(o.comSaudacao ? saudacao(o.textoBase) : []),
+    ...(saudacao?.antes(o.textoBase) ?? []),
     {
       tipo: 'versiculo',
-      rotulo: 'Texto referência',
+      rotulo: 'Texto',
       texto: o.versos ? `${o.textoBase} - ${o.versos}` : '',
       dica: o.textoBase ? `${o.textoBase} - cole ou escreva o texto` : undefined,
     },
+    ...(saudacao?.depois ?? []),
     { tipo: 'introducao', rotulo: `Introdução: ${intro.nome}`, dica: intro.dica },
     ...[1, 2, 3].flatMap((n) => topico(n, o.modelo)),
     { tipo: 'conclusao' },

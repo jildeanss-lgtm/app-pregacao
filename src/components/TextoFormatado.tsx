@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, type TextStyle } from 'react-native';
 import type { TipoBloco } from '../data/modelos';
-import { destacarTudo, dividirDestaques, dividirQuadro, estiloBloco, linhasParaMostrar } from '../estilo';
+import { destacarTudo, dividirDestaques, dividirQuadro, estiloBloco, linhasParaMostrar, escalaTopico } from '../estilo';
 import { fonteEsboco } from '../theme';
 
 type Props = {
@@ -16,6 +16,7 @@ type Props = {
 
 export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false, setaNaMargem = false }: Props) {
   const e = estiloBloco[tipo];
+  if (tipo === 'topico') tamanho = Math.round(tamanho * escalaTopico);
   const base: TextStyle = {
     color: e.cor,
     fontSize: tamanho,
@@ -32,7 +33,18 @@ export function TextoFormatado({ tipo, texto, tamanho = 16, semMoldura = false, 
 
   const linha = (conteudo: string, corChave?: string) =>
     dividirDestaques(conteudo).map((p, i) => (
-      <Text key={i} style={p.chave ? [estilos.chave, corChave ? { color: corChave } : null] : undefined}>
+      <Text
+        key={i}
+        style={[
+          p.chave && estilos.chave,
+          p.chave && corChave ? { color: corChave } : null,
+          p.marca && {
+            color: p.marca.cor,
+            backgroundColor: p.marca.fundo,
+            fontStyle: p.marca.italico ? 'italic' : undefined,
+          },
+        ]}
+      >
         {p.texto}
       </Text>
     ));

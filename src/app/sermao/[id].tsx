@@ -8,7 +8,16 @@ import { Botao, Cartao, Rotulo } from '../../components/ui';
 import { etapasDeEstudo, nomesEstudo } from '../../data/etapas';
 import { perguntasDaEtapa } from '../../data/roteiro';
 import { modelos, nomesBloco, type TipoBloco } from '../../data/modelos';
-import { abreNovaPagina, coresPregacao, estiloBloco, pontosDoQuadro, quebraNoTopo, rotuloVisivel } from '../../estilo';
+import {
+  abreNovaPagina,
+  coresPregacao,
+  escalaTopico,
+  tituloDaPagina,
+  estiloBloco,
+  pontosDoQuadro,
+  quebraNoTopo,
+  rotuloVisivel,
+} from '../../estilo';
 import { exportarPdf } from '../../lib/pdf';
 import { textoDaBiblioteca } from '../../ia/estudo';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
@@ -183,17 +192,23 @@ export default function EditorTela() {
                 id: bloco.id,
                 novaPagina: abreNovaPagina(sermao.blocos, i),
                 conteudo: (
-                  <BlocoEditor
-                    bloco={bloco}
-                    rotulo={
-                      bloco.rotulo ?? (bloco.tipo === 'topico' ? `Tópico ${numerosTopico[i]}` : nomesBloco[bloco.tipo])
-                    }
-                    onMudar={(t) => mudarBloco(bloco.id, t)}
-                    onSubir={() => mover(i, -1)}
-                    onDescer={() => mover(i, 1)}
-                    onApagar={() => apagarBloco(bloco.id)}
-                    onInserir={(tipo) => adicionarBloco(sermao.id, tipo, '', bloco.id)}
-                  />
+                  <>
+                    {tituloDaPagina(sermao.blocos, i) ? (
+                      <TextoFormatado tipo="topico" texto={tituloDaPagina(sermao.blocos, i)!} />
+                    ) : null}
+                    <BlocoEditor
+                      bloco={bloco}
+                      rotulo={
+                        bloco.rotulo ??
+                        (bloco.tipo === 'topico' ? `Tópico ${numerosTopico[i]}` : nomesBloco[bloco.tipo])
+                      }
+                      onMudar={(t) => mudarBloco(bloco.id, t)}
+                      onSubir={() => mover(i, -1)}
+                      onDescer={() => mover(i, 1)}
+                      onApagar={() => apagarBloco(bloco.id)}
+                      onInserir={(tipo) => adicionarBloco(sermao.id, tipo, '', bloco.id)}
+                    />
+                  </>
                 ),
               })),
             ],
@@ -444,6 +459,8 @@ function BlocoEditor({ bloco, rotulo, onMudar, onSubir, onDescer, onApagar, onIn
                 estilos.entrada,
                 visual,
                 e.fundo ? [estilos.entradaComFundo, { backgroundColor: e.fundo }] : null,
+                // Tópico com a letra um pouco maior que o resto
+                bloco.tipo === 'topico' && { fontSize: Math.round(16 * escalaTopico) },
               ]}
             />
           )}
