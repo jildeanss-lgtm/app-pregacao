@@ -13,6 +13,9 @@ export const tiposParaAdicionar: TipoBloco[] = [
   'aplicacao',
   'subtopico',
   'citacao',
+  'pontos',
+  'pontosRoxo',
+  'pontosVermelho',
 ];
 
 // Os tipos de bloco para inserir, com a cor de cada um: no fim do sermão e no "Inserir" de cada bloco

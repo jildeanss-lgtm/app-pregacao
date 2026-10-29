@@ -8,6 +8,8 @@ export type TipoBloco =
   | 'quadroPerguntas'
   | 'frase'
   | 'pontos'
+  | 'pontosRoxo'
+  | 'pontosVermelho'
   | 'versiculo'
   | 'explicacao'
   | 'exemplo'
@@ -30,6 +32,8 @@ export const nomesBloco: Record<TipoBloco, string> = {
   quadroPerguntas: 'Pergunta',
   frase: 'Frase',
   pontos: 'Pontos',
+  pontosRoxo: 'Pontos roxo',
+  pontosVermelho: 'Pontos vermelho',
   versiculo: 'Texto bíblico',
   explicacao: 'Explicação',
   exemplo: 'Exemplo bíblico',
