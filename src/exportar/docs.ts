@@ -181,13 +181,20 @@ export async function quandoMudouNoDocs(t: string, id: string) {
   return ((await r.json()) as { modifiedTime: string }).modifiedTime;
 }
 
-// Texto sem destaques, marcas e espaços a mais: para achar a mesma caixa dos dois lados
-const comparavel = (t: string) =>
-  t
-    .replace(/\[[^\]\n]*\]/g, '')
-    .replace(/[*\u2028]/g, '')
+// A caixa como ela fica no Docs (cor do tipo e palavras-chave, inclusive as maiúsculas que o app destaca
+// sozinho), sem as cores marcadas à mão, que a leitura do Docs não traz de volta. Duas caixas iguais aqui são
+// a mesma caixa; destacar uma palavra ou trocar a cor no Docs conta como mudança
+const comparavel = (b: { tipo: Bloco['tipo']; texto?: string }) =>
+  blocoParaDocs(
+    {
+      id: '',
+      tipo: b.tipo,
+      texto: (b.texto ?? '').replace(/\[[^\]\n]*\]/g, '').replace(/\u2028/g, ''),
+    },
+    false,
+  )
     .replace(/\s+/g, ' ')
-    .trim()
+    .replace(/<\/u><\/b>( ?)<b><u>/g, '$1')
     .toLowerCase();
 
 // As caixas que voltaram do Docs: a que não mudou continua a mesma do app (tipo, nome, cores marcadas,
@@ -195,11 +202,12 @@ const comparavel = (t: string) =>
 export function juntarComApp(app: Bloco[], doDocs: BlocoInicial[], novoId: () => string): Bloco[] {
   const sobra = new Map<string, Bloco[]>();
   for (const b of app) {
-    const k = comparavel(b.texto);
-    if (k) sobra.set(k, [...(sobra.get(k) ?? []), b]);
+    if (!b.texto.trim()) continue;
+    const k = comparavel(b);
+    sobra.set(k, [...(sobra.get(k) ?? []), b]);
   }
   return doDocs.map((b) => {
-    const igual = sobra.get(comparavel(b.texto ?? ''))?.shift();
+    const igual = sobra.get(comparavel(b))?.shift();
     return igual ?? { ...b, id: novoId(), texto: b.texto ?? '' };
   });
 }

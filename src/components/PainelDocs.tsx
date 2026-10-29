@@ -70,14 +70,24 @@ export function PainelDocs({
     tentar('Trazendo as mudanças do Docs...', async () => {
       const t = await pedirToken();
       const novo = await lerDoDocs(t, sermao.docId!);
-      antesDeTrocar();
-      atualizar(sermao.id, (s) => ({
-        ...s,
-        blocos: juntarComApp(s.blocos, novo.blocos, novoId),
-        docEm: novo.modifiedTime,
-      }));
+      const blocos = juntarComApp(sermao.blocos, novo.blocos, novoId);
+      // Caixa editada no Docs: sai a do app e entra a lida do Docs, conta uma vez só
+      const mudaram = Math.max(
+        blocos.filter((b) => !sermao.blocos.includes(b)).length,
+        sermao.blocos.filter((b) => !blocos.includes(b)).length,
+      );
       setMudouNoDrive(false);
-      setAviso('Caixas atualizadas com o Google Docs. Se não gostar, use o Desfazer.');
+      if (!mudaram) {
+        atualizar(sermao.id, (s) => ({ ...s, docEm: novo.modifiedTime }));
+        // O Google às vezes leva alguns segundos para entregar a última edição
+        setAviso('Não achei mudanças no Docs. Se acabou de editar, espere uns segundos e toque de novo.');
+        return;
+      }
+      antesDeTrocar();
+      atualizar(sermao.id, (s) => ({ ...s, blocos, docEm: novo.modifiedTime }));
+      setAviso(
+        `${mudaram === 1 ? '1 caixa mudou' : `${mudaram} caixas mudaram`} com o Google Docs. Se não gostar, use o Desfazer.`,
+      );
     });
 
   return (
