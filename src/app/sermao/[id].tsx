@@ -33,6 +33,8 @@ export default function EditorTela() {
   const { atualizar, adicionarBloco, remover, mudarEstudo, nuvem, sincronizarAgora } = useSermoes();
   // Aviso do botão Salvar no fim da edição
   const [salvo, setSalvo] = useState('');
+  // Folha cujo + está aberto, mostrando os tipos de bloco para a página nova
+  const [novaPaginaEm, setNovaPaginaEm] = useState<string>();
   const [vendoEstudo, setVendoEstudo] = useState(true);
   // Caixa concluída por último: só ela mostra o "+ Inserir" clarinho embaixo
   const [ultimaConcluida, setUltimaConcluida] = useState<string>();
@@ -77,6 +79,20 @@ export default function EditorTela() {
     guardarPasso();
     adicionarBloco(sermao.id, tipo, '', depoisDe);
   };
+
+  // O + no fim de cada folha cria uma página nova logo depois dela, começando pelo bloco escolhido
+  const criarPagina = (tipo: TipoBloco, depoisDe: string) => {
+    guardarPasso();
+    setNovaPaginaEm(undefined);
+    adicionarBloco(sermao.id, tipo, '', depoisDe === 'cabecalho' ? null : depoisDe, true);
+  };
+  const botaoNovaPagina = (depoisDe: string) => (
+    <NovaPagina
+      aberto={novaPaginaEm === depoisDe}
+      onAbrir={() => setNovaPaginaEm((v) => (v === depoisDe ? undefined : depoisDe))}
+      onEscolher={(tipo) => criarPagina(tipo, depoisDe)}
+    />
+  );
 
   const mover = (indice: number, direcao: -1 | 1) => {
     guardarPasso();
@@ -257,8 +273,10 @@ export default function EditorTela() {
             larguraFolha,
             largo,
             (id, altura) => setAlturas((h) => (h[id] === altura ? h : { ...h, [id]: altura })),
+            botaoNovaPagina,
           )}
         </View>
+        {botaoNovaPagina(sermao.blocos.at(-1)?.id ?? 'cabecalho')}
 
         <View style={estilos.inserir}>
           <Text style={estilos.meta}>Inserir</Text>
@@ -603,6 +621,8 @@ function paginas(
   larguraFolha: number,
   largo: boolean,
   medir: (id: string, altura: number) => void,
+  // O que vai no espaço cinza entre as folhas (o + de página nova), pela última parte da folha de cima
+  entre: (ultimaDaFolha: string) => ReactNode,
 ) {
   const margem = largo ? margemVertical.larga : margemVertical.estreita;
   const lateral = largo ? margemLateral.larga : margemLateral.estreita;
@@ -619,7 +639,7 @@ function paginas(
         {quebra && (
           <View style={{ marginHorizontal: -lateral }}>
             <View style={{ height: resto + margem, backgroundColor: '#FFFFFF' }} />
-            <View style={estilos.entreFolhas} />
+            <View style={estilos.entreFolhas}>{entre(partes[i - 1].id)}</View>
             <View style={{ height: margem, backgroundColor: '#FFFFFF' }} />
           </View>
         )}
@@ -642,6 +662,27 @@ function paginas(
 }
 
 const estilos = StyleSheet.create({
+  novaPagina: { alignItems: 'center', gap: 8, alignSelf: 'stretch', paddingVertical: 4 },
+  botaoNovaPagina: {
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#B0B5BD',
+    backgroundColor: '#FFFFFF',
+  },
+  textoNovaPagina: { fontSize: 13, fontWeight: '600', color: cores.textoSuave },
+  menuNovaPagina: {
+    alignSelf: 'stretch',
+    gap: 8,
+    padding: 12,
+    marginHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DADCE0',
+  },
   desfazer: {
     position: 'absolute',
     right: 16,
@@ -681,7 +722,9 @@ const estilos = StyleSheet.create({
   parte: { gap: espacoEntrePartes },
   // Espaço cinza entre uma folha e a próxima, com a borda das duas folhas
   entreFolhas: {
-    height: 20,
+    minHeight: 20,
+    paddingVertical: 6,
+    alignItems: 'center',
     backgroundColor: '#F1F3F4',
     borderTopWidth: 1,
     borderBottomWidth: 1,
@@ -779,3 +822,34 @@ const estilos = StyleSheet.create({
   menuInserir: { gap: 8, paddingVertical: 8 },
   acao: { width: 36, height: 32, alignItems: 'center', justifyContent: 'center' },
 });
+
+// + no fim de cada folha: abre os tipos de bloco e cria uma página nova começando por ele
+function NovaPagina({
+  aberto,
+  onAbrir,
+  onEscolher,
+}: {
+  aberto: boolean;
+  onAbrir: () => void;
+  onEscolher: (tipo: TipoBloco) => void;
+}) {
+  return (
+    <View style={estilos.novaPagina}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Nova página"
+        accessibilityState={{ expanded: aberto }}
+        onPress={onAbrir}
+        style={({ pressed }) => [estilos.botaoNovaPagina, pressed && { opacity: 0.6 }]}
+      >
+        <Text style={estilos.textoNovaPagina}>{aberto ? '× Fechar' : '+ Nova página'}</Text>
+      </Pressable>
+      {aberto ? (
+        <View style={estilos.menuNovaPagina}>
+          <Text style={estilos.meta}>A nova página começa com:</Text>
+          <ChipsInserir onEscolher={onEscolher} />
+        </View>
+      ) : null}
+    </View>
+  );
+}
