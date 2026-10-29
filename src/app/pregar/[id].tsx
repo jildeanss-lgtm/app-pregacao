@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   useWindowDimensions,
   View,
   type ScrollViewInstance,
@@ -15,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TextoFormatado } from '../../components/TextoFormatado';
 import { abreNovaPagina, coresPregacao, rotuloVisivel, tituloDaPagina } from '../../estilo';
-import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
+import { minutosEstimados, useSermao, type Bloco } from '../../store/sermoes';
 import { cores } from '../../theme';
 
 // Divide o sermão nas mesmas páginas do editor e do PDF (capa, saudação, texto, introdução, cada tópico...)
@@ -39,12 +38,14 @@ const CHAVE_VELOCIDADE = 'pregar:velocidade';
 // Espaço da mesa cinza acima da primeira folha
 const margemMesa = 8;
 
-// Rola a folha sozinha enquanto está ligada e para quando o fim da página atual aparece inteiro; "Próxima página"
+// Rola a folha sozinha enquanto está ligada e para quando o fim da página atual aparece inteiro; um toque na folha
 // leva ao começo da seguinte. Se o pregador rolar com o dedo, a rolagem continua de onde ele parou
 function useRolagemAutomatica(rolagem: RefObject<ScrollViewInstance | null>, escala: number) {
   const [rolando, setRolando] = useState(false);
   // Ligada pelo pregador: ao passar de página, a rolagem continua sozinha; só "Pausar" desliga
   const ligada = useRef(false);
+  // O botão mostra "Pausar" enquanto está ligada, mesmo parada no fim de uma página
+  const [ligadaNaTela, setLigadaNaTela] = useState(false);
   const [nivel, setNivel] = useState(2);
   const posicao = useRef(0);
   const alturas = useRef({ tela: 0, conteudo: 0 });
@@ -74,6 +75,8 @@ function useRolagemAutomatica(rolagem: RefObject<ScrollViewInstance | null>, esc
         const n = paginaAtual();
         const fimDaPagina = topoNaTela(n) + (folhas.current[n]?.altura ?? Infinity) * escala + margemMesa;
         const limite = Math.max(0, Math.min(alturas.current.conteudo, fimDaPagina) - alturas.current.tela);
+        // Página que já cabe inteira na tela: fica onde está, sem voltar para cima
+        if (limite <= posicao.current) return setRolando(false);
         posicao.current = Math.min(limite, posicao.current + (velocidades[nivel] * (agora - antes)) / 1000);
         rolagem.current?.scrollTo({ y: posicao.current, animated: false });
         // Quando o fim da página aparece inteiro, a rolagem para sozinha
@@ -95,13 +98,13 @@ function useRolagemAutomatica(rolagem: RefObject<ScrollViewInstance | null>, esc
     });
 
   return {
-    rolando,
+    ligada: ligadaNaTela,
     nivel,
-    alternar: () =>
-      setRolando((v) => {
-        ligada.current = !v;
-        return !v;
-      }),
+    alternar: () => {
+      ligada.current = !ligada.current;
+      setLigadaNaTela(ligada.current);
+      setRolando(ligada.current);
+    },
     mudarVelocidade,
     // A tela avisa onde a folha está; um salto maior que 2 px é o dedo do pregador
     aoRolar: (y: number) => {
@@ -135,16 +138,13 @@ function relogio(segundos: number) {
 export default function PulpitoTela() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const sermao = useSermao(id);
-  const { atualizar } = useSermoes();
   // A folha tem sempre a largura de um A4 (794 px) e é reduzida para caber na largura da tela, como um doc
   const largura = useWindowDimensions().width;
   const escala = Math.min(1, (largura - 16) / larguraA4);
   const [alturaFolha, setAlturaFolha] = useState(0);
   const [segundos, setSegundos] = useState(0);
-  // Hora do relógio, ao lado de Encerrar
+  // Hora do relógio, entre o cronômetro e o Rolar
   const [agora, setAgora] = useState(() => new Date());
-  const [terminando, setTerminando] = useState(false);
-  const [local, setLocal] = useState('');
   const rolagem = useRef<ScrollViewInstance>(null);
   const auto = useRolagemAutomatica(rolagem, escala);
 
@@ -163,14 +163,6 @@ export default function PulpitoTela() {
   const total = minutosEstimados(sermao);
   const progresso = Math.min(1, segundos / (total * 60));
 
-  const encerrar = () => {
-    atualizar(sermao.id, (s) => ({
-      ...s,
-      pregacoes: [...s.pregacoes, { data: new Date().toISOString(), local, observacoes: '' }],
-    }));
-    router.back();
-  };
-
   return (
     <SafeAreaView style={estilos.tela}>
       <StatusBar style="dark" />
@@ -188,127 +180,93 @@ export default function PulpitoTela() {
           <Text style={estilos.pequeno}>previsto: {total} min</Text>
         </View>
         <View style={[estilos.lado, estilos.ladoDireito]}>
-          {/* Hora atual entre o cronômetro e Encerrar */}
+          {/* Hora atual entre o cronômetro e o Rolar */}
           <Text style={estilos.hora} accessibilityLabel="Hora atual">
             {agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           </Text>
-          <Pressable accessibilityRole="button" onPress={() => setTerminando(true)} style={estilos.sair}>
-            <Text style={[estilos.suave, { color: cores.destaque, fontWeight: '700' }]}>Encerrar</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={auto.ligada ? 'Pausar rolagem' : 'Rolar sozinho'}
+            onPress={auto.alternar}
+            style={estilos.rolar}
+          >
+            <Text style={estilos.textoRolar}>{auto.ligada ? '❚❚ Pausar' : '▶ Rolar'}</Text>
           </Pressable>
         </View>
       </View>
       <View style={estilos.barra}>
         <View style={[estilos.barraCheia, { width: `${progresso * 100}%` }]} />
       </View>
-
-      {terminando ? (
-        <View style={{ flex: 1, gap: 16, paddingTop: 32, paddingHorizontal: 24 }}>
-          <Text style={estilos.titulo}>Encerrar e arquivar</Text>
-          <Text style={estilos.suave}>Onde este sermão foi pregado?</Text>
-          <TextInput
-            accessibilityLabel="Local da pregação"
-            value={local}
-            onChangeText={setLocal}
-            placeholder="Ex.: Culto de domingo"
-            placeholderTextColor={cores.textoSuave}
-            style={estilos.entrada}
-          />
-          <Pressable accessibilityRole="button" onPress={encerrar} style={[estilos.botao, estilos.botaoPrincipal]}>
-            <Text style={estilos.textoBotaoPrincipal}>Salvar no arquivo</Text>
-          </Pressable>
-        </View>
-      ) : (
-        // O sermão inteiro numa folha A4, como no Google Docs. No celular a folha toda é reduzida para caber na tela
-        <ScrollView
-          ref={rolagem}
-          style={estilos.mesa}
-          contentContainerStyle={estilos.mesaConteudo}
-          scrollEventThrottle={16}
-          onScroll={(e) => auto.aoRolar(e.nativeEvent.contentOffset.y)}
-          onLayout={(e) => auto.medirTela(e.nativeEvent.layout.height)}
-          onContentSizeChange={(_, altura) => auto.medirConteudo(altura)}
-        >
-          <View style={{ width: larguraA4 * escala, height: alturaFolha * escala }}>
-            {/* As folhas, uma embaixo da outra, como no Google Docs; a coluna inteira é reduzida no celular */}
-            <View
-              onLayout={(e) => setAlturaFolha(e.nativeEvent.layout.height)}
-              style={[estilos.coluna, { transform: [{ scale: escala }], transformOrigin: 'top left' }]}
-            >
-              {paginas.map((pagina, n) => (
-                // Um toque em qualquer parte da folha leva à próxima página
-                <Pressable
-                  key={n}
-                  accessibilityHint="Toque para ir à próxima página"
-                  onPress={auto.proximaPagina}
-                  style={estilos.folha}
-                  onLayout={(e) => auto.medirFolha(n, e.nativeEvent.layout.y, e.nativeEvent.layout.height)}
-                >
-                  {n === 0 && (
-                    <>
-                      <Text style={[estilos.titulo, estilos.tema]}>{sermao.titulo || 'Sem título'}</Text>
-                      {sermao.textoBase ? <Text style={estilos.base}>{sermao.textoBase}</Text> : null}
-                    </>
-                  )}
-                  {pagina.map((b) => {
-                    const titulo = tituloDaPagina(sermao.blocos, sermao.blocos.indexOf(b));
-                    // No púlpito a aplicação aparece sem o nome em cima, só pela cor
-                    const rotulo =
-                      b.tipo === 'aplicacao' || b.tipo === 'topico' || titulo ? undefined : rotuloVisivel(b);
-                    return (
-                      <View key={b.id} style={{ gap: 2 }}>
-                        {titulo && <TextoFormatado tipo="topico" texto={titulo} tamanho={tamanhoLetra} />}
-                        {rotulo && <Text style={estilos.rotulo}>{rotulo}</Text>}
-                        <TextoFormatado tipo={b.tipo} texto={b.texto} tamanho={tamanhoLetra} semMoldura setaNaMargem />
-                      </View>
-                    );
-                  })}
-                </Pressable>
-              ))}
-            </View>
+      {/* O sermão inteiro numa folha A4, como no Google Docs. No celular a folha toda é reduzida para caber na tela */}
+      <ScrollView
+        ref={rolagem}
+        style={estilos.mesa}
+        contentContainerStyle={estilos.mesaConteudo}
+        scrollEventThrottle={16}
+        onScroll={(e) => auto.aoRolar(e.nativeEvent.contentOffset.y)}
+        onLayout={(e) => auto.medirTela(e.nativeEvent.layout.height)}
+        onContentSizeChange={(_, altura) => auto.medirConteudo(altura)}
+      >
+        <View style={{ width: larguraA4 * escala, height: alturaFolha * escala }}>
+          {/* As folhas, uma embaixo da outra, como no Google Docs; a coluna inteira é reduzida no celular */}
+          <View
+            onLayout={(e) => setAlturaFolha(e.nativeEvent.layout.height)}
+            style={[estilos.coluna, { transform: [{ scale: escala }], transformOrigin: 'top left' }]}
+          >
+            {paginas.map((pagina, n) => (
+              // Um toque em qualquer parte da folha leva à próxima página
+              <Pressable
+                key={n}
+                accessibilityHint="Toque para ir à próxima página"
+                onPress={auto.proximaPagina}
+                style={estilos.folha}
+                onLayout={(e) => auto.medirFolha(n, e.nativeEvent.layout.y, e.nativeEvent.layout.height)}
+              >
+                {n === 0 && (
+                  <>
+                    <Text style={[estilos.titulo, estilos.tema]}>{sermao.titulo || 'Sem título'}</Text>
+                    {sermao.textoBase ? <Text style={estilos.base}>{sermao.textoBase}</Text> : null}
+                  </>
+                )}
+                {pagina.map((b) => {
+                  const titulo = tituloDaPagina(sermao.blocos, sermao.blocos.indexOf(b));
+                  // No púlpito a aplicação aparece sem o nome em cima, só pela cor
+                  const rotulo = b.tipo === 'aplicacao' || b.tipo === 'topico' || titulo ? undefined : rotuloVisivel(b);
+                  return (
+                    <View key={b.id} style={{ gap: 2 }}>
+                      {titulo && <TextoFormatado tipo="topico" texto={titulo} tamanho={tamanhoLetra} />}
+                      {rotulo && <Text style={estilos.rotulo}>{rotulo}</Text>}
+                      <TextoFormatado tipo={b.tipo} texto={b.texto} tamanho={tamanhoLetra} semMoldura setaNaMargem />
+                    </View>
+                  );
+                })}
+              </Pressable>
+            ))}
           </View>
-        </ScrollView>
-      )}
-      {!terminando && (
-        <View style={estilos.controles}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Mais devagar"
-            onPress={() => auto.mudarVelocidade(-1)}
-            style={estilos.controle}
-          >
-            <Text style={estilos.textoControle}>−</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={auto.rolando ? 'Pausar rolagem' : 'Rolar sozinho'}
-            onPress={auto.alternar}
-            style={[estilos.controle, estilos.controlePrincipal]}
-          >
-            <Text style={[estilos.textoControle, { color: '#FFFFFF', fontSize: 15 }]}>
-              {auto.rolando ? '❚❚ Pausar' : '▶ Rolar'}
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Mais rápido"
-            onPress={() => auto.mudarVelocidade(1)}
-            style={estilos.controle}
-          >
-            <Text style={estilos.textoControle}>+</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Próxima página"
-            onPress={auto.proximaPagina}
-            style={estilos.controle}
-          >
-            <Text style={[estilos.textoControle, { fontSize: 15 }]}>Próxima ↓</Text>
-          </Pressable>
-          <Text style={estilos.velocidade}>
-            {auto.nivel + 1}/{velocidades.length}
-          </Text>
         </View>
-      )}
+      </ScrollView>
+      {/* Velocidade da rolagem; o toque na folha passa para a próxima página */}
+      <View style={estilos.controles}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Mais devagar"
+          onPress={() => auto.mudarVelocidade(-1)}
+          style={estilos.controle}
+        >
+          <Text style={estilos.textoControle}>−</Text>
+        </Pressable>
+        <Text style={estilos.velocidade}>
+          {auto.nivel + 1}/{velocidades.length}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Mais rápido"
+          onPress={() => auto.mudarVelocidade(1)}
+          style={estilos.controle}
+        >
+          <Text style={estilos.textoControle}>+</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
@@ -329,7 +287,7 @@ const estilos = StyleSheet.create({
   hora: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
     color: cores.texto,
     fontVariant: ['tabular-nums'],
@@ -373,7 +331,8 @@ const estilos = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: '#F1F3F4',
   },
-  controlePrincipal: { backgroundColor: cores.destaque, paddingHorizontal: 16 },
+  rolar: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: cores.destaque },
+  textoRolar: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
   textoControle: { fontSize: 20, fontWeight: '700', color: cores.texto },
   velocidade: { fontSize: 12, color: cores.textoSuave, paddingRight: 6 },
   sair: { minHeight: 44, justifyContent: 'center' },
