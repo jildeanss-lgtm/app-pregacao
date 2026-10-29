@@ -1,6 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ChipsInserir } from '../../components/ChipsInserir';
 import { CampoCrescente } from '../../components/CampoCrescente';
 import { TextoFormatado } from '../../components/TextoFormatado';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
@@ -12,12 +13,11 @@ import {
   type BlocosSaudacao,
   type TipoBloco,
 } from '../../data/modelos';
-import { estiloBloco } from '../../estilo';
 import { guardarSaudacao, lerSaudacao, restaurarSaudacao } from '../../store/saudacoes';
 import { cores, larguraConteudo } from '../../theme';
 
-// Tipos de bloco que a saudação usa, para inserir mais
-const tiposSaudacao: TipoBloco[] = ['frase', 'pontos', 'efeito', 'versiculo', 'pergunta', 'aplicacao', 'palavra'];
+// Além das caixas do sermão, a saudação usa frase com seta e lista de pontos
+const extrasSaudacao: TipoBloco[] = ['frase', 'pontos'];
 
 type Parte = keyof BlocosSaudacao;
 const nomesPartes: Record<Parte, string> = {
@@ -104,19 +104,11 @@ export default function EditarSaudacaoTela() {
                 ) : null}
               </View>
             ))}
-            <View style={estilos.linha}>
-              {tiposSaudacao.map((tipo) => (
-                <Pressable
-                  key={tipo}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Adicionar ${nomesBloco[tipo]} em ${nomesPartes[parte]}`}
-                  onPress={() => mudar(parte, (lista) => [...lista, { tipo, texto: '' }])}
-                  style={estilos.chip}
-                >
-                  <Text style={[estilos.textoChip, { color: estiloBloco[tipo].cor }]}>+ {nomesBloco[tipo]}</Text>
-                </Pressable>
-              ))}
-            </View>
+            {/* As mesmas caixas do sermão (+ Tópico, + TEXTO, + Frase de efeito...) */}
+            <ChipsInserir
+              extras={extrasSaudacao}
+              onEscolher={(tipo) => mudar(parte, (lista) => [...lista, { tipo, texto: '' }])}
+            />
           </Cartao>
         ))}
         {aviso ? <Text style={estilos.aviso}>{aviso}</Text> : null}
@@ -152,16 +144,6 @@ const estilos = StyleSheet.create({
     outlineWidth: 0,
   },
   previa: { paddingHorizontal: 4 },
-  linha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    minHeight: 40,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: cores.borda,
-    justifyContent: 'center',
-  },
-  textoChip: { fontSize: 14, fontWeight: '600' },
   acao: { width: 36, height: 32, alignItems: 'center', justifyContent: 'center' },
   aviso: { fontSize: 14, fontWeight: '600', color: cores.texto },
 });
