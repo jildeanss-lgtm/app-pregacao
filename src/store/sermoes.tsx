@@ -17,6 +17,8 @@ export type Bloco = {
   dica?: string;
   // Criado pelo + entre as folhas: começa numa página nova
   novaPagina?: boolean;
+  // Sem o espaço que separa esta caixa da de cima
+  colado?: boolean;
 };
 
 export type Pregacao = {

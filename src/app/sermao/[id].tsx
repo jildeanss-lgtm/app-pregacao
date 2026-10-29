@@ -148,6 +148,15 @@ export default function EditorTela() {
     }));
   };
 
+  // Tira (ou devolve) o espaço entre esta caixa e a de cima
+  const colarNaDeCima = (blocoId: string) => {
+    guardarPasso();
+    atualizar(sermao.id, (s) => ({
+      ...s,
+      blocos: s.blocos.map((b) => (b.id === blocoId ? { ...b, colado: !b.colado || undefined } : b)),
+    }));
+  };
+
   const apagarBloco = (blocoId: string) => {
     guardarPasso();
     atualizar(sermao.id, (s) => ({ ...s, blocos: s.blocos.filter((b) => b.id !== blocoId) }));
@@ -289,6 +298,7 @@ export default function EditorTela() {
               ...sermao.blocos.map((bloco, i) => ({
                 id: bloco.id,
                 novaPagina: abreNovaPagina(sermao.blocos, i),
+                colado: bloco.colado,
                 conteudo: (
                   <>
                     {tituloDaPagina(sermao.blocos, i) ? (
@@ -308,6 +318,8 @@ export default function EditorTela() {
                       onMudarTipo={(tipo) => mudarTipo(bloco.id, tipo)}
                       paginaNova={!!bloco.novaPagina}
                       onQuebrarPagina={() => quebrarPagina(bloco.id)}
+                      colado={!!bloco.colado}
+                      onColar={() => colarNaDeCima(bloco.id)}
                       mostrarInserir={bloco.id === (ultimaConcluida ?? ultimaPreenchida)}
                       onConcluir={() => setUltimaConcluida(bloco.id)}
                     />
@@ -408,6 +420,8 @@ type BlocoEditorProps = {
   // A caixa começa uma página (criada pelo + ou pelo botão "Próxima página")
   paginaNova: boolean;
   onQuebrarPagina: () => void;
+  colado: boolean;
+  onColar: () => void;
   // "+ Inserir" clarinho embaixo (só na caixa concluída por último)
   mostrarInserir: boolean;
   onConcluir: () => void;
@@ -429,6 +443,8 @@ function BlocoEditor({
   onMudarTipo,
   paginaNova,
   onQuebrarPagina,
+  colado,
+  onColar,
   mostrarInserir,
   onConcluir,
 }: BlocoEditorProps) {
@@ -522,6 +538,19 @@ function BlocoEditor({
               style={[estilos.botaoInserir, { marginLeft: 6 }]}
             >
               <Text style={estilos.textoInserir}>{paginaNova ? '⤒ JUNTAR' : '⤓ PRÓX. PÁGINA'}</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={colado ? 'Devolver o espaço acima' : 'Tirar o espaço acima'}
+              onPress={() => {
+                clearTimeout(saida.current);
+                setFocado(false);
+                if (bloco.texto.trim()) setEditando(false);
+                onColar();
+              }}
+              style={[estilos.botaoInserir, { marginLeft: 6 }, colado && estilos.botaoInserirAberto]}
+            >
+              <Text style={[estilos.textoInserir, colado && { color: '#FFFFFF' }]}>⇡ SEM ESPAÇO</Text>
             </Pressable>
             <Acao rotulo="Subir bloco" simbolo="↑" onPress={onSubir} />
             <Acao rotulo="Descer bloco" simbolo="↓" onPress={onDescer} />
@@ -686,7 +715,7 @@ const margemLateral = { larga: 72, estreita: 20 };
 const espacoEntrePartes = 10;
 
 // novaPagina: a parte sempre abre uma folha nova (veja abreNovaPagina)
-type Parte = { id: string; conteudo: ReactNode; novaPagina?: boolean };
+type Parte = { id: string; conteudo: ReactNode; novaPagina?: boolean; colado?: boolean };
 
 // Distribui as partes do sermão em páginas do tamanho de uma folha A4. Uma parte que não cabe no resto da página
 // começa na página seguinte, com o espaço cinza entre as folhas, como no Google Docs
@@ -705,7 +734,8 @@ function paginas(
   let usado = 0;
   const elementos = partes.map((parte, i) => {
     const altura = alturas[parte.id] ?? 0;
-    const espaco = i > 0 && usado > 0 ? espacoEntrePartes : 0;
+    // Sem espaço: encosta também o respiro de 4 px de cada caixa
+    const espaco = i > 0 && usado > 0 ? (parte.colado ? -6 : espacoEntrePartes) : 0;
     const quebra = larguraFolha > 0 && usado > 0 && (!!parte.novaPagina || usado + espaco + altura > util);
     const resto = Math.max(0, util - usado);
     usado = quebra ? altura : usado + espaco + altura;
