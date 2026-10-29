@@ -29,14 +29,17 @@ export function juntar(a: Dados, b: Dados): Dados {
   return { sermoes, apagados };
 }
 
-async function acharArquivo(t: string) {
-  const [arquivo] = await listar(
-    `name = '${NOME}' and mimeType = 'application/json' and appProperties has { key='app' and value='pregacao' } and trashed = false`,
-    t,
-    'files(id)',
-    1,
-  );
-  return arquivo?.id as string | undefined;
+// Todos os sermoes.json do app, o mudado por último primeiro. Antes o Salvar gravava o arquivo como texto e
+// depois não o achava mais, criando outro a cada vez: os repetidos são juntados num só
+async function acharArquivos(t: string) {
+  const params = new URLSearchParams({
+    q: `name = '${NOME}' and appProperties has { key='app' and value='pregacao' } and trashed = false`,
+    fields: 'files(id)',
+    orderBy: 'modifiedTime desc',
+    pageSize: '100',
+  });
+  const r = await drive(`/files?${params}`, t);
+  return ((await r.json()) as { files: { id: string }[] }).files.map((f) => f.id);
 }
 
 export async function criarPasta(t: string) {
@@ -60,7 +63,8 @@ export async function criarPasta(t: string) {
 }
 
 async function gravar(t: string, id: string | undefined, conteudo: Arquivo) {
-  const json = JSON.stringify(conteudo);
+  // Com o tipo application/json: sem ele o Drive guardava como texto
+  const json = new Blob([JSON.stringify(conteudo)], { type: 'application/json' });
   if (id) {
     await drive(`/files/${id}?uploadType=media`, t, { method: 'PATCH', body: json }, UPLOAD);
     return;
@@ -73,26 +77,38 @@ async function gravar(t: string, id: string | undefined, conteudo: Arquivo) {
   };
   const corpo = new FormData();
   corpo.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
-  corpo.append('file', new Blob([json], { type: 'application/json' }));
+  corpo.append('file', json);
   await drive('/files?uploadType=multipart', t, { method: 'POST', body: corpo }, UPLOAD);
 }
 
 // Busca a cópia do Drive, junta com a do aparelho e grava o resultado nos dois lados
 export async function sincronizar(t: string, local: Dados): Promise<Dados> {
-  const id = await acharArquivo(t);
-  const remoto: Arquivo = id
-    ? await (await drive(`/files/${id}?alt=media`, t)).json()
-    : { sermoes: [], apagados: {}, saudacoes: {} };
-  const dados = juntar(local, { sermoes: remoto.sermoes ?? [], apagados: remoto.apagados ?? {} });
+  const [id, ...repetidos] = await acharArquivos(t);
+  const remotos: Arquivo[] = await Promise.all(
+    [id, ...repetidos].filter(Boolean).map(async (f) => (await drive(`/files/${f}?alt=media`, t)).json()),
+  );
+  let dados = local;
+  for (const remoto of remotos)
+    dados = juntar(dados, { sermoes: remoto.sermoes ?? [], apagados: remoto.apagados ?? {} });
 
   const saudacoes = await saudacoesGuardadas();
-  for (const [sid, s] of Object.entries(remoto.saudacoes ?? {})) {
-    if (saudacoes[sid] && saudacoes[sid].atualizadoEm >= s.atualizadoEm) continue;
-    saudacoes[sid] = s;
-    if (s.blocos) await guardarSaudacao(sid, s.blocos, s.atualizadoEm);
-    else await restaurarSaudacao(sid, s.atualizadoEm);
+  for (const remoto of remotos) {
+    for (const [sid, s] of Object.entries(remoto.saudacoes ?? {})) {
+      if (saudacoes[sid] && saudacoes[sid].atualizadoEm >= s.atualizadoEm) continue;
+      saudacoes[sid] = s;
+      if (s.blocos) await guardarSaudacao(sid, s.blocos, s.atualizadoEm);
+      else await restaurarSaudacao(sid, s.atualizadoEm);
+    }
   }
 
   await gravar(t, id, { ...dados, saudacoes });
+  // Os repetidos já foram juntados no primeiro: vão para a lixeira do Drive (dá para recuperar de lá)
+  for (const f of repetidos) {
+    await drive(`/files/${f}`, t, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trashed: true }),
+    }).catch(() => undefined);
+  }
   return dados;
 }
