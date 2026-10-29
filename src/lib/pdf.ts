@@ -54,7 +54,10 @@ function blocoHtml(b: Bloco, titulo?: string) {
     const linhas = pontos
       .map((l) => `<tr><td${estiloItens}>• ${comDestaques(e.autoDestaque ? destacarTudo(l) : l, corItens)}</td></tr>`)
       .join('');
-    return `<table class="quadro"><tr><th${estiloTopo}><span class="seta">➔</span>${comDestaques(subtopico, e.topo?.corChave)}</th></tr>${linhas}</table>`;
+    const cima = subtopico
+      ? `<tr><th${estiloTopo}><span class="seta">➔</span>${comDestaques(subtopico, e.topo?.corChave)}</th></tr>`
+      : '';
+    return `<table class="quadro">${cima}${linhas}</table>`;
   }
   const { cabecalho, linhas } = linhasParaMostrar(b.tipo, b.texto);
   if (e.lista) {

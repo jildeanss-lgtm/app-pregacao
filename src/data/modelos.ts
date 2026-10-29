@@ -143,9 +143,9 @@ export const camposCapa: Record<string, CampoCapa[]> = {
   ],
 };
 
-// Na Aula EBD o quadro do objetivo fala da lição, como na revista
-export const inicioObjetivo = (tipo?: string) =>
-  tipo === 'Aula EBD' ? 'Os *OBJETIVOS* desta *LIÇÃO* são:\n' : 'O *OBJETIVO* deste *SERMÃO* é:\n';
+// Na Aula EBD o quadro do objetivo não tem frase em cima: o título OBJETIVOS DA LIÇÃO vem num subtópico verde,
+// como os outros da capa (JILDEAN, 29/10/2026)
+export const inicioObjetivo = (tipo?: string) => (tipo === 'Aula EBD' ? '\n' : 'O *OBJETIVO* deste *SERMÃO* é:\n');
 
 // Caixas da capa, com os títulos em fundo verde como os tópicos (JILDEAN, 29/10/2026): as que vão antes do quadro do objetivo e as que vêm depois dele (ordem da revista da EBD)
 export function blocosDaCapa(tipo: string | undefined, capa: Record<string, string> | undefined) {
@@ -159,7 +159,10 @@ export function blocosDaCapa(tipo: string | undefined, capa: Record<string, stri
       : [];
   // Os objetivos abrem a capa; as outras caixas vêm logo depois deles (JILDEAN, 29/10/2026)
   return {
-    antes: [] as BlocoInicial[],
+    antes:
+      tipo === 'Aula EBD'
+        ? [{ tipo: 'subtopicoVerde' as const, texto: '*OBJETIVOS DA LIÇÃO*', capa: 'objetivos' }]
+        : [],
     depois: [
       ...comTitulo('verdade', 'VERDADE APLICADA', 'efeito'),
       ...comTitulo('oracao', 'MOMENTO DE ORAÇÃO', 'palavra'),

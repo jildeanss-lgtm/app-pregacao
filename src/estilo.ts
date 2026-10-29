@@ -26,7 +26,7 @@ export type EstiloBloco = {
   negrito?: boolean;
   fundo?: string;
   seta?: boolean;
-  // Seta própria (o subtópico usa ➢; o padrão é ➔)
+  // Seta própria (o padrão é ➔, a mesma dos subtópicos: JILDEAN, 29/10/2026)
   simboloSeta?: string;
   lista?: boolean;
   // Caixa com o subtópico na linha de cima e os pontos embaixo
@@ -48,7 +48,6 @@ export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
     cor: coresPregacao.texto,
     fundo: coresPregacao.fundoSubtopico,
     seta: true,
-    simboloSeta: '➢',
     autoDestaque: true,
   },
   // Subtópico com o mesmo fundo verde do tópico (JILDEAN, 29/10/2026)
@@ -56,7 +55,6 @@ export const estiloBloco: Record<TipoBloco, EstiloBloco> = {
     cor: coresPregacao.texto,
     fundo: coresPregacao.fundoTopico,
     seta: true,
-    simboloSeta: '➢',
     autoDestaque: true,
   },
   quadro: {
@@ -162,6 +160,8 @@ export function tituloDaPagina(blocos: BlocoDaPagina[], i: number) {
 export function rotuloVisivel(b: { tipo: TipoBloco; rotulo?: string }) {
   // O nome "Texto" não aparece em cima da caixa escrita (JILDEAN, 29/10/2026)
   if (b.rotulo?.trim().toLowerCase() === 'texto') return undefined;
+  // Objetivos da Aula EBD: o título já vem no subtópico OBJETIVOS DA LIÇÃO
+  if (b.tipo === 'objetivo' && b.rotulo?.endsWith('Aula EBD')) return undefined;
   return b.rotulo ?? (semCorPropria.has(b.tipo) ? nomesBloco[b.tipo] : undefined);
 }
 

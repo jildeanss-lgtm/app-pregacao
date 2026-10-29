@@ -67,7 +67,7 @@ function escolhasDoSermao(s: Sermao) {
           ? 'Aula EBD'
           : ''),
     objetivo:
-      obj?.texto.replace(/^(O \*OBJETIVO\* deste \*SERMÃO\* é|Os \*OBJETIVOS\* desta \*LIÇÃO\* são):\n/, '') ??
+      obj?.texto.replace(/^(?:(?:O \*OBJETIVO\* deste \*SERMÃO\* é|Os \*OBJETIVOS\* desta \*LIÇÃO\* são):)?\n/, '') ??
       importado?.linhas ??
       '',
     // Sermões novos guardam a opção pela dica da caixa; os antigos, pelo nome dela
@@ -294,7 +294,7 @@ export default function NovoSermaoTela() {
   // As 3 linhas do objetivo: na Aula EBD ficam dentro da capa, logo depois da Lição nº (JILDEAN, 29/10/2026)
   const objetivoCampos = (
     <>
-      <Text style={estilos.objetivoTopo}>{ehEBD ? 'Os OBJETIVOS desta LIÇÃO são:' : 'O OBJETIVO deste SERMÃO é:'}</Text>
+      {ehEBD ? null : <Text style={estilos.objetivoTopo}>O OBJETIVO deste SERMÃO é:</Text>}
       {camposObjetivo.map((valor, i) => (
         <View key={i} style={estilos.linhaObjetivo}>
           <Text style={estilos.marcadorObjetivo}>●</Text>

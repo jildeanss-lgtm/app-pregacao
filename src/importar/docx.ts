@@ -185,7 +185,7 @@ export function lerParagrafos(xml: string, manterCores = false): Paragrafo[] {
 // --- Parágrafos -> caixas do sermão ---
 
 // A seta que o app põe antes dos subtópicos no Google Docs
-const reSeta = /^\s*[➢➤]\s*/;
+const reSeta = /^\s*[➔➢➤]\s*/;
 
 type Tipo = 'titulo' | 'subtitulo' | 'biblia' | 'efeito' | 'pergunta' | 'aplicacao' | 'citacao' | 'frase' | 'texto';
 
@@ -339,7 +339,7 @@ export function sermaoDosParagrafos(
         continue;
       }
       // Os títulos viram subtópicos: as páginas seguem as quebras do documento original, não os títulos
-      // Com a seta ➢ do app na frente, o título verde é um subtópico verde, não um tópico
+      // Com a seta ➔ do app na frente, o título verde é um subtópico verde, não um tópico
       const comSeta = reSeta.test(p.texto);
       adicionar({
         tipo: comSeta ? 'subtopicoVerde' : opcoes.manterTopicos ? 'topico' : 'subtopico',
