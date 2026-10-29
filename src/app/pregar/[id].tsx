@@ -36,7 +36,7 @@ const velocidades = [8, 12, 16, 22, 30, 40, 55, 75];
 const CHAVE_VELOCIDADE = 'pregar:velocidade';
 
 // Espaço da mesa cinza acima da primeira folha
-const margemMesa = 8;
+const margemMesa = 4;
 
 // Rola a folha sozinha enquanto está ligada e para quando o fim da página atual aparece inteiro; um toque na folha
 // leva ao começo da seguinte. Se o pregador rolar com o dedo, a rolagem continua de onde ele parou
@@ -140,13 +140,15 @@ export default function PulpitoTela() {
   const sermao = useSermao(id);
   // A folha tem sempre a largura de um A4 (794 px) e é reduzida para caber na largura da tela, como um doc
   const largura = useWindowDimensions().width;
-  const escala = Math.min(1, (largura - 16) / larguraA4);
+  const escala = Math.min(1, (largura - 2 * margemMesa) / larguraA4);
   const [alturaFolha, setAlturaFolha] = useState(0);
   const [segundos, setSegundos] = useState(0);
   // Hora do relógio, entre o cronômetro e o Rolar
   const [agora, setAgora] = useState(() => new Date());
   const rolagem = useRef<ScrollViewInstance>(null);
   const auto = useRolagemAutomatica(rolagem, escala);
+  // A velocidade só aparece quando o pregador segura o botão de rolar
+  const [vendoVelocidade, setVendoVelocidade] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -166,33 +168,33 @@ export default function PulpitoTela() {
   return (
     <SafeAreaView style={estilos.tela}>
       <StatusBar style="dark" />
+      {/* Faixa fina no topo: sair, tempo de pregação, hora e rolar. A folha fica com quase toda a tela */}
       <View style={estilos.topo}>
-        <View style={estilos.lado}>
-          <Pressable accessibilityRole="button" onPress={() => router.back()} style={estilos.sair}>
-            <Text style={estilos.suave}>Sair</Text>
-          </Pressable>
-        </View>
-        {/* Tempo de pregação grande no meio, para ver de longe */}
-        <View style={estilos.centro}>
-          <Text style={estilos.relogio} accessibilityLabel={`Tempo ${relogio(segundos)}`}>
-            {relogio(segundos)}
-          </Text>
-          <Text style={estilos.pequeno}>previsto: {total} min</Text>
-        </View>
-        <View style={[estilos.lado, estilos.ladoDireito]}>
-          {/* Hora atual entre o cronômetro e o Rolar */}
-          <Text style={estilos.hora} accessibilityLabel="Hora atual">
-            {agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={auto.ligada ? 'Pausar rolagem' : 'Rolar sozinho'}
-            onPress={auto.alternar}
-            style={estilos.rolar}
-          >
-            <Text style={estilos.textoRolar}>{auto.ligada ? '❚❚ Pausar' : '▶ Rolar'}</Text>
-          </Pressable>
-        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Sair"
+          onPress={() => router.back()}
+          style={estilos.sair}
+        >
+          <Text style={estilos.textoSair}>‹ Sair</Text>
+        </Pressable>
+        <Text style={estilos.relogio} accessibilityLabel={`Tempo ${relogio(segundos)} de ${total} minutos previstos`}>
+          {relogio(segundos)}
+          <Text style={estilos.previsto}> / {total}</Text>
+        </Text>
+        <Text style={estilos.hora} accessibilityLabel="Hora atual">
+          {agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={auto.ligada ? 'Pausar rolagem' : 'Rolar sozinho'}
+          accessibilityHint="Segure para mudar a velocidade"
+          onPress={auto.alternar}
+          onLongPress={() => setVendoVelocidade((v) => !v)}
+          style={estilos.rolar}
+        >
+          <Text style={estilos.textoRolar}>{auto.ligada ? '❚❚' : '▶'}</Text>
+        </Pressable>
       </View>
       <View style={estilos.barra}>
         <View style={[estilos.barraCheia, { width: `${progresso * 100}%` }]} />
@@ -245,28 +247,38 @@ export default function PulpitoTela() {
           </View>
         </View>
       </ScrollView>
-      {/* Velocidade da rolagem; o toque na folha passa para a próxima página */}
-      <View style={estilos.controles}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Mais devagar"
-          onPress={() => auto.mudarVelocidade(-1)}
-          style={estilos.controle}
-        >
-          <Text style={estilos.textoControle}>−</Text>
-        </Pressable>
-        <Text style={estilos.velocidade}>
-          {auto.nivel + 1}/{velocidades.length}
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Mais rápido"
-          onPress={() => auto.mudarVelocidade(1)}
-          style={estilos.controle}
-        >
-          <Text style={estilos.textoControle}>+</Text>
-        </Pressable>
-      </View>
+      {/* Velocidade da rolagem, aberta ao segurar o botão de rolar; o toque na folha passa para a próxima página */}
+      {vendoVelocidade ? (
+        <View style={estilos.controles}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Mais devagar"
+            onPress={() => auto.mudarVelocidade(-1)}
+            style={estilos.controle}
+          >
+            <Text style={estilos.textoControle}>−</Text>
+          </Pressable>
+          <Text style={estilos.velocidade}>
+            {auto.nivel + 1}/{velocidades.length}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Mais rápido"
+            onPress={() => auto.mudarVelocidade(1)}
+            style={estilos.controle}
+          >
+            <Text style={estilos.textoControle}>+</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Fechar velocidade"
+            onPress={() => setVendoVelocidade(false)}
+            style={estilos.controle}
+          >
+            <Text style={[estilos.textoControle, { fontSize: 16 }]}>✕</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -276,26 +288,15 @@ const estilos = StyleSheet.create({
   tela: { flex: 1, backgroundColor: '#FFFFFF' },
   topo: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 8,
-    paddingHorizontal: 16,
+    gap: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
   },
-  lado: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  ladoDireito: { justifyContent: 'space-between', paddingLeft: 8 },
-  centro: { alignItems: 'center' },
-  hora: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '600',
-    color: cores.texto,
-    fontVariant: ['tabular-nums'],
-  },
-  pequeno: { fontSize: 12, color: cores.textoSuave },
+  hora: { flex: 1, textAlign: 'center', fontSize: 15, color: cores.textoSuave, fontVariant: ['tabular-nums'] },
   // Mesa cinza do Google Docs com a folha A4 (210 mm = 794 px) no meio
-  mesa: { flex: 1, backgroundColor: '#F1F3F4', marginTop: 12 },
-  mesaConteudo: { paddingVertical: 8, paddingHorizontal: 8, alignItems: 'center' },
+  mesa: { flex: 1, backgroundColor: '#F1F3F4' },
+  mesaConteudo: { paddingVertical: margemMesa, paddingHorizontal: margemMesa, alignItems: 'center' },
   // Folha A4 com margens de 2,5 cm e altura mínima de uma página
   coluna: { width: larguraA4, gap: 20 },
   folha: {
@@ -331,29 +332,26 @@ const estilos = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: '#F1F3F4',
   },
-  rolar: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: cores.destaque },
+  rolar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: cores.destaque,
+  },
   textoRolar: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
   textoControle: { fontSize: 20, fontWeight: '700', color: cores.texto },
   velocidade: { fontSize: 12, color: cores.textoSuave, paddingRight: 6 },
   sair: { minHeight: 44, justifyContent: 'center' },
-  relogio: { fontSize: 36, fontWeight: '700', color: cores.texto, fontVariant: ['tabular-nums'], lineHeight: 42 },
-  suave: { fontSize: 15, color: cores.textoSuave },
-  barra: { height: 4, backgroundColor: cores.borda, borderRadius: 2, marginTop: 12, marginHorizontal: 24 },
-  barraCheia: { height: 4, backgroundColor: cores.destaque, borderRadius: 2 },
+  textoSair: { fontSize: 15, color: cores.textoSuave },
+  relogio: { fontSize: 22, fontWeight: '800', color: cores.texto, fontVariant: ['tabular-nums'] },
+  previsto: { fontSize: 13, fontWeight: '400', color: cores.textoSuave },
+  barra: { height: 3, backgroundColor: cores.borda },
+  barraCheia: { height: 3, backgroundColor: cores.destaque },
   titulo: { fontSize: 22, fontWeight: '700', lineHeight: 28, color: cores.texto },
   // O tema do sermão com o fundo verde dos tópicos
   tema: { alignSelf: 'flex-start', backgroundColor: coresPregacao.fundoTopico, paddingHorizontal: 6 },
   base: { fontSize: 15, fontWeight: '600', color: cores.textoSuave },
   rotulo: { fontSize: 13, fontWeight: '600', color: cores.textoSuave, textTransform: 'uppercase' },
-  botao: { flex: 1, minHeight: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  botaoPrincipal: { backgroundColor: cores.destaque },
-  textoBotaoPrincipal: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
-  entrada: {
-    fontSize: 18,
-    color: cores.texto,
-    borderWidth: 1,
-    borderColor: cores.bordaForte,
-    borderRadius: 12,
-    padding: 14,
-  },
 });
