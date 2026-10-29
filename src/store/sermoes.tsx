@@ -1,8 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Platform } from 'react-native';
 import type { BlocoInicial, Modelo, TipoBloco } from '../data/modelos';
 import type { EtapaEstudo } from '../data/etapas';
 import type { Genero } from '../data/roteiro';
+import { pedirToken, tokenAtual } from '../ia/drive';
+import { juntar, sincronizar } from './nuvem';
 
 export type Bloco = {
   id: string;
@@ -57,6 +60,19 @@ export type Sermao = {
 
 const CHAVE = 'sermoes:v1';
 const CHAVE_ESTUDO = 'estudo:v1';
+// Sermões apagados e quando, para apagar também a cópia do Drive e dos outros aparelhos
+const CHAVE_APAGADOS = 'sermoes:apagados';
+// Depois do primeiro login, o app sincroniza sozinho com o Drive enquanto o login valer (uma hora)
+const CHAVE_NUVEM = 'nuvem:ligada';
+
+// Situação da cópia no Google Drive (só na versão web)
+export type Nuvem = {
+  disponivel: boolean;
+  ligada: boolean;
+  estado: 'parado' | 'sincronizando' | 'ok' | 'erro' | 'login';
+  quando?: string;
+  erro?: string;
+};
 
 // Estudo em andamento nas abas Bíblia e Estudo: o texto escolhido e as respostas. Ao criar um sermão,
 // ele vai junto para o sermão
@@ -108,6 +124,9 @@ type Contexto = {
   criar: (dados: NovoSermao) => Sermao;
   atualizar: (id: string, mudar: (s: Sermao) => Sermao) => void;
   remover: (id: string) => void;
+  nuvem: Nuvem;
+  // Pelo toque do usuário: pode abrir o login do Google
+  sincronizarAgora: () => Promise<void>;
   // Sem depoisDe, o bloco vai para o fim do sermão
   adicionarBloco: (id: string, tipo: TipoBloco, texto?: string, depoisDe?: string) => void;
 };
@@ -118,12 +137,21 @@ export function SermoesProvider({ children }: { children: ReactNode }) {
   const [sermoes, setSermoes] = useState<Sermao[]>([]);
   const [carregado, setCarregado] = useState(false);
   const [estudo, setEstudo] = useState<DadosEstudo>({ textoBase: '' });
+  const [apagados, setApagados] = useState<Record<string, string>>({});
+  const [nuvem, setNuvem] = useState<Nuvem>({ disponivel: Platform.OS === 'web', ligada: false, estado: 'parado' });
 
   useEffect(() => {
-    Promise.all([AsyncStorage.getItem(CHAVE), AsyncStorage.getItem(CHAVE_ESTUDO)])
-      .then(([salvo, estudoSalvo]) => {
+    Promise.all([
+      AsyncStorage.getItem(CHAVE),
+      AsyncStorage.getItem(CHAVE_ESTUDO),
+      AsyncStorage.getItem(CHAVE_APAGADOS),
+      AsyncStorage.getItem(CHAVE_NUVEM),
+    ])
+      .then(([salvo, estudoSalvo, apagadosSalvos, ligada]) => {
         if (salvo) setSermoes((JSON.parse(salvo) as Sermao[]).map(migrar));
         if (estudoSalvo) setEstudo(JSON.parse(estudoSalvo));
+        if (apagadosSalvos) setApagados(JSON.parse(apagadosSalvos));
+        if (ligada && Platform.OS === 'web') setNuvem((n) => ({ ...n, ligada: true, estado: 'login' }));
       })
       .finally(() => setCarregado(true));
   }, []);
@@ -131,6 +159,62 @@ export function SermoesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (carregado) AsyncStorage.setItem(CHAVE, JSON.stringify(sermoes));
   }, [sermoes, carregado]);
+
+  useEffect(() => {
+    if (carregado) AsyncStorage.setItem(CHAVE_APAGADOS, JSON.stringify(apagados));
+  }, [apagados, carregado]);
+
+  // A sincronização lê sempre a lista mais recente, mesmo chamada por um efeito antigo
+  const atual = useRef({ sermoes, apagados });
+  useEffect(() => {
+    atual.current = { sermoes, apagados };
+  }, [sermoes, apagados]);
+  const rodando = useRef(false);
+  // O que o Drive já tem, para não sincronizar de novo sem mudança
+  const enviado = useRef('');
+
+  const sincronizarCom = useCallback(async (t: string) => {
+    if (rodando.current) return;
+    rodando.current = true;
+    setNuvem((n) => ({ ...n, estado: 'sincronizando', erro: undefined }));
+    try {
+      const dados = await sincronizar(t, atual.current);
+      // O que mudou no aparelho durante a sincronização não se perde: entra na próxima
+      const junto = juntar(atual.current, dados);
+      atual.current = junto;
+      enviado.current = JSON.stringify(dados);
+      setSermoes(junto.sermoes);
+      setApagados(junto.apagados);
+      setNuvem((n) => ({ ...n, estado: 'ok', quando: new Date().toISOString() }));
+    } catch (e) {
+      setNuvem((n) => ({ ...n, estado: tokenAtual() ? 'erro' : 'login', erro: (e as Error).message }));
+    } finally {
+      rodando.current = false;
+    }
+  }, []);
+
+  const sincronizarAgora = useCallback(async () => {
+    try {
+      const t = await pedirToken();
+      await AsyncStorage.setItem(CHAVE_NUVEM, '1');
+      setNuvem((n) => ({ ...n, ligada: true }));
+      await sincronizarCom(t);
+    } catch (e) {
+      setNuvem((n) => ({ ...n, estado: 'erro', erro: (e as Error).message }));
+    }
+  }, [sincronizarCom]);
+
+  // Cada mudança vai para o Drive alguns segundos depois, se o login ainda valer
+  useEffect(() => {
+    if (!carregado || !nuvem.ligada) return;
+    if (JSON.stringify({ sermoes, apagados }) === enviado.current) return;
+    const espera = setTimeout(() => {
+      const t = tokenAtual();
+      if (t) sincronizarCom(t);
+      else setNuvem((n) => (n.estado === 'sincronizando' ? n : { ...n, estado: 'login' }));
+    }, 4000);
+    return () => clearTimeout(espera);
+  }, [sermoes, apagados, carregado, nuvem.ligada, sincronizarCom]);
 
   useEffect(() => {
     if (carregado) AsyncStorage.setItem(CHAVE_ESTUDO, JSON.stringify(estudo));
@@ -159,6 +243,7 @@ export function SermoesProvider({ children }: { children: ReactNode }) {
 
   const remover = useCallback((id: string) => {
     setSermoes((lista) => lista.filter((s) => s.id !== id));
+    setApagados((a) => ({ ...a, [id]: new Date().toISOString() }));
   }, []);
 
   const adicionarBloco = useCallback(
@@ -174,8 +259,19 @@ export function SermoesProvider({ children }: { children: ReactNode }) {
   );
 
   const valor = useMemo(
-    () => ({ carregado, estudo, mudarEstudo, sermoes, criar, atualizar, remover, adicionarBloco }),
-    [carregado, estudo, mudarEstudo, sermoes, criar, atualizar, remover, adicionarBloco],
+    () => ({
+      carregado,
+      estudo,
+      mudarEstudo,
+      sermoes,
+      criar,
+      atualizar,
+      remover,
+      adicionarBloco,
+      nuvem,
+      sincronizarAgora,
+    }),
+    [carregado, estudo, mudarEstudo, sermoes, criar, atualizar, remover, adicionarBloco, nuvem, sincronizarAgora],
   );
 
   return <SermoesContexto.Provider value={valor}>{children}</SermoesContexto.Provider>;

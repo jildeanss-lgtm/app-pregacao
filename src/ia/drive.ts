@@ -9,7 +9,8 @@ import { chamarClaude } from './estudo';
 export const ID_CLIENTE_GOOGLE = '1015553560821-dtjfl2639pkg6j5s2hnsm64j5a770ue2.apps.googleusercontent.com';
 
 const PASTA_BIBLIOTECA = '1N-CV4gNyutRASYfWP0dBfW7hN7vsXqOH';
-const ESCOPO = 'https://www.googleapis.com/auth/drive.readonly';
+// Leitura da biblioteca e, para guardar os sermões, acesso só aos arquivos que o próprio app criar
+const ESCOPO = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';
 const API = 'https://www.googleapis.com/drive/v3';
 const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174';
 
@@ -38,7 +39,11 @@ export const prepararLogin = () => carregarScript('https://accounts.google.com/g
 
 // Login do Google: o token vale uma hora e fica só na memória
 let token: { valor: string; ate: number } | null = null;
-async function pedirToken(): Promise<string> {
+
+// O token que ainda vale, sem abrir o login
+export const tokenAtual = () => (token && token.ate > Date.now() ? token.valor : null);
+
+export async function pedirToken(): Promise<string> {
   if (token && token.ate > Date.now()) return token.valor;
   if (!ID_CLIENTE_GOOGLE) throw new Error('Falta o ID do cliente do Google no app.');
   // O login abre numa janela, que o celular só deixa abrir logo depois do toque: por isso o script do Google é
@@ -60,14 +65,17 @@ async function pedirToken(): Promise<string> {
   });
 }
 
-async function drive(caminho: string, t: string) {
-  const r = await fetch(`${API}${caminho}`, { headers: { Authorization: `Bearer ${t}` } });
+export async function drive(caminho: string, t: string, pedido: RequestInit = {}, base = API) {
+  const r = await fetch(`${base}${caminho}`, {
+    ...pedido,
+    headers: { ...(pedido.headers as Record<string, string>), Authorization: `Bearer ${t}` },
+  });
   if (r.status === 401) token = null;
   if (!r.ok) throw new Error(`O Google Drive recusou o pedido (${r.status}).`);
   return r;
 }
 
-async function listar(q: string, t: string, campos = 'files(id,name,mimeType,size)', quantos = 100) {
+export async function listar(q: string, t: string, campos = 'files(id,name,mimeType,size)', quantos = 100) {
   const params = new URLSearchParams({ q, fields: campos, pageSize: String(quantos), supportsAllDrives: 'true' });
   const r = await drive(`/files?${params}`, t);
   return ((await r.json()) as { files: Arquivo[] }).files;

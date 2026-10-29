@@ -3,6 +3,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { modelos } from '../data/modelos';
 import { minutosEstimados, useSermoes, type Sermao } from '../store/sermoes';
 import { cores, larguraConteudo } from '../theme';
+import { PainelNuvem } from './PainelNuvem';
 import { Botao, Cartao } from './ui';
 
 // Lista de sermões usada nas abas Estudo, Sermões e Pregar; cada aba decide o que abrir
@@ -12,12 +13,14 @@ export function ListaSermoes({
   comNovo = true,
   textoNovo = '+ Novo sermão',
   extra,
+  comNuvem = false,
 }: {
   aoAbrir: (s: Sermao) => void;
   vazio: string;
   comNovo?: boolean;
   textoNovo?: string;
   extra?: (s: Sermao) => string | undefined;
+  comNuvem?: boolean;
 }) {
   const { sermoes, carregado } = useSermoes();
 
@@ -27,9 +30,10 @@ export function ListaSermoes({
       data={sermoes}
       keyExtractor={(s) => s.id}
       ListHeaderComponent={
-        comNovo ? (
+        comNovo || comNuvem ? (
           <View style={{ gap: 12, marginBottom: 8 }}>
-            <Botao titulo={textoNovo} onPress={() => router.push('/novo')} />
+            {comNuvem ? <PainelNuvem /> : null}
+            {comNovo ? <Botao titulo={textoNovo} onPress={() => router.push('/novo')} /> : null}
           </View>
         ) : undefined
       }
