@@ -7,6 +7,7 @@ import {
   dividirVersiculo,
   estiloBloco,
   abreNovaPagina,
+  partesDoTema,
   marcas,
 } from '../estilo';
 import { criarPasta } from '../store/nuvem';
@@ -40,7 +41,7 @@ function comChaves(texto: string, corChave?: string) {
     .join('');
 }
 
-type Estilo = { cor?: string; italico?: boolean; centro?: boolean; fundo?: string; quebra?: boolean };
+type Estilo = { cor?: string; italico?: boolean; centro?: boolean; fundo?: string; quebra?: boolean; seta?: boolean };
 
 function paragrafo(conteudo: string, e: Estilo = {}) {
   const css = [
@@ -53,7 +54,9 @@ function paragrafo(conteudo: string, e: Estilo = {}) {
     .filter(Boolean)
     .join(';');
   const corpo = e.fundo ? `<span style="background-color:${e.fundo}">${conteudo}</span>` : conteudo;
-  return `<p style="${css}">${corpo}</p>`;
+  // Seta preta em negrito antes do subtópico, fora do fundo colorido, como no app
+  const seta = e.seta ? '<b style="color:#000000">➢</b> ' : '';
+  return `<p style="${css}">${seta}${corpo}</p>`;
 }
 
 function lista(itens: string[], e: Estilo = {}) {
@@ -70,9 +73,9 @@ function blocoParaDocs(b: Bloco, quebra: boolean): string {
     case 'topico':
       return paragrafo(comChaves(b.texto), { ...base, fundo: '#00FF00' });
     case 'subtopico':
-      return paragrafo(comChaves(b.texto), { ...base, fundo: '#B6D7A8' });
+      return paragrafo(comChaves(b.texto), { ...base, fundo: '#B6D7A8', seta: true });
     case 'subtopicoVerde':
-      return paragrafo(comChaves(b.texto), { ...base, fundo: '#00FF00' });
+      return paragrafo(comChaves(b.texto), { ...base, fundo: '#00FF00', seta: true });
     case 'versiculo': {
       // "Livro 1" numa linha e cada versículo na sua, como nos esboços: a leitura junta de novo
       const { cabecalho, linhas } = dividirVersiculo(b.texto);
@@ -142,7 +145,12 @@ const ESPACO = '<p style="font-family:Arial"><br></p>';
 
 export function htmlParaDocs(s: Sermao) {
   const cabecalho = [
-    paragrafo(`<b><u>${escapar(s.titulo || 'Sermão sem título')}</u></b>`, { centro: true, fundo: '#00FF00' }),
+    paragrafo(
+      `<b>${partesDoTema(s.titulo || 'Sermão sem título')
+        .map((p) => (p.chave ? `<u>${escapar(p.texto.replace(/\*/g, ''))}</u>` : escapar(p.texto.replace(/\*/g, ''))))
+        .join('')}</b>`,
+      { centro: true, fundo: '#00FF00' },
+    ),
     ...(s.culto || s.data ? [paragrafo(escapar([s.culto, s.data].filter(Boolean).join(' · ')), { centro: true })] : []),
   ];
   // Cada tópico abre uma página nova, e entre as caixas fica uma linha em branco (menos nas marcadas com

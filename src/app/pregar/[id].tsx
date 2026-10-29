@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TextoFormatado } from '../../components/TextoFormatado';
-import { abreNovaPagina, coresPregacao, rotuloVisivel, tituloDaPagina } from '../../estilo';
+import { abreNovaPagina, coresPregacao, partesDoTema, rotuloVisivel, tituloDaPagina } from '../../estilo';
 import { minutosEstimados, useSermao, type Bloco } from '../../store/sermoes';
 import { cores } from '../../theme';
 
@@ -252,7 +252,15 @@ export default function PulpitoTela() {
               >
                 {n === 0 && (
                   <>
-                    <Text style={[estilos.titulo, estilos.tema]}>{sermao.titulo || 'Sem título'}</Text>
+                    <Text style={[estilos.titulo, estilos.tema]}>
+                      {sermao.titulo
+                        ? partesDoTema(sermao.titulo).map((p, k) => (
+                            <Text key={k} style={p.chave ? { textDecorationLine: 'underline' } : undefined}>
+                              {p.texto.replace(/\*/g, '')}
+                            </Text>
+                          ))
+                        : 'Sem título'}
+                    </Text>
                     {sermao.textoBase && !sermao.blocos.some((b) => b.capa === 'texto') ? (
                       <Text style={estilos.base}>{sermao.textoBase}</Text>
                     ) : null}

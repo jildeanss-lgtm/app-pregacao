@@ -199,6 +199,40 @@ export function marcasPorLinha(texto: string) {
 }
 
 // "Examinai *tudo*" (ou "Examinai TUDO") -> [{ texto: 'Examinai ', chave: false }, { texto: 'tudo', chave: true }]
+// Palavras-chave do tema, sublinhadas (JILDEAN, 29/10/2026): as marcadas com *asteriscos* ou, sem marca, as palavras
+// de 3 letras ou mais que não são artigos e preposições
+const palavrasFracas = new Set([
+  'das',
+  'dos',
+  'nas',
+  'nos',
+  'uma',
+  'umas',
+  'uns',
+  'por',
+  'com',
+  'que',
+  'aos',
+  'para',
+  'pelo',
+  'pela',
+  'pelos',
+  'pelas',
+  'sem',
+  'sob',
+  'mas',
+]);
+export function partesDoTema(titulo: string): { texto: string; chave: boolean }[] {
+  if (titulo.includes('*')) return dividirDestaques(titulo).map(({ texto, chave }) => ({ texto, chave }));
+  return titulo
+    .split(/(\s+)/)
+    .filter(Boolean)
+    .map((t) => {
+      const letras = t.replace(/[^\p{L}\p{N}]/gu, '');
+      return { texto: t, chave: letras.length >= 3 && !palavrasFracas.has(letras.toLowerCase()) };
+    });
+}
+
 export function dividirDestaques(texto: string) {
   const partes: { texto: string; chave: boolean; marca?: Marca }[] = [];
   const chaves = (trecho: string, marca?: Marca) => {

@@ -16,6 +16,7 @@ import {
   abreNovaPagina,
   coresPregacao,
   escalaTopico,
+  partesDoTema,
   tituloDaPagina,
   estiloBloco,
   pontosDoQuadro,
@@ -36,6 +37,8 @@ export default function EditorTela() {
   const { atualizar, adicionarBloco, remover, mudarEstudo, nuvem, sincronizarAgora } = useSermoes();
   // Aviso do botão Salvar no fim da edição
   const [salvo, setSalvo] = useState('');
+  // O tema aparece com as palavras-chave sublinhadas; tocando nele, vira a caixa para escrever
+  const [editandoTema, setEditandoTema] = useState(false);
   const [salvoDocs, setSalvoDocs] = useState('');
   // Folha cujo + está aberto, mostrando os tipos de bloco para a página nova
   const [novaPaginaEm, setNovaPaginaEm] = useState<string>();
@@ -270,15 +273,33 @@ export default function EditorTela() {
                       />
                     </View>
                     {/* Tema centralizado, com o fundo verde de ponta a ponta e a letra menor quando é comprido */}
-                    <CampoCrescente
-                      accessibilityLabel="Título do sermão"
-                      value={sermao.titulo}
-                      onChangeText={(titulo) => atualizar(sermao.id, (s) => ({ ...s, titulo }))}
-                      placeholder="Título do sermão"
-                      placeholderTextColor="#B0B5BD"
-                      alturaMinima={Math.round(tamanhoTema(sermao.titulo) * 1.5)}
-                      style={[estilos.entradaTitulo, { fontSize: tamanhoTema(sermao.titulo) }]}
-                    />
+                    {sermao.titulo && !editandoTema ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Editar o tema"
+                        onPress={() => setEditandoTema(true)}
+                      >
+                        <Text style={[estilos.entradaTitulo, { fontSize: tamanhoTema(sermao.titulo) }]}>
+                          {partesDoTema(sermao.titulo).map((p, k) => (
+                            <Text key={k} style={p.chave ? { textDecorationLine: 'underline' } : undefined}>
+                              {p.texto.replace(/\*/g, '')}
+                            </Text>
+                          ))}
+                        </Text>
+                      </Pressable>
+                    ) : (
+                      <CampoCrescente
+                        accessibilityLabel="Título do sermão"
+                        autoFocus={editandoTema}
+                        onBlur={() => setEditandoTema(false)}
+                        value={sermao.titulo}
+                        onChangeText={(titulo) => atualizar(sermao.id, (s) => ({ ...s, titulo }))}
+                        placeholder="Título do sermão"
+                        placeholderTextColor="#B0B5BD"
+                        alturaMinima={Math.round(tamanhoTema(sermao.titulo) * 1.5)}
+                        style={[estilos.entradaTitulo, { fontSize: tamanhoTema(sermao.titulo) }]}
+                      />
+                    )}
                     {/* Texto referência e, no fim da mesma linha, o atalho para pregar */}
                     <View style={estilos.linhaBase}>
                       {/* Com o texto de referência na capa (Aula EBD), ele aparece só lá, não embaixo do tema */}
@@ -676,30 +697,35 @@ function BlocoEditor({
               ))}
             </View>
           ) : (
-            <CampoCrescente
-              accessibilityLabel={rotulo}
-              value={bloco.texto}
-              onChangeText={onMudar}
-              onSelectionChange={(ev) => setSelecao(ev.nativeEvent.selection)}
-              multiline
-              autoFocus={!!bloco.texto}
-              onFocus={() => entrar(0)}
-              onBlur={sair}
-              alturaMinima={36}
-              placeholder={
-                bloco.tipo === 'topico'
-                  ? rotulo
-                  : (bloco.dica ?? dicas[bloco.tipo] ?? 'Escreva aqui. Use *asteriscos* para destacar palavras-chave')
-              }
-              placeholderTextColor={cores.textoSuave}
-              style={[
-                estilos.entrada,
-                visual,
-                e.fundo ? [estilos.entradaComFundo, { backgroundColor: e.fundo }] : null,
-                // Tópico com a letra um pouco maior que o resto
-                bloco.tipo === 'topico' && { fontSize: Math.round(16 * escalaTopico) },
-              ]}
-            />
+            // Subtópico já com a seta enquanto escreve, como fica depois (JILDEAN, 29/10/2026)
+            <View style={e.seta ? estilos.linhaComSeta : undefined}>
+              {e.seta ? <Text style={estilos.setaEditando}>{e.simboloSeta ?? '➔'}</Text> : null}
+              <CampoCrescente
+                accessibilityLabel={rotulo}
+                value={bloco.texto}
+                onChangeText={onMudar}
+                onSelectionChange={(ev) => setSelecao(ev.nativeEvent.selection)}
+                multiline
+                autoFocus={!!bloco.texto}
+                onFocus={() => entrar(0)}
+                onBlur={sair}
+                alturaMinima={36}
+                placeholder={
+                  bloco.tipo === 'topico'
+                    ? rotulo
+                    : (bloco.dica ?? dicas[bloco.tipo] ?? 'Escreva aqui. Use *asteriscos* para destacar palavras-chave')
+                }
+                placeholderTextColor={cores.textoSuave}
+                style={[
+                  estilos.entrada,
+                  e.seta && { flex: 1 },
+                  visual,
+                  e.fundo ? [estilos.entradaComFundo, { backgroundColor: e.fundo }] : null,
+                  // Tópico com a letra um pouco maior que o resto
+                  bloco.tipo === 'topico' && { fontSize: Math.round(16 * escalaTopico) },
+                ]}
+              />
+            </View>
           )}
           {focado && (
             <View style={estilos.ferramentas}>
@@ -916,6 +942,8 @@ const estilos = StyleSheet.create({
     outlineWidth: 0,
   },
   // O tema do sermão com o mesmo fundo verde dos tópicos
+  linhaComSeta: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  setaEditando: { fontSize: 16, fontWeight: '700', color: '#000000', paddingTop: 8 },
   entradaTitulo: {
     alignSelf: 'stretch',
     textAlign: 'center',
