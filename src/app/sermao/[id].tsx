@@ -199,6 +199,7 @@ export default function EditorTela() {
           {modelo?.nome} · cerca de {minutosEstimados(sermao)} min
         </Text>
 
+        <PainelDocs sermao={sermao} atualizar={atualizar} antesDeTrocar={() => guardarPasso()} apenasAtualizar />
         {sermao.iaPreparando ? (
           <Cartao style={estilos.avisoIA}>
             <Text style={estilos.textoAvisoIA}>

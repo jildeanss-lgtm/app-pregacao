@@ -14,18 +14,21 @@ export function PainelDocs({
   sermao,
   atualizar,
   antesDeTrocar,
+  apenasAtualizar,
 }: {
   sermao: Sermao;
   atualizar: (id: string, mudar: (s: Sermao) => Sermao) => void;
   // Guarda o passo do Desfazer antes de trocar as caixas pelas do Docs
   antesDeTrocar: () => void;
+  // No topo do editor (primeira página) fica só o Atualizar do Docs, como o Jildean pediu
+  apenasAtualizar?: boolean;
 }) {
   const [ocupado, setOcupado] = useState('');
   const [aviso, setAviso] = useState('');
   // O Docs foi mudado pelo Drive: gravar por cima só se o Jildean confirmar
   const [mudouNoDrive, setMudouNoDrive] = useState(false);
 
-  if (Platform.OS !== 'web') return null;
+  if (Platform.OS !== 'web' || (apenasAtualizar && !sermao.docId)) return null;
 
   const tentar = async (texto: string, fazer: () => Promise<void>) => {
     setAviso('');
@@ -92,7 +95,7 @@ export function PainelDocs({
 
   return (
     <View style={estilos.painel}>
-      <Botao titulo="Abrir no Google Docs" variante="contorno" onPress={() => abrir()} />
+      {apenasAtualizar ? null : <Botao titulo="Abrir no Google Docs" variante="contorno" onPress={() => abrir()} />}
       {sermao.docId ? <Botao titulo="Atualizar do Docs" variante="contorno" onPress={trazer} /> : null}
       {ocupado ? (
         <View style={estilos.linha}>
