@@ -261,7 +261,7 @@ export default function PulpitoTela() {
                   // No púlpito a aplicação aparece sem o nome em cima, só pela cor
                   const rotulo = b.tipo === 'aplicacao' || b.tipo === 'topico' || titulo ? undefined : rotuloVisivel(b);
                   return (
-                    <View key={b.id} style={{ gap: 2 }}>
+                    <View key={b.id} style={{ gap: 2, marginTop: b.colado ? -espacoNaFolha : 0 }}>
                       {titulo && <TextoFormatado tipo="topico" texto={titulo} tamanho={tamanhosLetra[letra]} />}
                       {rotulo && <Text style={estilos.rotulo}>{rotulo}</Text>}
                       <TextoFormatado
@@ -331,6 +331,9 @@ export default function PulpitoTela() {
   );
 }
 
+// Espaço entre as caixas na folha (a caixa "sem espaço" fica colada na de cima)
+const espacoNaFolha = 18;
+
 const estilos = StyleSheet.create({
   // Fundo claro, como papel, para as cores do esboço aparecerem iguais às do editor e do PDF
   tela: { flex: 1, backgroundColor: '#FFFFFF' },
@@ -376,7 +379,7 @@ const estilos = StyleSheet.create({
     borderColor: '#DADCE0',
     paddingHorizontal: 72,
     paddingVertical: 72,
-    gap: 18,
+    gap: espacoNaFolha,
   },
   // Botões da rolagem automática, flutuando no canto de baixo, longe do texto
   controles: {
