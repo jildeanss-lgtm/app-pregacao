@@ -670,7 +670,8 @@ function BlocoEditor({
           onPress={() => setEditando(true)}
           style={({ pressed }) => [estilos.leitura, pressed && estilos.leituraHover]}
         >
-          <TextoFormatado tipo={bloco.tipo} texto={bloco.texto} semMoldura />
+          {/* A primeira linha começa mais à esquerda: a seta passa para a margem, mesmo na folha estreita */}
+          <TextoFormatado tipo={bloco.tipo} texto={bloco.texto} semMoldura setaNaMargem />
         </Pressable>
       )}
       {/* Caixa já concluída: um "+ Inserir" clarinho logo abaixo cria a próxima sem abrir esta de novo */}
