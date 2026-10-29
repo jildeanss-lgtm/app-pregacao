@@ -5,6 +5,7 @@ import { ChipsInserir } from '../../components/ChipsInserir';
 import { TextoFormatado } from '../../components/TextoFormatado';
 import { BarraAbas } from '../../components/BarraAbas';
 import { CampoCrescente } from '../../components/CampoCrescente';
+import { PainelDocs } from '../../components/PainelDocs';
 import { Botao, Cartao, Rotulo } from '../../components/ui';
 import { etapasDeEstudo, nomesEstudo } from '../../data/etapas';
 import { perguntasDaEtapa } from '../../data/roteiro';
@@ -368,6 +369,7 @@ export default function EditorTela() {
             style={estilos.acaoSermao}
           />
         </View>
+        <PainelDocs sermao={sermao} atualizar={atualizar} antesDeTrocar={() => guardarPasso()} />
         <Botao
           titulo="Editar dados e saudação"
           variante="contorno"
