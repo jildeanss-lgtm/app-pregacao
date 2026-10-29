@@ -402,10 +402,42 @@ function migrarCapa(s: Sermao): Sermao {
 }
 
 // Refaz as caixas da capa do tipo de sermão (antes e depois do quadro do objetivo) com o que foi preenchido
+// Títulos da capa que perderam a marca de capa (voltaram do Google Docs como caixas comuns): o título e a caixa
+// logo abaixo dele saem, porque a capa refeita põe os dois de novo
+const titulosCapa: Record<string, string> = {
+  'OBJETIVOS DA LIÇÃO': 'objetivos',
+  'VERDADE APLICADA': 'verdade',
+  'MOMENTO DE ORAÇÃO': 'oracao',
+  'MOMENTO ORAÇÃO': 'oracao',
+  'VERSÍCULO DO DIA': 'versiculo',
+  'TEXTO DE REFERÊNCIA': 'texto',
+};
+const textoPuro = (t: string) =>
+  t
+    .replace(/\*|\[[^\]]*\]|[➔➢➤]/g, '')
+    .replace(/:\s*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase();
+function semCapaSolta(blocos: Bloco[], naCapa: Set<string>) {
+  const fora = new Set<number>();
+  blocos.forEach((b, i) => {
+    const id = titulosCapa[textoPuro(b.texto)];
+    if (b.capa || !['topico', 'subtopico', 'subtopicoVerde'].includes(b.tipo) || !naCapa.has(id)) return;
+    fora.add(i);
+    // Os objetivos ficam na caixa do objetivo, que a capa refeita não cria de novo
+    if (id === 'objetivos') return;
+    const abaixo = blocos[i + 1];
+    if (abaixo && !abaixo.capa && !abaixo.novaPagina && ['efeito', 'palavra', 'versiculo'].includes(abaixo.tipo))
+      fora.add(i + 1);
+  });
+  return blocos.filter((_, i) => !fora.has(i));
+}
+
 export function trocarCapa(blocos: Bloco[], tipo: string, capa: Record<string, string>): Bloco[] {
   const { antes, depois } = blocosDaCapa(tipo, capa);
   const criarBlocos = (lista: BlocoInicial[]) => lista.map((b) => ({ ...b, id: novoId(), texto: b.texto ?? '' }));
-  const resto = blocos.filter((b) => !b.capa);
+  const resto = semCapaSolta(blocos, new Set([...antes, ...depois].map((b) => b.capa ?? ''))).filter((b) => !b.capa);
   const i = resto.findIndex((b) => b.tipo === 'objetivo') + 1;
   return [...criarBlocos(antes), ...resto.slice(0, i), ...criarBlocos(depois), ...resto.slice(i)];
 }

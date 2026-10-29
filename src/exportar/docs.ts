@@ -267,8 +267,17 @@ export function juntarComApp(app: Bloco[], doDocs: BlocoInicial[], novoId: () =>
     const k = comparavel(b);
     sobra.set(k, [...(sobra.get(k) ?? []), b]);
   }
+  // A capa vem do app (Dados do sermão): se no Docs só mudou a formatação dela, fica a caixa do app
+  const puro = (t: string) =>
+    t
+      .replace(/\*|\[[^\]]*\]|[➔➢➤]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  const capa = app.filter((b) => b.capa && b.texto.trim());
   return doDocs.map((b) => {
-    const igual = sobra.get(comparavel(b))?.shift();
+    const igual = sobra.get(comparavel(b))?.shift() ?? capa.find((c) => puro(c.texto) === puro(b.texto ?? ''));
+    if (igual && capa.includes(igual)) capa.splice(capa.indexOf(igual), 1);
     return igual ?? { ...b, id: novoId(), texto: b.texto ?? '' };
   });
 }
