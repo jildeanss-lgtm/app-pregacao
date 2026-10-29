@@ -93,7 +93,7 @@ export const opcoesIntroducao: { id: OpcaoIntroducao; nome: string; dica: string
   },
 ];
 
-export type BlocoInicial = { tipo: TipoBloco; texto?: string; rotulo?: string; dica?: string };
+export type BlocoInicial = { tipo: TipoBloco; texto?: string; rotulo?: string; dica?: string; novaPagina?: boolean };
 
 export type OpcoesNovoSermao = {
   modelo: Modelo;

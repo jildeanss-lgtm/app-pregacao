@@ -19,36 +19,41 @@ export const tiposParaAdicionar: TipoBloco[] = [
 export function ChipsInserir({
   onEscolher,
   extras = [],
+  sem,
 }: {
   onEscolher: (tipo: TipoBloco) => void;
   // Tipos a mais, depois das caixas do sermão
   extras?: TipoBloco[];
+  // Tipo que não aparece (o da própria caixa, ao mudar o tipo dela)
+  sem?: TipoBloco;
 }) {
   return (
     <View style={estilos.linha}>
-      {[...tiposParaAdicionar, ...extras].map((tipo) => {
-        const e = estiloBloco[tipo];
-        return (
-          <Pressable
-            key={tipo}
-            accessibilityRole="button"
-            accessibilityLabel={`Adicionar ${nomesBloco[tipo]}`}
-            onPress={() => onEscolher(tipo)}
-            style={[estilos.chipBloco, e.fundo ? { backgroundColor: e.fundo, borderColor: e.fundo } : null]}
-          >
-            <Text
-              style={[
-                estilos.textoChip,
-                { color: e.topo?.cor ?? e.cor, fontStyle: e.topo?.italico || e.italico ? 'italic' : 'normal' },
-                // Texto (subtópico e pontos) em caixa alta e azul, como o Jildean pediu
-                tipo === 'quadro' && { color: coresPregacao.frase, fontWeight: '800' },
-              ]}
+      {[...tiposParaAdicionar, ...extras]
+        .filter((t) => t !== sem)
+        .map((tipo) => {
+          const e = estiloBloco[tipo];
+          return (
+            <Pressable
+              key={tipo}
+              accessibilityRole="button"
+              accessibilityLabel={`Adicionar ${nomesBloco[tipo]}`}
+              onPress={() => onEscolher(tipo)}
+              style={[estilos.chipBloco, e.fundo ? { backgroundColor: e.fundo, borderColor: e.fundo } : null]}
             >
-              + {tipo === 'quadro' ? nomesBloco[tipo].toUpperCase() : nomesBloco[tipo]}
-            </Text>
-          </Pressable>
-        );
-      })}
+              <Text
+                style={[
+                  estilos.textoChip,
+                  { color: e.topo?.cor ?? e.cor, fontStyle: e.topo?.italico || e.italico ? 'italic' : 'normal' },
+                  // Texto (subtópico e pontos) em caixa alta e azul, como o Jildean pediu
+                  tipo === 'quadro' && { color: coresPregacao.frase, fontWeight: '800' },
+                ]}
+              >
+                + {tipo === 'quadro' ? nomesBloco[tipo].toUpperCase() : nomesBloco[tipo]}
+              </Text>
+            </Pressable>
+          );
+        })}
     </View>
   );
 }
