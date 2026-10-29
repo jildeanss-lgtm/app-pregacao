@@ -1,5 +1,5 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Botao, Cartao, Rotulo } from '../components/ui';
 import { BarraAbas } from '../components/BarraAbas';
@@ -18,6 +18,7 @@ import { generos, sugerirGenero, type Genero } from '../data/roteiro';
 import { ETAPA_MONTAGEM } from '../data/etapas';
 import { lerChave, prepararSermao, textoDosVersiculos } from '../ia/estudo';
 import { lerSaudacao } from '../store/saudacoes';
+import { lerIntroducoes, type IntroducaoEditada } from '../store/introducoes';
 import { trocarCapa, trocarSaudacao, useSermao, useSermoes, type Sermao } from '../store/sermoes';
 import { cores, larguraConteudo } from '../theme';
 
@@ -42,9 +43,9 @@ function escolhasDoSermao(s: Sermao) {
     objetivo:
       obj?.texto.replace(/^(O \*OBJETIVO\* deste \*SERMÃO\* é|Os \*OBJETIVOS\* desta \*LIÇÃO\* são):\n/, '') ?? '',
     // Sermões novos guardam a opção pela dica da caixa; os antigos, pelo nome dela
-    introducao: opcoesIntroducao.find(
-      (o) => intro?.rotulo === `${ROTULO_INTRODUCAO}${o.nome}` || intro?.dica === o.dica,
-    )?.id,
+    introducao:
+      s.introducao ??
+      opcoesIntroducao.find((o) => intro?.rotulo === `${ROTULO_INTRODUCAO}${o.nome}` || intro?.dica === o.dica)?.id,
     saudacao: s.saudacao ?? (temSaudacao ? ATUAL : ''),
   };
 }
@@ -79,6 +80,13 @@ export default function NovoSermaoTela() {
   const campos = camposCapa[tipoObjetivo];
   const ehEBD = tipoObjetivo === 'Aula EBD';
   const [introducao, setIntroducao] = useState<OpcaoIntroducao>(inicio?.introducao ?? 'citacoes');
+  // As introduções como o JILDEAN editou (lidas de novo ao voltar da página de edição)
+  const [intros, setIntros] = useState<Partial<Record<OpcaoIntroducao, IntroducaoEditada>>>({});
+  useFocusEffect(
+    useCallback(() => {
+      lerIntroducoes().then(setIntros);
+    }, []),
+  );
   const [generoEscolhido, setGenero] = useState<Genero | undefined>(original?.genero);
   // O corpo começa em branco: a saudação só entra se for pedida
   const [saudacao, setSaudacao] = useState(inicio?.saudacao ?? '');
@@ -109,7 +117,7 @@ export default function NovoSermaoTela() {
             ? {
                 ...b,
                 rotulo: b.rotulo?.startsWith(ROTULO_INTRODUCAO) ? `${ROTULO_INTRODUCAO}${intro.nome}` : b.rotulo,
-                dica: intro.dica,
+                dica: intros[introducao]?.dica || intro.dica,
               }
             : b,
         );
@@ -124,6 +132,7 @@ export default function NovoSermaoTela() {
         genero,
         saudacao: saudacao === ATUAL ? s.saudacao : saudacao,
         capa,
+        introducao,
         blocos,
       };
     });
@@ -154,6 +163,7 @@ export default function NovoSermaoTela() {
       genero,
       saudacao,
       capa,
+      introducao,
       etapa: ETAPA_MONTAGEM,
       // O estudo feito para este texto vai junto e aparece em "Seu estudo" na montagem
       ...(doEstudo
@@ -173,6 +183,7 @@ export default function NovoSermaoTela() {
         capa,
         versos,
         introducao,
+        introducaoEditada: intros[introducao],
         saudacao: blocosSaudacao,
       }),
     });
@@ -237,6 +248,17 @@ export default function NovoSermaoTela() {
     </>
   );
 
+  const campoTexto = (
+    <TextInput
+      accessibilityLabel="Texto referência"
+      value={textoBase}
+      onChangeText={setTextoBase}
+      placeholder="Ex.: Êxodo 8 (ou toque no versículo na aba Bíblia)"
+      placeholderTextColor={cores.textoSuave}
+      style={estilos.entrada}
+    />
+  );
+
   return (
     <View style={{ flex: 1 }}>
       {original ? <Stack.Screen options={{ title: 'Dados do sermão' }} /> : null}
@@ -283,15 +305,12 @@ export default function NovoSermaoTela() {
               ))}
             </View>
           )}
-          <Rotulo>Texto referência</Rotulo>
-          <TextInput
-            accessibilityLabel="Texto referência"
-            value={textoBase}
-            onChangeText={setTextoBase}
-            placeholder="Ex.: Êxodo 8 (ou toque no versículo na aba Bíblia)"
-            placeholderTextColor={cores.textoSuave}
-            style={estilos.entrada}
-          />
+          {ehEBD ? null : (
+            <>
+              <Rotulo>Texto referência</Rotulo>
+              {campoTexto}
+            </>
+          )}
           {/* Cada tipo terá a sua capa; o que vai embaixo de cada um o Jildean ainda vai definir */}
           <Rotulo>Tipo de sermão</Rotulo>
           <View style={estilos.linha}>
@@ -313,12 +332,6 @@ export default function NovoSermaoTela() {
                 <Text style={estilos.tituloCapa}>Capa da {tipoObjetivo}</Text>
                 {campos.map((c) => (
                   <View key={c.id} style={{ gap: 4 }}>
-                    {c.id === 'versiculo' ? (
-                      <View style={{ gap: 8, marginBottom: 6 }}>
-                        <Text style={estilos.rotuloCapa}>Objetivos da lição</Text>
-                        {objetivoCampos}
-                      </View>
-                    ) : null}
                     <Text style={estilos.rotuloCapa}>{c.nome}</Text>
                     <TextInput
                       accessibilityLabel={c.nome}
@@ -330,8 +343,19 @@ export default function NovoSermaoTela() {
                       keyboardType={c.id === 'licao' ? 'numeric' : 'default'}
                       style={[estilos.entrada, (c.linhas ?? 1) > 1 && { minHeight: 64, textAlignVertical: 'top' }]}
                     />
+                    {c.id === 'licao' ? (
+                      <View style={{ gap: 8, marginTop: 6 }}>
+                        <Text style={estilos.rotuloCapa}>Objetivos da lição</Text>
+                        {objetivoCampos}
+                      </View>
+                    ) : null}
                   </View>
                 ))}
+                {/* Na Aula EBD o texto de referência fecha a capa (JILDEAN, 29/10/2026) */}
+                <View style={{ gap: 4 }}>
+                  <Text style={estilos.rotuloCapa}>Texto de referência</Text>
+                  {campoTexto}
+                </View>
               </>
             ) : (
               <Text style={estilos.suave}>
@@ -341,18 +365,21 @@ export default function NovoSermaoTela() {
           </View>
         </Cartao>
 
-        <Cartao style={{ gap: 8 }}>
-          <Rotulo>Modelo do sermão</Rotulo>
-          {modelos.map((m) => (
-            <Escolha
-              key={m.id}
-              ativo={modelo === m.id}
-              titulo={m.nome}
-              descricao={m.descricao}
-              onPress={() => setModelo(m.id)}
-            />
-          ))}
-        </Cartao>
+        {/* Na Aula EBD não entram o modelo do sermão nem o gênero literário (JILDEAN, 29/10/2026) */}
+        {ehEBD ? null : (
+          <Cartao style={{ gap: 8 }}>
+            <Rotulo>Modelo do sermão</Rotulo>
+            {modelos.map((m) => (
+              <Escolha
+                key={m.id}
+                ativo={modelo === m.id}
+                titulo={m.nome}
+                descricao={m.descricao}
+                onPress={() => setModelo(m.id)}
+              />
+            ))}
+          </Cartao>
+        )}
 
         {ehEBD ? null : (
           <Cartao style={{ gap: 8 }}>
@@ -360,40 +387,6 @@ export default function NovoSermaoTela() {
             {objetivoCampos}
           </Cartao>
         )}
-
-        <Cartao style={{ gap: 8 }}>
-          <Rotulo>Introdução</Rotulo>
-          {opcoesIntroducao.map((o) => (
-            <Escolha
-              key={o.id}
-              ativo={introducao === o.id}
-              titulo={o.nome}
-              descricao={o.dica}
-              onPress={() => setIntroducao(o.id)}
-            />
-          ))}
-        </Cartao>
-
-        <Cartao style={{ gap: 8 }}>
-          <Rotulo>Gênero literário do texto</Rotulo>
-          {sugerido && !generoEscolhido ? (
-            <Text style={estilos.suave}>Definido pelo livro: {generos.find((g) => g.id === sugerido)?.nome}</Text>
-          ) : null}
-          <View style={estilos.linha}>
-            {generos.map((g) => (
-              <Pressable
-                key={g.id}
-                accessibilityRole="button"
-                accessibilityState={{ selected: genero === g.id }}
-                onPress={() => setGenero(g.id)}
-                style={[estilos.pilula, genero === g.id && estilos.pilulaAtiva]}
-              >
-                <Text style={[estilos.textoPilula, genero === g.id && { color: '#FFFFFF' }]}>{g.nome}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={estilos.suave}>Usado no estudo do texto, na etapa de observação.</Text>
-        </Cartao>
 
         <Cartao style={{ gap: 8 }}>
           <Rotulo>Saudação</Rotulo>
@@ -422,6 +415,43 @@ export default function NovoSermaoTela() {
           ) : null}
         </Cartao>
 
+        <Cartao style={{ gap: 8 }}>
+          <Rotulo>Introdução</Rotulo>
+          {opcoesIntroducao.map((o) => (
+            <Escolha
+              key={o.id}
+              ativo={introducao === o.id}
+              titulo={o.nome}
+              descricao={intros[o.id]?.dica || o.dica}
+              onPress={() => setIntroducao(o.id)}
+              onEditar={() => router.push(`/introducao/${o.id}`)}
+            />
+          ))}
+        </Cartao>
+
+        {ehEBD ? null : (
+          <Cartao style={{ gap: 8 }}>
+            <Rotulo>Gênero literário do texto</Rotulo>
+            {sugerido && !generoEscolhido ? (
+              <Text style={estilos.suave}>Definido pelo livro: {generos.find((g) => g.id === sugerido)?.nome}</Text>
+            ) : null}
+            <View style={estilos.linha}>
+              {generos.map((g) => (
+                <Pressable
+                  key={g.id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: genero === g.id }}
+                  onPress={() => setGenero(g.id)}
+                  style={[estilos.pilula, genero === g.id && estilos.pilulaAtiva]}
+                >
+                  <Text style={[estilos.textoPilula, genero === g.id && { color: '#FFFFFF' }]}>{g.nome}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={estilos.suave}>Usado no estudo do texto, na etapa de observação.</Text>
+          </Cartao>
+        )}
+
         {original ? (
           <Botao titulo={criando ? 'Salvando...' : 'Salvar alterações'} onPress={salvarAlteracoes} />
         ) : (
@@ -444,7 +474,7 @@ function Escolha({
   titulo: string;
   descricao?: string;
   onPress: () => void;
-  // Botão "Editar" do lado direito (saudações)
+  // Botão "Editar" do lado direito (saudações e introduções)
   onEditar?: () => void;
 }) {
   return (

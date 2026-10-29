@@ -117,6 +117,8 @@ export type OpcoesNovoSermao = {
   // Texto dos versículos, que já entra no bloco Texto referência
   versos?: string;
   introducao: OpcaoIntroducao;
+  // A opção de introdução como o JILDEAN editou (descrição e texto que já entra na caixa)
+  introducaoEditada?: { dica: string; texto: string };
   // Blocos da saudação escolhida (já com as edições do JILDEAN); sem ela, o sermão começa no texto
   saudacao?: BlocosSaudacao;
   // O que foi preenchido na capa do tipo de sermão
@@ -129,14 +131,14 @@ export type CampoCapa = { id: string; nome: string; dica: string; linhas?: numbe
 export const camposCapa: Record<string, CampoCapa[]> = {
   'Aula EBD': [
     { id: 'licao', nome: 'Lição nº', dica: 'Ex.: 5' },
+    { id: 'verdade', nome: 'Verdade aplicada', dica: 'A verdade central da lição', linhas: 2 },
+    { id: 'oracao', nome: 'Momento de oração', dica: 'Pelo que orar no fim da aula', linhas: 2 },
     {
       id: 'versiculo',
       nome: 'Versículo do dia',
       dica: 'Ex.: Gn 1.27 - E criou Deus o homem à sua imagem...',
       linhas: 2,
     },
-    { id: 'verdade', nome: 'Verdade aplicada', dica: 'A verdade central da lição', linhas: 2 },
-    { id: 'oracao', nome: 'Momento de oração', dica: 'Pelo que orar no fim da aula', linhas: 2 },
   ],
 };
 
@@ -162,9 +164,9 @@ export function blocosDaCapa(tipo: string | undefined, capa: Record<string, stri
   return {
     antes,
     depois: [
-      ...comTitulo('versiculo', 'VERSÍCULO DO DIA', 'versiculo'),
       ...comTitulo('verdade', 'VERDADE APLICADA', 'efeito'),
       ...comTitulo('oracao', 'MOMENTO DE ORAÇÃO', 'palavra'),
+      ...comTitulo('versiculo', 'VERSÍCULO DO DIA', 'versiculo'),
     ],
   };
 }
@@ -392,7 +394,12 @@ export function montarBlocos(o: OpcoesNovoSermao): BlocoInicial[] {
     ...(o.saudacao?.depois ?? []).map(comTexto),
     // No corpo só entram caixas com os nomes dos botões do fim do editor (JILDEAN, 29/10/2026). Introdução e
     // conclusão continuam abrindo as suas páginas, mas a caixa aparece como TEXTO
-    { tipo: 'introducao', rotulo: ROTULO_TEXTO, dica: intro.dica },
+    {
+      tipo: 'introducao',
+      rotulo: ROTULO_TEXTO,
+      dica: o.introducaoEditada?.dica || intro.dica,
+      texto: o.introducaoEditada?.texto,
+    },
     ...[1, 2, 3].flatMap((n) => topico(n, o.modelo)),
     { tipo: 'conclusao', rotulo: ROTULO_TEXTO },
     { tipo: 'efeito' },
