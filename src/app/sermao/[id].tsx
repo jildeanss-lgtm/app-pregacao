@@ -176,6 +176,19 @@ export default function EditorTela() {
                 id: 'cabecalho',
                 conteudo: (
                   <>
+                    <View style={estilos.botoesTopo}>
+                      <Botao
+                        titulo="Pregar"
+                        onPress={() => router.push(`/pregar/${sermao.id}`)}
+                        style={estilos.acaoSermao}
+                      />
+                      <Botao
+                        titulo="Editar dados"
+                        variante="contorno"
+                        onPress={() => router.push(`/novo?id=${sermao.id}`)}
+                        style={estilos.acaoSermao}
+                      />
+                    </View>
                     <View style={estilos.linhaMeta}>
                       <TextInput
                         accessibilityLabel="Culto"
@@ -652,6 +665,7 @@ const estilos = StyleSheet.create({
     marginHorizontal: -1,
   },
   linhaMeta: { flexDirection: 'row', gap: 12 },
+  botoesTopo: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   entradaMeta: {
     fontSize: 13,
     color: cores.textoSuave,

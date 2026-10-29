@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Botao, Cartao, Rotulo } from '../components/ui';
@@ -16,7 +16,7 @@ import { generos, sugerirGenero, type Genero } from '../data/roteiro';
 import { ETAPA_MONTAGEM } from '../data/etapas';
 import { lerChave, prepararSermao, textoDosVersiculos } from '../ia/estudo';
 import { lerSaudacao } from '../store/saudacoes';
-import { useSermoes } from '../store/sermoes';
+import { trocarSaudacao, useSermao, useSermoes, type Sermao } from '../store/sermoes';
 import { cores, larguraConteudo } from '../theme';
 
 function hoje() {
@@ -24,21 +24,83 @@ function hoje() {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 }
 
+const ROTULO_OBJETIVO = 'Objetivo do sermão: ';
+const INICIO_OBJETIVO = 'O *OBJETIVO* deste *SERMÃO* é:\n';
+const ROTULO_INTRODUCAO = 'Introdução: ';
+// Saudação que já está no sermão, quando ele foi criado antes de o app guardar qual foi escolhida
+const ATUAL = 'atual';
+
+// O que foi escolhido ao criar o sermão, lido dos blocos dele, para abrir esta tela de novo e mudar
+function escolhasDoSermao(s: Sermao) {
+  const obj = s.blocos.find((b) => b.tipo === 'objetivo');
+  const intro = s.blocos.find((b) => b.tipo === 'introducao');
+  const ateTexto = s.blocos.findIndex((b) => b.tipo === 'versiculo' && b.rotulo === 'Texto');
+  const temSaudacao = ateTexto > 0 && s.blocos.slice(0, ateTexto).some((b) => b.tipo !== 'objetivo');
+  return {
+    tipoObjetivo: obj?.rotulo?.startsWith(ROTULO_OBJETIVO) ? obj.rotulo.slice(ROTULO_OBJETIVO.length) : '',
+    objetivo: obj?.texto.startsWith(INICIO_OBJETIVO) ? obj.texto.slice(INICIO_OBJETIVO.length) : (obj?.texto ?? ''),
+    introducao: opcoesIntroducao.find((o) => intro?.rotulo === `${ROTULO_INTRODUCAO}${o.nome}`)?.id,
+    saudacao: s.saudacao ?? (temSaudacao ? ATUAL : ''),
+  };
+}
+
 export default function NovoSermaoTela() {
+  // Com id, a tela abre um sermão já criado para mudar os dados e a saudação
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const original = useSermao(id);
+  const [inicio] = useState(() => (original ? escolhasDoSermao(original) : undefined));
   const { criar, atualizar, estudo } = useSermoes();
   const [criando, setCriando] = useState(false);
-  const [culto, setCulto] = useState('');
-  const [data, setData] = useState(hoje);
-  const [titulo, setTitulo] = useState('');
+  const [culto, setCulto] = useState(original?.culto ?? '');
+  const [data, setData] = useState(original ? (original.data ?? '') : hoje);
+  const [titulo, setTitulo] = useState(original?.titulo ?? '');
   // O texto estudado nas abas Bíblia e Estudo já vem preenchido
-  const [textoBase, setTextoBase] = useState(estudo.textoBase);
-  const [modelo, setModelo] = useState<Modelo>('expositivo');
-  const [objetivo, setObjetivo] = useState('');
-  const [tipoObjetivo, setTipoObjetivo] = useState('Pregação');
-  const [introducao, setIntroducao] = useState<OpcaoIntroducao>('citacoes');
-  const [generoEscolhido, setGenero] = useState<Genero>();
+  const [textoBase, setTextoBase] = useState(original?.textoBase ?? estudo.textoBase);
+  const [modelo, setModelo] = useState<Modelo>(original?.modelo ?? 'expositivo');
+  const [objetivo, setObjetivo] = useState(inicio?.objetivo ?? '');
+  const [tipoObjetivo, setTipoObjetivo] = useState(inicio?.tipoObjetivo || 'Pregação');
+  const [introducao, setIntroducao] = useState<OpcaoIntroducao>(inicio?.introducao ?? 'citacoes');
+  const [generoEscolhido, setGenero] = useState<Genero | undefined>(original?.genero);
   // O corpo começa em branco: a saudação só entra se for pedida
-  const [saudacao, setSaudacao] = useState('');
+  const [saudacao, setSaudacao] = useState(inicio?.saudacao ?? '');
+
+  // Sermão já criado: muda só o que foi mexido aqui, sem apagar o que já foi escrito nos blocos
+  const salvarAlteracoes = async () => {
+    if (!original || !inicio || criando) return;
+    setCriando(true);
+    const novaSaudacao = saudacao !== inicio.saudacao ? (saudacao ? await lerSaudacao(saudacao) : undefined) : null;
+    const intro = opcoesIntroducao.find((o) => o.id === introducao)!;
+    atualizar(original.id, (s) => {
+      let blocos = s.blocos;
+      if (objetivo !== inicio.objetivo || tipoObjetivo !== (inicio.tipoObjetivo || 'Pregação'))
+        blocos = blocos.map((b) =>
+          b.tipo === 'objetivo'
+            ? {
+                ...b,
+                rotulo: `${ROTULO_OBJETIVO}${tipoObjetivo}`,
+                texto: objetivo.trim() ? `${INICIO_OBJETIVO}${objetivo.trim()}` : '',
+              }
+            : b,
+        );
+      if (introducao !== inicio.introducao)
+        blocos = blocos.map((b) =>
+          b.tipo === 'introducao' ? { ...b, rotulo: `${ROTULO_INTRODUCAO}${intro.nome}`, dica: intro.dica } : b,
+        );
+      if (novaSaudacao !== null) blocos = trocarSaudacao(blocos, novaSaudacao, textoBase);
+      return {
+        ...s,
+        culto,
+        data,
+        titulo,
+        textoBase,
+        modelo,
+        genero,
+        saudacao: saudacao === ATUAL ? s.saudacao : saudacao,
+        blocos,
+      };
+    });
+    router.back();
+  };
   // Temas sugeridos pela IA no estudo deste texto
   const temas = textoBase === estudo.textoBase ? (estudo.temas ?? []) : [];
 
@@ -62,6 +124,7 @@ export default function NovoSermaoTela() {
       culto,
       data,
       genero,
+      saudacao,
       etapa: ETAPA_MONTAGEM,
       // O estudo feito para este texto vai junto e aparece em "Seu estudo" na montagem
       ...(doEstudo
@@ -114,6 +177,7 @@ export default function NovoSermaoTela() {
 
   return (
     <View style={{ flex: 1 }}>
+      {original ? <Stack.Screen options={{ title: 'Dados do sermão' }} /> : null}
       <ScrollView contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
         <Cartao style={{ gap: 8 }}>
           <View style={estilos.linha}>
@@ -254,9 +318,25 @@ export default function NovoSermaoTela() {
             />
           ))}
           <Escolha ativo={!saudacao} titulo="Sem saudação" onPress={() => setSaudacao('')} />
+          {inicio?.saudacao === ATUAL ? (
+            <Escolha
+              ativo={saudacao === ATUAL}
+              titulo="Manter a saudação que já está no sermão"
+              onPress={() => setSaudacao(ATUAL)}
+            />
+          ) : null}
+          {original && saudacao !== inicio?.saudacao ? (
+            <Text style={estilos.suave}>
+              Ao salvar, a saudação do sermão é trocada por esta (o que foi escrito na saudação antiga sai).
+            </Text>
+          ) : null}
         </Cartao>
 
-        <Botao titulo={criando ? 'Criando...' : 'Criar sermão'} onPress={criarSermao} />
+        {original ? (
+          <Botao titulo={criando ? 'Salvando...' : 'Salvar alterações'} onPress={salvarAlteracoes} />
+        ) : (
+          <Botao titulo={criando ? 'Criando...' : 'Criar sermão'} onPress={criarSermao} />
+        )}
       </ScrollView>
       <BarraAbas atual="/" />
     </View>

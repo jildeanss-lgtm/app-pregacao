@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
-import type { BlocoInicial, Modelo, TipoBloco } from '../data/modelos';
+import { MARCA_TEXTO, type BlocoInicial, type BlocosSaudacao, type Modelo, type TipoBloco } from '../data/modelos';
+import { rotulosTextoReferencia } from '../estilo';
 import type { EtapaEstudo } from '../data/etapas';
 import type { Genero } from '../data/roteiro';
 import { pedirToken, tokenAtual } from '../ia/drive';
@@ -53,6 +54,8 @@ export type Sermao = {
   // Enquanto a IA escreve o objetivo e a introdução de um sermão novo, e o erro se não der certo
   iaPreparando?: boolean;
   iaErro?: string;
+  // Saudação escolhida ao criar ('' = sem saudação); sermões antigos não têm
+  saudacao?: string;
   blocos: Bloco[];
   pregacoes: Pregacao[];
   atualizadoEm: string;
@@ -113,6 +116,7 @@ export type NovoSermao = {
   etapa?: number;
   respostas?: Record<string, string>;
   anotacoes?: Partial<Record<EtapaEstudo, string>>;
+  saudacao?: string;
   blocos: BlocoInicial[];
 };
 
@@ -286,6 +290,30 @@ export function useSermoes() {
 export function useSermao(id: string | undefined) {
   const { sermoes } = useSermoes();
   return sermoes.find((s) => s.id === id);
+}
+
+// Troca a saudação de um sermão já criado: o que vem entre o objetivo e o TEXTO (saudação, qual texto e
+// agradecimentos) e entre o TEXTO e a introdução sai, e entra a saudação nova
+export function trocarSaudacao(blocos: Bloco[], nova: BlocosSaudacao | undefined, textoBase: string): Bloco[] {
+  const criarBlocos = (lista: BlocoInicial[]) =>
+    lista.map((b) => ({ ...b, id: novoId(), texto: (b.texto ?? '').split(MARCA_TEXTO).join(textoBase || '...') }));
+  const objetivo = blocos.findIndex((b) => b.tipo === 'objetivo');
+  const texto = blocos.findIndex((b) => b.tipo === 'versiculo' && rotulosTextoReferencia.includes(b.rotulo ?? ''));
+  const introducao = blocos.findIndex((b) => b.tipo === 'introducao');
+  const fim = introducao >= 0 ? introducao : texto >= 0 ? texto + 1 : objetivo + 1;
+  if (texto < 0 || texto > fim)
+    return [
+      ...blocos.slice(0, objetivo + 1),
+      ...criarBlocos([...(nova?.antes ?? []), ...(nova?.depois ?? [])]),
+      ...blocos.slice(objetivo + 1),
+    ];
+  return [
+    ...blocos.slice(0, objetivo + 1),
+    ...criarBlocos(nova?.antes ?? []),
+    blocos[texto],
+    ...criarBlocos(nova?.depois ?? []),
+    ...blocos.slice(fim),
+  ];
 }
 
 // Estimativa simples: cerca de 130 palavras faladas por minuto, mais 2 minutos por tópico
