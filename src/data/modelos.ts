@@ -147,13 +147,13 @@ export const camposCapa: Record<string, CampoCapa[]> = {
 export const inicioObjetivo = (tipo?: string) =>
   tipo === 'Aula EBD' ? 'Os *OBJETIVOS* desta *LIÇÃO* são:\n' : 'O *OBJETIVO* deste *SERMÃO* é:\n';
 
-// Caixas da capa: as que vão antes do quadro do objetivo e as que vêm depois dele (ordem da revista da EBD)
+// Caixas da capa, com os títulos em fundo verde como os tópicos (JILDEAN, 29/10/2026): as que vão antes do quadro do objetivo e as que vêm depois dele (ordem da revista da EBD)
 export function blocosDaCapa(tipo: string | undefined, capa: Record<string, string> | undefined) {
   const valor = (id: string) => (camposCapa[tipo ?? '']?.some((c) => c.id === id) ? (capa?.[id] ?? '').trim() : '');
   const comTitulo = (id: string, titulo: string, tipoBloco: TipoBloco): BlocoInicial[] =>
     valor(id)
       ? [
-          { tipo: 'subtopico', texto: `*${titulo}*`, capa: id },
+          { tipo: 'subtopicoVerde', texto: `*${titulo}*`, capa: id },
           { tipo: tipoBloco, rotulo: '', texto: valor(id), capa: id },
         ]
       : [];
@@ -167,7 +167,7 @@ export function blocosDaCapa(tipo: string | undefined, capa: Record<string, stri
       // O texto bíblico do Texto de referência, que a tela já guarda pronto na capa
       ...(tipo === 'Aula EBD' && capa?.texto?.trim()
         ? [
-            { tipo: 'subtopico' as const, texto: '*TEXTO DE REFERÊNCIA*', capa: 'texto' },
+            { tipo: 'subtopicoVerde' as const, texto: '*TEXTO DE REFERÊNCIA*', capa: 'texto' },
             { tipo: 'versiculo' as const, texto: capa.texto.trim(), capa: 'texto' },
           ]
         : []),
@@ -392,7 +392,8 @@ export function montarBlocos(o: OpcoesNovoSermao): BlocoInicial[] {
     {
       tipo: 'versiculo',
       rotulo: 'Texto',
-      texto: o.versos ? `${o.textoBase} - ${o.versos}` : '',
+      // Texto de referência já escrito à mão ("Salmos 139:6 - TAL...") entra como está
+      texto: o.textoBase.includes(' - ') ? o.textoBase.trim() : o.versos ? `${o.textoBase} - ${o.versos}` : '',
       dica: o.textoBase ? `${o.textoBase} - cole ou escreva o texto` : undefined,
     },
     ...(o.saudacao?.depois ?? []).map(comTexto),

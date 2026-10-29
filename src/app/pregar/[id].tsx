@@ -253,7 +253,9 @@ export default function PulpitoTela() {
                 {n === 0 && (
                   <>
                     <Text style={[estilos.titulo, estilos.tema]}>{sermao.titulo || 'Sem título'}</Text>
-                    {sermao.textoBase ? <Text style={estilos.base}>{sermao.textoBase}</Text> : null}
+                    {sermao.textoBase && !sermao.blocos.some((b) => b.capa === 'texto') ? (
+                      <Text style={estilos.base}>{sermao.textoBase}</Text>
+                    ) : null}
                   </>
                 )}
                 {pagina.map((b) => {
@@ -423,7 +425,7 @@ const estilos = StyleSheet.create({
   barraCheia: { height: 4, backgroundColor: cores.destaque, borderRadius: 2 },
   titulo: { fontSize: 22, fontWeight: '700', lineHeight: 28, color: cores.texto },
   // O tema do sermão com o fundo verde dos tópicos
-  tema: { alignSelf: 'flex-start', backgroundColor: coresPregacao.fundoTopico, paddingHorizontal: 6 },
+  tema: { alignSelf: 'stretch', textAlign: 'center', backgroundColor: coresPregacao.fundoTopico, paddingHorizontal: 6 },
   base: { fontSize: 15, fontWeight: '600', color: cores.textoSuave },
   rotulo: { fontSize: 13, fontWeight: '600', color: cores.textoSuave, textTransform: 'uppercase' },
 });

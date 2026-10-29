@@ -269,24 +269,31 @@ export default function EditorTela() {
                         style={[estilos.entradaMeta, { flex: 1, textAlign: 'right' }]}
                       />
                     </View>
-                    <TextInput
+                    {/* Tema centralizado, com o fundo verde de ponta a ponta e a letra menor quando é comprido */}
+                    <CampoCrescente
                       accessibilityLabel="Título do sermão"
                       value={sermao.titulo}
                       onChangeText={(titulo) => atualizar(sermao.id, (s) => ({ ...s, titulo }))}
                       placeholder="Título do sermão"
                       placeholderTextColor="#B0B5BD"
-                      style={estilos.entradaTitulo}
+                      alturaMinima={Math.round(tamanhoTema(sermao.titulo) * 1.5)}
+                      style={[estilos.entradaTitulo, { fontSize: tamanhoTema(sermao.titulo) }]}
                     />
                     {/* Texto referência e, no fim da mesma linha, o atalho para pregar */}
                     <View style={estilos.linhaBase}>
-                      <TextInput
-                        accessibilityLabel="Texto referência"
-                        value={sermao.textoBase}
-                        onChangeText={(textoBase) => atualizar(sermao.id, (s) => ({ ...s, textoBase }))}
-                        placeholder="Texto referência (ex.: João 3:16)"
-                        placeholderTextColor={cores.textoSuave}
-                        style={[estilos.entradaBase, { flex: 1 }]}
-                      />
+                      {/* Com o texto de referência na capa (Aula EBD), ele aparece só lá, não embaixo do tema */}
+                      {sermao.blocos.some((b) => b.capa === 'texto') ? (
+                        <View style={{ flex: 1 }} />
+                      ) : (
+                        <TextInput
+                          accessibilityLabel="Texto referência"
+                          value={sermao.textoBase}
+                          onChangeText={(textoBase) => atualizar(sermao.id, (s) => ({ ...s, textoBase }))}
+                          placeholder="Texto referência (ex.: João 3:16)"
+                          placeholderTextColor={cores.textoSuave}
+                          style={[estilos.entradaBase, { flex: 1 }]}
+                        />
+                      )}
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel="Pregar"
@@ -817,6 +824,12 @@ function paginas(
   );
 }
 
+// Letra do tema: menor quanto mais comprido, para caber no quadro verde sem cortar
+function tamanhoTema(titulo: string) {
+  const n = titulo.length;
+  return n > 60 ? 18 : n > 40 ? 20 : n > 24 ? 23 : 26;
+}
+
 const estilos = StyleSheet.create({
   novaPagina: { alignItems: 'center', gap: 8, alignSelf: 'stretch', paddingVertical: 4 },
   linhaNovaPagina: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 8 },
@@ -904,9 +917,8 @@ const estilos = StyleSheet.create({
   },
   // O tema do sermão com o mesmo fundo verde dos tópicos
   entradaTitulo: {
-    alignSelf: 'flex-start',
-    minWidth: 220,
-    maxWidth: '100%',
+    alignSelf: 'stretch',
+    textAlign: 'center',
     backgroundColor: coresPregacao.fundoTopico,
     paddingHorizontal: 6,
     fontSize: 26,
