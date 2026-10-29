@@ -99,7 +99,15 @@ export const opcoesIntroducao: { id: OpcaoIntroducao; nome: string; dica: string
   },
 ];
 
-export type BlocoInicial = { tipo: TipoBloco; texto?: string; rotulo?: string; dica?: string; novaPagina?: boolean };
+export type BlocoInicial = {
+  tipo: TipoBloco;
+  texto?: string;
+  rotulo?: string;
+  dica?: string;
+  novaPagina?: boolean;
+  // Caixa da capa do tipo de sermão (ver camposCapa), refeita quando os dados do sermão mudam
+  capa?: string;
+};
 
 export type OpcoesNovoSermao = {
   modelo: Modelo;
@@ -111,7 +119,49 @@ export type OpcoesNovoSermao = {
   introducao: OpcaoIntroducao;
   // Blocos da saudação escolhida (já com as edições do JILDEAN); sem ela, o sermão começa no texto
   saudacao?: BlocosSaudacao;
+  // O que foi preenchido na capa do tipo de sermão
+  capa?: Record<string, string>;
 };
+
+// Capa de cada tipo de sermão: o que vai na primeira folha além do título, do texto e do objetivo. Cada tipo terá
+// a sua (JILDEAN, 29/10/2026); por enquanto só a Aula EBD, como na revista da lição
+export type CampoCapa = { id: string; nome: string; dica: string; linhas?: number };
+export const camposCapa: Record<string, CampoCapa[]> = {
+  'Aula EBD': [
+    { id: 'licao', nome: 'Lição nº', dica: 'Ex.: 5' },
+    {
+      id: 'versiculo',
+      nome: 'Versículo do dia',
+      dica: 'Ex.: Gn 1.27 - E criou Deus o homem à sua imagem...',
+      linhas: 2,
+    },
+    { id: 'verdade', nome: 'Verdade aplicada', dica: 'A verdade central da lição', linhas: 2 },
+    { id: 'oracao', nome: 'Momento de oração', dica: 'Pelo que orar no fim da aula', linhas: 2 },
+  ],
+};
+
+// Na Aula EBD o quadro do objetivo fala da lição, como na revista
+export const inicioObjetivo = (tipo?: string) =>
+  tipo === 'Aula EBD' ? 'Os *OBJETIVOS* desta *LIÇÃO* são:\n' : 'O *OBJETIVO* deste *SERMÃO* é:\n';
+
+// Caixas da capa: as que vão antes do quadro do objetivo e as que vêm depois dele (ordem da revista da EBD)
+export function blocosDaCapa(tipo: string | undefined, capa: Record<string, string> | undefined) {
+  const valor = (id: string) => (camposCapa[tipo ?? '']?.some((c) => c.id === id) ? (capa?.[id] ?? '').trim() : '');
+  const comTitulo = (id: string, titulo: string, tipoBloco: TipoBloco): BlocoInicial[] =>
+    valor(id)
+      ? [
+          { tipo: 'subtopico', texto: `*${titulo}*`, capa: id },
+          { tipo: tipoBloco, texto: valor(id), capa: id },
+        ]
+      : [];
+  const licao = valor('licao').replace(/^li[çc][ãa]o\s*/i, '');
+  const antes: BlocoInicial[] = [
+    ...(licao ? [{ tipo: 'subtopico' as const, texto: `*LIÇÃO ${licao.toUpperCase()}*`, capa: 'licao' }] : []),
+    ...comTitulo('versiculo', 'VERSÍCULO DO DIA', 'versiculo'),
+    ...comTitulo('verdade', 'VERDADE APLICADA', 'efeito'),
+  ];
+  return { antes, depois: comTitulo('oracao', 'MOMENTO DE ORAÇÃO', 'palavra') };
+}
 
 // Saudações salvas para escolher ao criar o sermão. "antes" vai na página da saudação (saudação, qual texto,
 // agradecimentos); "depois" vem logo após a leitura do texto. Cores dentro da linha: [fundo verde]...[/] etc.
@@ -317,12 +367,15 @@ export const ROTULO_TEXTO = 'Texto';
 export function montarBlocos(o: OpcoesNovoSermao): BlocoInicial[] {
   const intro = opcoesIntroducao.find((i) => i.id === o.introducao)!;
   const comTexto = (b: BlocoInicial) => ({ ...b, texto: b.texto?.split(MARCA_TEXTO).join(o.textoBase || '...') });
+  const capa = blocosDaCapa(o.tipoObjetivo, o.capa);
   return [
+    ...capa.antes,
     {
       tipo: 'objetivo',
       rotulo: o.tipoObjetivo ? `Objetivo do sermão: ${o.tipoObjetivo}` : 'Objetivo do sermão',
-      texto: o.objetivo.trim() ? `O *OBJETIVO* deste *SERMÃO* é:\n${o.objetivo.trim()}` : '',
+      texto: o.objetivo.trim() ? `${inicioObjetivo(o.tipoObjetivo)}${o.objetivo.trim()}` : '',
     },
+    ...capa.depois,
     ...(o.saudacao?.antes ?? []).map(comTexto),
     {
       tipo: 'versiculo',

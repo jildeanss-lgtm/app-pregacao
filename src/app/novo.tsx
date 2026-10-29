@@ -4,6 +4,8 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { Botao, Cartao, Rotulo } from '../components/ui';
 import { BarraAbas } from '../components/BarraAbas';
 import {
+  camposCapa,
+  inicioObjetivo,
   modelos,
   montarBlocos,
   opcoesIntroducao,
@@ -16,7 +18,7 @@ import { generos, sugerirGenero, type Genero } from '../data/roteiro';
 import { ETAPA_MONTAGEM } from '../data/etapas';
 import { lerChave, prepararSermao, textoDosVersiculos } from '../ia/estudo';
 import { lerSaudacao } from '../store/saudacoes';
-import { trocarSaudacao, useSermao, useSermoes, type Sermao } from '../store/sermoes';
+import { trocarCapa, trocarSaudacao, useSermao, useSermoes, type Sermao } from '../store/sermoes';
 import { cores, larguraConteudo } from '../theme';
 
 function hoje() {
@@ -25,7 +27,6 @@ function hoje() {
 }
 
 const ROTULO_OBJETIVO = 'Objetivo do sermão: ';
-const INICIO_OBJETIVO = 'O *OBJETIVO* deste *SERMÃO* é:\n';
 const ROTULO_INTRODUCAO = 'Introdução: ';
 // Saudação que já está no sermão, quando ele foi criado antes de o app guardar qual foi escolhida
 const ATUAL = 'atual';
@@ -38,7 +39,8 @@ function escolhasDoSermao(s: Sermao) {
   const temSaudacao = ateTexto > 0 && s.blocos.slice(0, ateTexto).some((b) => b.tipo !== 'objetivo');
   return {
     tipoObjetivo: obj?.rotulo?.startsWith(ROTULO_OBJETIVO) ? obj.rotulo.slice(ROTULO_OBJETIVO.length) : '',
-    objetivo: obj?.texto.startsWith(INICIO_OBJETIVO) ? obj.texto.slice(INICIO_OBJETIVO.length) : (obj?.texto ?? ''),
+    objetivo:
+      obj?.texto.replace(/^(O \*OBJETIVO\* deste \*SERMÃO\* é|Os \*OBJETIVOS\* desta \*LIÇÃO\* são):\n/, '') ?? '',
     // Sermões novos guardam a opção pela dica da caixa; os antigos, pelo nome dela
     introducao: opcoesIntroducao.find(
       (o) => intro?.rotulo === `${ROTULO_INTRODUCAO}${o.nome}` || intro?.dica === o.dica,
@@ -72,6 +74,10 @@ export default function NovoSermaoTela() {
     .filter(Boolean)
     .join('\n');
   const [tipoObjetivo, setTipoObjetivo] = useState(inicio?.tipoObjetivo || 'Pregação');
+  // Capa do tipo de sermão (só a Aula EBD tem campos por enquanto)
+  const [capa, setCapa] = useState<Record<string, string>>(original?.capa ?? {});
+  const campos = camposCapa[tipoObjetivo];
+  const ehEBD = tipoObjetivo === 'Aula EBD';
   const [introducao, setIntroducao] = useState<OpcaoIntroducao>(inicio?.introducao ?? 'citacoes');
   const [generoEscolhido, setGenero] = useState<Genero | undefined>(original?.genero);
   // O corpo começa em branco: a saudação só entra se for pedida
@@ -91,10 +97,12 @@ export default function NovoSermaoTela() {
             ? {
                 ...b,
                 rotulo: `${ROTULO_OBJETIVO}${tipoObjetivo}`,
-                texto: objetivos ? `${INICIO_OBJETIVO}${objetivos}` : '',
+                texto: objetivos ? `${inicioObjetivo(tipoObjetivo)}${objetivos}` : '',
               }
             : b,
         );
+      if (tipoObjetivo !== (inicio.tipoObjetivo || 'Pregação') || JSON.stringify(capa) !== JSON.stringify(s.capa ?? {}))
+        blocos = trocarCapa(blocos, tipoObjetivo, capa);
       if (introducao !== inicio.introducao)
         blocos = blocos.map((b) =>
           b.tipo === 'introducao'
@@ -115,6 +123,7 @@ export default function NovoSermaoTela() {
         modelo,
         genero,
         saudacao: saudacao === ATUAL ? s.saudacao : saudacao,
+        capa,
         blocos,
       };
     });
@@ -144,6 +153,7 @@ export default function NovoSermaoTela() {
       data,
       genero,
       saudacao,
+      capa,
       etapa: ETAPA_MONTAGEM,
       // O estudo feito para este texto vai junto e aparece em "Seu estudo" na montagem
       ...(doEstudo
@@ -160,6 +170,7 @@ export default function NovoSermaoTela() {
         textoBase,
         objetivo: objetivos,
         tipoObjetivo,
+        capa,
         versos,
         introducao,
         saudacao: blocosSaudacao,
@@ -257,23 +268,8 @@ export default function NovoSermaoTela() {
             placeholderTextColor={cores.textoSuave}
             style={estilos.entrada}
           />
-        </Cartao>
-
-        <Cartao style={{ gap: 8 }}>
+          {/* Cada tipo terá a sua capa; o que vai embaixo de cada um o Jildean ainda vai definir */}
           <Rotulo>Tipo de sermão</Rotulo>
-          {modelos.map((m) => (
-            <Escolha
-              key={m.id}
-              ativo={modelo === m.id}
-              titulo={m.nome}
-              descricao={m.descricao}
-              onPress={() => setModelo(m.id)}
-            />
-          ))}
-        </Cartao>
-
-        <Cartao style={{ gap: 8 }}>
-          <Rotulo>Objetivo do sermão</Rotulo>
           <View style={estilos.linha}>
             {objetivosSermao.map((o) => (
               <Pressable
@@ -287,7 +283,53 @@ export default function NovoSermaoTela() {
               </Pressable>
             ))}
           </View>
-          <Text style={estilos.objetivoTopo}>O OBJETIVO deste SERMÃO é:</Text>
+          <View style={[estilos.capaTipo, campos && estilos.capaCampos]}>
+            {campos ? (
+              <>
+                <Text style={estilos.tituloCapa}>Capa da {tipoObjetivo}</Text>
+                {campos.map((c) => (
+                  <View key={c.id} style={{ gap: 4 }}>
+                    <Text style={estilos.rotuloCapa}>{c.nome}</Text>
+                    <TextInput
+                      accessibilityLabel={c.nome}
+                      value={capa[c.id] ?? ''}
+                      onChangeText={(t) => setCapa((x) => ({ ...x, [c.id]: t }))}
+                      placeholder={c.dica}
+                      placeholderTextColor={cores.textoSuave}
+                      multiline={(c.linhas ?? 1) > 1}
+                      keyboardType={c.id === 'licao' ? 'numeric' : 'default'}
+                      style={[estilos.entrada, (c.linhas ?? 1) > 1 && { minHeight: 64, textAlignVertical: 'top' }]}
+                    />
+                  </View>
+                ))}
+                <Text style={estilos.suave}>Os objetivos da lição ficam no quadro do objetivo, mais abaixo.</Text>
+              </>
+            ) : (
+              <Text style={estilos.suave}>
+                Capa de {tipoObjetivo}: as informações desta capa ainda vão ser definidas.
+              </Text>
+            )}
+          </View>
+        </Cartao>
+
+        <Cartao style={{ gap: 8 }}>
+          <Rotulo>Modelo do sermão</Rotulo>
+          {modelos.map((m) => (
+            <Escolha
+              key={m.id}
+              ativo={modelo === m.id}
+              titulo={m.nome}
+              descricao={m.descricao}
+              onPress={() => setModelo(m.id)}
+            />
+          ))}
+        </Cartao>
+
+        <Cartao style={{ gap: 8 }}>
+          <Rotulo>{ehEBD ? 'Objetivos da lição' : 'Objetivo do sermão'}</Rotulo>
+          <Text style={estilos.objetivoTopo}>
+            {ehEBD ? 'Os OBJETIVOS desta LIÇÃO são:' : 'O OBJETIVO deste SERMÃO é:'}
+          </Text>
           {camposObjetivo.map((valor, i) => (
             <View key={i} style={estilos.linhaObjetivo}>
               <Text style={estilos.marcadorObjetivo}>●</Text>
@@ -451,6 +493,16 @@ const estilos = StyleSheet.create({
     borderColor: cores.borda,
     justifyContent: 'center',
   },
+  capaTipo: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: cores.borda,
+    borderRadius: 8,
+    padding: 12,
+  },
+  capaCampos: { borderStyle: 'solid', gap: 10 },
+  tituloCapa: { fontSize: 15, fontWeight: '700', color: cores.texto },
+  rotuloCapa: { fontSize: 13, fontWeight: '600', color: cores.textoSuave },
   pilulaAtiva: { backgroundColor: cores.destaque, borderColor: cores.destaque },
   textoPilula: { fontSize: 14, color: cores.texto },
 });

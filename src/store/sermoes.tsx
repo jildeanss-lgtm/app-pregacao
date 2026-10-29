@@ -1,7 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
-import { MARCA_TEXTO, type BlocoInicial, type BlocosSaudacao, type Modelo, type TipoBloco } from '../data/modelos';
+import {
+  MARCA_TEXTO,
+  blocosDaCapa,
+  type BlocoInicial,
+  type BlocosSaudacao,
+  type Modelo,
+  type TipoBloco,
+} from '../data/modelos';
 import { rotulosTextoReferencia } from '../estilo';
 import type { EtapaEstudo } from '../data/etapas';
 import type { Genero } from '../data/roteiro';
@@ -19,6 +26,8 @@ export type Bloco = {
   novaPagina?: boolean;
   // Sem o espaço que separa esta caixa da de cima
   colado?: boolean;
+  // Caixa da capa do tipo de sermão (ver camposCapa)
+  capa?: string;
 };
 
 export type Pregacao = {
@@ -55,6 +64,8 @@ export type Sermao = {
   // Resumo de todo o estudo, já em forma de sermão, que serve de base para montar o sermão
   resumo?: string;
   temas?: string[];
+  // O que foi preenchido na capa do tipo de sermão (ver camposCapa), pelo id de cada campo
+  capa?: Record<string, string>;
   // Enquanto a IA escreve o objetivo e a introdução de um sermão novo, e o erro se não der certo
   iaPreparando?: boolean;
   iaErro?: string;
@@ -124,6 +135,7 @@ export type NovoSermao = {
   respostas?: Record<string, string>;
   anotacoes?: Partial<Record<EtapaEstudo, string>>;
   saudacao?: string;
+  capa?: Record<string, string>;
   blocos: BlocoInicial[];
 };
 
@@ -305,7 +317,9 @@ export function useSermao(id: string | undefined) {
 export function trocarSaudacao(blocos: Bloco[], nova: BlocosSaudacao | undefined, textoBase: string): Bloco[] {
   const criarBlocos = (lista: BlocoInicial[]) =>
     lista.map((b) => ({ ...b, id: novoId(), texto: (b.texto ?? '').split(MARCA_TEXTO).join(textoBase || '...') }));
-  const objetivo = blocos.findIndex((b) => b.tipo === 'objetivo');
+  // Fim da capa: o objetivo e as caixas da capa do tipo de sermão
+  const depoisDaCapa = blocos.findIndex((b) => b.tipo !== 'objetivo' && !b.capa);
+  const objetivo = (depoisDaCapa < 0 ? blocos.length : depoisDaCapa) - 1;
   const texto = blocos.findIndex((b) => b.tipo === 'versiculo' && rotulosTextoReferencia.includes(b.rotulo ?? ''));
   const introducao = blocos.findIndex((b) => b.tipo === 'introducao');
   const fim = introducao >= 0 ? introducao : texto >= 0 ? texto + 1 : objetivo + 1;
@@ -322,6 +336,15 @@ export function trocarSaudacao(blocos: Bloco[], nova: BlocosSaudacao | undefined
     ...criarBlocos(nova?.depois ?? []),
     ...blocos.slice(fim),
   ];
+}
+
+// Refaz as caixas da capa do tipo de sermão (antes e depois do quadro do objetivo) com o que foi preenchido
+export function trocarCapa(blocos: Bloco[], tipo: string, capa: Record<string, string>): Bloco[] {
+  const { antes, depois } = blocosDaCapa(tipo, capa);
+  const criarBlocos = (lista: BlocoInicial[]) => lista.map((b) => ({ ...b, id: novoId(), texto: b.texto ?? '' }));
+  const resto = blocos.filter((b) => !b.capa);
+  const i = resto.findIndex((b) => b.tipo === 'objetivo') + 1;
+  return [...criarBlocos(antes), ...resto.slice(0, i), ...criarBlocos(depois), ...resto.slice(i)];
 }
 
 // Estimativa simples: cerca de 130 palavras faladas por minuto, mais 2 minutos por tópico
