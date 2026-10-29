@@ -79,7 +79,7 @@ const realces: Record<string, string> = {
 };
 
 // Cores do padrão do app: as outras, no Docs ligado ao sermão, voltam como estão ("[fundo #00ffff]...[/]")
-const fundosDoPadrao = new Set(['', '00ff00', 'b6d7a8', 'd9ead3']);
+const fundosDoPadrao = new Set(['', '00ff00', '00ff01', 'b6d7a8', 'd9ead3']);
 const coresDoPadrao = new Set([
   '',
   '000000',
@@ -154,7 +154,9 @@ export function lerParagrafos(xml: string, manterCores = false): Paragrafo[] {
       .replace(/[  ]+/g, ' ')
       .trim();
     texto = juntarMarcas(texto);
-    if (!semChaves(texto)) {
+    // Título de página que o app escreve no Docs (fundo #00FF01): o app põe de novo sozinho
+    const tituloDoApp = [...pesoFundo].some(([f, n]) => f === '00ff01' && n > 0);
+    if (!semChaves(texto) || tituloDoApp) {
       if (quebraNoTexto >= 0 || /<w:pageBreakBefore(?: w:val="(?:1|true|on)")?\s*\/>/.test(props))
         quebraPendente = true;
       continue;
