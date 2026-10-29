@@ -58,6 +58,9 @@ export type Sermao = {
   // Enquanto a IA escreve o objetivo e a introdução de um sermão novo, e o erro se não der certo
   iaPreparando?: boolean;
   iaErro?: string;
+  // Google Docs do sermão no Drive (Abrir no Google Docs) e a hora em que o app gravou nele por último
+  docId?: string;
+  docEm?: string;
   // Saudação escolhida ao criar ('' = sem saudação); sermões antigos não têm
   saudacao?: string;
   blocos: Bloco[];

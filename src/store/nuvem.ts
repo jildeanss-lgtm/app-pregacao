@@ -39,7 +39,7 @@ async function acharArquivo(t: string) {
   return arquivo?.id as string | undefined;
 }
 
-async function criarPasta(t: string) {
+export async function criarPasta(t: string) {
   const [pasta] = await listar(
     `mimeType = 'application/vnd.google-apps.folder' and appProperties has { key='app' and value='pregacao' } and trashed = false`,
     t,

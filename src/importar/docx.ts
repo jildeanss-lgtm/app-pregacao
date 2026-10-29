@@ -216,7 +216,12 @@ const modeloPorNome: [RegExp, Modelo][] = [
   [/lectio/i, 'lectio'],
 ];
 
-export function sermaoDosParagrafos(paragrafos: Paragrafo[], nomeArquivo = ''): NovoSermao {
+// manterTopicos: o documento foi escrito pelo próprio app (Abrir no Google Docs), e o fundo verde é mesmo um tópico
+export function sermaoDosParagrafos(
+  paragrafos: Paragrafo[],
+  nomeArquivo = '',
+  opcoes: { manterTopicos?: boolean } = {},
+): NovoSermao {
   const lista = paragrafos.map((p) => ({ ...p, tipo: tipoDoParagrafo(p) }));
   const blocos: BlocoInicial[] = [];
   let titulo = '';
@@ -236,10 +241,17 @@ export function sermaoDosParagrafos(paragrafos: Paragrafo[], nomeArquivo = ''): 
   }
 
   // Pontos em preto numa lista logo abaixo de uma frase, pergunta ou aplicação
-  const pontosDepois = () => {
+  const pontosDepois = (tambem?: Tipo) => {
     const pontos: string[] = [];
-    while (lista[i] && lista[i].tipo === 'texto' && lista[i].lista) pontos.push(lista[i++].texto);
+    while (lista[i]?.lista && (lista[i].tipo === 'texto' || lista[i].tipo === tambem)) pontos.push(lista[i++].texto);
     return pontos;
+  };
+
+  // Linhas azuis em lista seguidas: se a última tem pontos pretos embaixo, ela é a frase de um quadro
+  const temPontosNoFim = () => {
+    let j = i;
+    while (lista[j]?.tipo === 'frase' && lista[j].lista) j++;
+    return lista[j]?.tipo === 'texto' && !!lista[j].lista;
   };
 
   let quebrar = false;
@@ -264,12 +276,20 @@ export function sermaoDosParagrafos(paragrafos: Paragrafo[], nomeArquivo = ''): 
         continue;
       }
       // Os títulos viram subtópicos: as páginas seguem as quebras do documento original, não os títulos
-      adicionar({ tipo: 'subtopico', texto: p.texto });
+      adicionar({ tipo: opcoes.manterTopicos ? 'topico' : 'subtopico', texto: p.texto });
       if (/^texto (de )?refer/i.test(nome) && lista[i]?.tipo === 'biblia' && !textoBase) {
         const [cab, verso] = [semChaves(lista[i].texto), semChaves(lista[i + 1]?.texto ?? '')];
         const n = verso.match(/^(\d+(?:\s*[-–]\s*\d+)?)/)?.[1];
         if (cabecalhoBiblico.test(cab)) textoBase = n ? `${cab}:${n.replace(/\s/g, '')}` : cab;
       }
+      continue;
+    }
+
+    // Lista em vermelho ou em roxo, sem frase em cima: caixa de pontos dessa cor
+    if (p.lista && (p.tipo === 'biblia' || (p.tipo === 'aplicacao' && p.cor === '9900ff'))) {
+      const pontos = [p.texto];
+      while (lista[i]?.lista && lista[i].tipo === p.tipo) pontos.push(lista[i++].texto);
+      adicionar({ tipo: p.tipo === 'biblia' ? 'pontosVermelho' : 'pontosRoxo', texto: pontos.join('\n') });
       continue;
     }
 
@@ -317,10 +337,15 @@ export function sermaoDosParagrafos(paragrafos: Paragrafo[], nomeArquivo = ''): 
     }
 
     if (p.tipo === 'frase' || p.tipo === 'pergunta' || p.tipo === 'aplicacao' || (p.tipo === 'texto' && !p.lista)) {
-      const pontos = pontosDepois();
+      const pontos = pontosDepois(p.tipo === 'aplicacao' ? 'aplicacao' : undefined);
       if (pontos.length) {
         const tipo = p.tipo === 'pergunta' ? 'quadroPerguntas' : p.tipo === 'aplicacao' ? 'aplicacao' : 'quadro';
         adicionar({ tipo, texto: [p.texto, ...pontos].join('\n') });
+      } else if (p.tipo === 'frase' && p.lista && lista[i]?.tipo === 'frase' && lista[i].lista && !temPontosNoFim()) {
+        // Várias linhas azuis em lista, sem pontos pretos embaixo: uma lista só
+        const linhas = [p.texto];
+        while (lista[i]?.tipo === 'frase' && lista[i].lista) linhas.push(lista[i++].texto);
+        adicionar({ tipo: 'pontos', texto: linhas.join('\n') });
       } else if (p.tipo === 'texto') {
         adicionar({ tipo: 'palavra', rotulo: ROTULO_TEXTO, texto: p.texto });
       } else {
@@ -345,8 +370,8 @@ export function sermaoDosParagrafos(paragrafos: Paragrafo[], nomeArquivo = ''): 
   };
 }
 
-export async function sermaoDoDocx(arquivo: ArrayBuffer, nomeArquivo = '') {
+export async function sermaoDoDocx(arquivo: ArrayBuffer, nomeArquivo = '', opcoes: { manterTopicos?: boolean } = {}) {
   const paragrafos = lerParagrafos(await documentoDoDocx(arquivo));
   if (!paragrafos.length) throw new Error('O documento está vazio.');
-  return sermaoDosParagrafos(paragrafos, nomeArquivo);
+  return sermaoDosParagrafos(paragrafos, nomeArquivo, opcoes);
 }
