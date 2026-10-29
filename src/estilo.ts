@@ -119,29 +119,81 @@ const semCorPropria = new Set<TipoBloco>([
   'palavra',
 ]);
 
-// Folhas do sermão, como o JILDEAN padronizou: a 1ª página só com os dados do sermão (tema, texto e objetivo);
-// a 2ª começa na saudação, com a leitura do texto e a introdução; cada Tópico e a Conclusão abrem página nova
-export function abreNovaPagina(blocos: { tipo: TipoBloco }[], i: number) {
-  const tipo = blocos[i].tipo;
-  if (tipo === 'topico' || tipo === 'conclusao') return true;
-  return i === blocos.findIndex((b) => b.tipo !== 'objetivo');
+// Folhas do sermão, como o JILDEAN padronizou:
+// 1ª capa com os dados do sermão (tema, texto e objetivo); 2ª saudação, qual texto e agradecimentos;
+// 3ª leitura do texto referência; 4ª introdução; depois cada Tópico e a Conclusão numa página nova
+export const rotulosTextoReferencia = ['Texto referência', 'Texto'];
+export function abreNovaPagina(blocos: { tipo: TipoBloco; rotulo?: string }[], i: number) {
+  const b = blocos[i];
+  if (b.tipo === 'topico' || b.tipo === 'conclusao' || b.tipo === 'introducao') return true;
+  if (b.tipo === 'versiculo' && rotulosTextoReferencia.includes(b.rotulo ?? '')) return true;
+  return i === blocos.findIndex((x) => x.tipo !== 'objetivo');
+}
+
+// Cada página abre com o seu título em fundo verde, como os tópicos (letra um pouco maior que o resto)
+export const escalaTopico = 1.2;
+export function tituloDaPagina(blocos: { tipo: TipoBloco; rotulo?: string }[], i: number) {
+  const b = blocos[i];
+  if (b.tipo === 'topico' || !abreNovaPagina(blocos, i)) return undefined;
+  if (b.tipo === 'introducao') return '*INTRODUÇÃO*';
+  if (b.tipo === 'conclusao') return '*CONCLUSÃO*';
+  if (b.tipo === 'versiculo') return '*TEXTO*';
+  return '*SAUDAÇÃO*';
 }
 
 export function rotuloVisivel(b: { tipo: TipoBloco; rotulo?: string }) {
   return b.rotulo ?? (semCorPropria.has(b.tipo) ? nomesBloco[b.tipo] : undefined);
 }
 
+// Cor dentro da linha, como no documento do JILDEAN: "[fundo verde]ABRA sua BÍBLIA[/]: [vermelho]João 17[/]"
+export type Marca = { cor?: string; fundo?: string; italico?: boolean };
+export const marcas: Record<string, Marca> = {
+  'fundo verde': { cor: coresPregacao.texto, fundo: coresPregacao.fundoTopico },
+  'fundo amarelo': { cor: coresPregacao.textoBiblico, fundo: '#FFFF00', italico: true },
+  'fundo laranja': { cor: coresPregacao.texto, fundo: '#FF9900' },
+  vermelho: { cor: coresPregacao.textoBiblico, italico: true },
+  verde: { cor: coresPregacao.efeito },
+  azul: { cor: coresPregacao.frase },
+  roxo: { cor: '#9900FF', italico: true },
+  preto: { cor: coresPregacao.texto },
+};
+const reMarca = new RegExp(`\\[(${Object.keys(marcas).join('|')})\\]([\\s\\S]*?)\\[\\/\\]`, 'g');
+export const temMarca = (texto: string) => /\[\/\]/.test(texto);
+
+// Uma cor aberta numa linha e fechada noutra vale para cada linha do meio (as linhas são mostradas separadas)
+export function marcasPorLinha(texto: string) {
+  const abertura = new RegExp(`\\[(${Object.keys(marcas).join('|')})\\]|\\[\\/\\]`, 'g');
+  let aberta = '';
+  return texto
+    .split('\n')
+    .map((linha) => {
+      const inicio = aberta ? `[${aberta}]` : '';
+      for (const m of linha.matchAll(abertura)) aberta = m[1] ?? '';
+      return `${inicio}${linha}${aberta ? '[/]' : ''}`;
+    })
+    .join('\n');
+}
+
 // "Examinai *tudo*" (ou "Examinai TUDO") -> [{ texto: 'Examinai ', chave: false }, { texto: 'tudo', chave: true }]
 export function dividirDestaques(texto: string) {
-  const partes: { texto: string; chave: boolean }[] = [];
+  const partes: { texto: string; chave: boolean; marca?: Marca }[] = [];
+  const chaves = (trecho: string, marca?: Marca) => {
+    let ultimo = 0;
+    trecho = marcarMaiusculas(trecho);
+    for (const m of trecho.matchAll(/\*([^*\n]+)\*/g)) {
+      if (m.index > ultimo) partes.push({ texto: trecho.slice(ultimo, m.index), chave: false, marca });
+      partes.push({ texto: m[1], chave: true, marca });
+      ultimo = m.index + m[0].length;
+    }
+    if (ultimo < trecho.length) partes.push({ texto: trecho.slice(ultimo), chave: false, marca });
+  };
   let ultimo = 0;
-  texto = marcarMaiusculas(texto);
-  for (const m of texto.matchAll(/\*([^*\n]+)\*/g)) {
-    if (m.index > ultimo) partes.push({ texto: texto.slice(ultimo, m.index), chave: false });
-    partes.push({ texto: m[1], chave: true });
+  for (const m of texto.matchAll(reMarca)) {
+    if (m.index > ultimo) chaves(texto.slice(ultimo, m.index));
+    chaves(m[2], marcas[m[1]]);
     ultimo = m.index + m[0].length;
   }
-  if (ultimo < texto.length) partes.push({ texto: texto.slice(ultimo), chave: false });
+  if (ultimo < texto.length) chaves(texto.slice(ultimo));
   return partes;
 }
 
@@ -160,6 +212,7 @@ export const pontosDoQuadro = 3;
 export const quebraNoTopo = '\u2028';
 
 export function dividirQuadro(texto: string) {
+  texto = marcasPorLinha(texto);
   const [subtopico = '', ...resto] = texto.split('\n');
   return {
     subtopico: subtopico
@@ -192,7 +245,7 @@ const conectivos = new Set(
 // Pontos do Corpo e texto bíblico: sem destaque marcado à mão, todas as palavras
 // (menos os conectivos) viram palavra-chave
 export function destacarTudo(linha: string) {
-  if (/\*|\p{Lu}{2,}/u.test(linha)) return linha;
+  if (/\*|\p{Lu}{2,}/u.test(linha) || temMarca(linha)) return linha;
   return linha.replace(/\p{L}+(?:-\p{L}+)*/gu, (p) => (conectivos.has(p.toLowerCase()) ? p : `*${p}*`));
 }
 
@@ -232,6 +285,7 @@ export function dividirVersiculo(texto: string) {
 
 // Linhas como aparecem na tela e no PDF, já com o destaque automático aplicado
 export function linhasParaMostrar(tipo: TipoBloco, texto: string) {
+  texto = marcasPorLinha(texto);
   const e = estiloBloco[tipo];
   const auto = (l: string) => (e.autoDestaque ? destacarTudo(l) : l);
   if (e.referencia) {

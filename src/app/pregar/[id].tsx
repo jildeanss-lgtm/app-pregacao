@@ -15,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TextoFormatado } from '../../components/TextoFormatado';
 import { nomesBloco } from '../../data/modelos';
-import { coresPregacao, rotuloVisivel } from '../../estilo';
+import { coresPregacao, rotuloVisivel, tituloDaPagina } from '../../estilo';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
 import { cores } from '../../theme';
 
@@ -195,16 +195,16 @@ export default function PulpitoTela() {
                 <View key={i} style={{ gap: 10 }}>
                   {parte.topico ? (
                     <TextoFormatado tipo="topico" texto={parte.titulo || 'Sem título'} tamanho={tamanhoLetra} />
-                  ) : i > 0 ? (
-                    <Text style={estilos.subtitulo}>{parte.titulo}</Text>
                   ) : null}
                   {parte.blocos
                     .filter((b) => b.texto.trim())
                     .map((b) => {
                       // No púlpito a aplicação aparece sem o nome em cima, só pela cor
-                      const rotulo = b.tipo === 'aplicacao' ? undefined : rotuloVisivel(b);
+                      const titulo = tituloDaPagina(sermao.blocos, sermao.blocos.indexOf(b));
+                      const rotulo = b.tipo === 'aplicacao' || titulo ? undefined : rotuloVisivel(b);
                       return (
                         <View key={b.id} style={{ gap: 2 }}>
+                          {titulo && <TextoFormatado tipo="topico" texto={titulo} tamanho={tamanhoLetra} />}
                           {rotulo && rotulo !== parte.titulo && <Text style={estilos.rotulo}>{rotulo}</Text>}
                           <TextoFormatado
                             tipo={b.tipo}
@@ -317,7 +317,6 @@ const estilos = StyleSheet.create({
   titulo: { fontSize: 22, fontWeight: '700', lineHeight: 28, color: cores.texto },
   // O tema do sermão com o fundo verde dos tópicos
   tema: { alignSelf: 'flex-start', backgroundColor: coresPregacao.fundoTopico, paddingHorizontal: 6 },
-  subtitulo: { fontSize: 15, fontWeight: '700', color: cores.texto, textTransform: 'uppercase' },
   base: { fontSize: 15, fontWeight: '600', color: cores.textoSuave },
   rotulo: { fontSize: 13, fontWeight: '600', color: cores.textoSuave, textTransform: 'uppercase' },
   botao: { flex: 1, minHeight: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
