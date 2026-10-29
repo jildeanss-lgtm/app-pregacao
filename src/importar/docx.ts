@@ -68,9 +68,42 @@ const desfazer = (t: string) =>
 const ligado = (props: string, tag: string) => new RegExp(`<w:${tag}(?: w:val="(?:1|true|on)")?\\s*/>`).test(props);
 
 // Cores de fundo da marcação do Google Docs com o nome que o Word usa
-const realces: Record<string, string> = { green: '00ff00', yellow: 'ffff00', cyan: '00ffff', lightGray: 'd3d3d3' };
+const realces: Record<string, string> = {
+  green: '00ff00',
+  yellow: 'ffff00',
+  cyan: '00ffff',
+  magenta: 'ff00ff',
+  blue: '0000ff',
+  red: 'ff0000',
+  lightGray: 'd3d3d3',
+};
 
-export function lerParagrafos(xml: string): Paragrafo[] {
+// Cores do padrão do app: as outras, no Docs ligado ao sermão, voltam como estão ("[fundo #00ffff]...[/]")
+const fundosDoPadrao = new Set(['', '00ff00', 'b6d7a8', 'd9ead3']);
+const coresDoPadrao = new Set([
+  '',
+  '000000',
+  '990000',
+  '38761d',
+  '0000ff',
+  '3c78d8',
+  '7030a0',
+  '9900ff',
+  'b45f06',
+  '0b5394',
+]);
+
+// Trechos seguidos com a mesma cor viram um só
+const juntarMarcas = (t: string) => {
+  let antes;
+  do {
+    antes = t;
+    t = t.replace(/\[((?:fundo|cor) #[0-9a-f]{6})\]([^[]*)\[\/\](\s*)\[\1\]/g, '[$1]$2$3');
+  } while (t !== antes);
+  return t;
+};
+
+export function lerParagrafos(xml: string, manterCores = false): Paragrafo[] {
   const paragrafos: Paragrafo[] = [];
   // Quebra de página no fim de um parágrafo, ou num parágrafo vazio: vale para o parágrafo seguinte
   let quebraPendente = false;
@@ -105,14 +138,23 @@ export function lerParagrafos(xml: string): Paragrafo[] {
       letras += n;
       // Negrito sublinhado = palavra-chave, entre asteriscos (os espaços ficam fora)
       const chave = ligado(rp, 'b') && /<w:u w:val="(?!none)/.test(rp) && n > 0;
-      texto += chave ? t.replace(/^(\s*)([\s\S]*?)(\s*)$/, '$1*$2*$3') : t;
+      const trecho = chave ? t.replace(/^(\s*)([\s\S]*?)(\s*)$/, '$1*$2*$3') : t;
+      const marca = !manterCores
+        ? ''
+        : !fundosDoPadrao.has(fundo) && /^[0-9a-f]{6}$/.test(fundo)
+          ? `fundo #${fundo}`
+          : !coresDoPadrao.has(cor === 'auto' ? '' : cor) && /^[0-9a-f]{6}$/.test(cor)
+            ? `cor #${cor}`
+            : '';
+      texto += marca && n ? `[${marca}]${trecho}[/]` : trecho;
     }
     // Duas palavras-chave coladas viram uma só ("*E**scola*" -> "*Escola*")
     texto = texto
       .replace(/\*(\s*)\*/g, '$1')
       .replace(/[  ]+/g, ' ')
       .trim();
-    if (!texto.replace(/\*/g, '').trim()) {
+    texto = juntarMarcas(texto);
+    if (!semChaves(texto)) {
       if (quebraNoTexto >= 0 || /<w:pageBreakBefore(?: w:val="(?:1|true|on)")?\s*\/>/.test(props))
         quebraPendente = true;
       continue;
@@ -193,6 +235,8 @@ function tipoPeloFundo(fundo: string): Tipo | undefined {
   const { h, s, l } = hsl(fundo);
   if (s < 0.2) return undefined;
   if (h >= 70 && h < 170) return l > 0.75 ? 'subtitulo' : 'titulo';
+  // Fundo de outra cor forte (azul-claro, rosa...) num título: subtópico, com a própria cor
+  if (h < 20 || h >= 170) return 'subtitulo';
   return undefined;
 }
 
@@ -217,7 +261,11 @@ function tipoDoParagrafo(p: Paragrafo): Tipo {
   return 'texto';
 }
 
-const semChaves = (t: string) => t.replace(/\*/g, '').trim();
+const semChaves = (t: string) =>
+  t
+    .replace(/\[(?:fundo|cor) #[0-9a-f]{6}\]|\[\/\]/g, '')
+    .replace(/\*/g, '')
+    .trim();
 // "Gênesis 1" ou "1 Coríntios 6": a linha que abre um texto bíblico
 const cabecalhoBiblico = /^(?:[1-3]\s*)?\p{L}[\p{L} ]*\s\d+$/u;
 
@@ -383,7 +431,7 @@ export function sermaoDosParagrafos(
 }
 
 export async function sermaoDoDocx(arquivo: ArrayBuffer, nomeArquivo = '', opcoes: { manterTopicos?: boolean } = {}) {
-  const paragrafos = lerParagrafos(await documentoDoDocx(arquivo));
+  const paragrafos = lerParagrafos(await documentoDoDocx(arquivo), !!opcoes.manterTopicos);
   if (!paragrafos.length) throw new Error('O documento está vazio.');
   return sermaoDosParagrafos(paragrafos, nomeArquivo, opcoes);
 }

@@ -7,6 +7,7 @@ import {
   dividirVersiculo,
   estiloBloco,
   abreNovaPagina,
+  marcas,
 } from '../estilo';
 import { criarPasta } from '../store/nuvem';
 import type { BlocoInicial } from '../data/modelos';
@@ -201,6 +202,8 @@ export async function salvarNoDocsLigado(t: string, s: Sermao) {
   return gravarNoDocs(t, s);
 }
 
+const reMarcaComNome = new RegExp(`\\[(?:${Object.keys(marcas).join('|')})\\]([\\s\\S]*?)\\[\\/\\]`, 'g');
+
 // A caixa como ela fica no Docs (cor do tipo e palavras-chave, inclusive as maiúsculas que o app destaca
 // sozinho), sem as cores marcadas à mão, que a leitura do Docs não traz de volta. Duas caixas iguais aqui são
 // a mesma caixa; destacar uma palavra ou trocar a cor no Docs conta como mudança
@@ -209,7 +212,8 @@ const comparavel = (b: { tipo: Bloco['tipo']; texto?: string }) =>
     {
       id: '',
       tipo: b.tipo,
-      texto: (b.texto ?? '').replace(/\[[^\]\n]*\]/g, '').replace(/\u2028/g, ''),
+      // As cores com nome marcadas no app saem; a cor exata vinda do Docs ("[fundo #00ffff]") conta
+      texto: (b.texto ?? '').replace(reMarcaComNome, '$1').replace(/\u2028/g, ''),
     },
     false,
   )
