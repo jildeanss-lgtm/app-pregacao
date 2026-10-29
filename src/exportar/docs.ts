@@ -52,6 +52,8 @@ function paragrafo(conteudo: string, e: Estilo = {}) {
     e.italico && 'font-style:italic',
     e.centro && 'text-align:center',
     e.quebra && 'page-break-before:always',
+    // A seta fica na margem e o texto do subtópico alinha com o resto, como no app
+    e.seta && 'text-indent:-17pt',
   ]
     .filter(Boolean)
     .join(';');
@@ -178,6 +180,9 @@ export function htmlParaDocs(s: Sermao) {
     );
   return `<!doctype html><html><head><meta charset="utf-8"></head><body style="font-family:Arial;font-size:12pt">${[
     ...cabecalho,
+    // Sempre duas linhas em branco entre o tema e a capa (JILDEAN, 29/10/2026)
+    ESPACO,
+    ESPACO,
     ...blocos,
   ].join('\n')}</body></html>`;
 }
