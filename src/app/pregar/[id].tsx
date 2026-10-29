@@ -185,12 +185,13 @@ export default function PulpitoTela() {
           <Text style={estilos.relogio} accessibilityLabel={`Tempo ${relogio(segundos)}`}>
             {relogio(segundos)}
           </Text>
-          <Text style={estilos.pequeno}>de {total} min</Text>
-        </View>
-        <View style={[estilos.lado, estilos.ladoDireito]}>
+          {/* Hora atual logo abaixo do cronômetro e, menor, o tempo previsto do sermão */}
           <Text style={estilos.hora} accessibilityLabel="Hora atual">
             {agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           </Text>
+          <Text style={estilos.pequeno}>previsto: {total} min</Text>
+        </View>
+        <View style={[estilos.lado, estilos.ladoDireito]}>
           <Pressable accessibilityRole="button" onPress={() => setTerminando(true)} style={estilos.sair}>
             <Text style={[estilos.suave, { color: cores.destaque, fontWeight: '700' }]}>Encerrar</Text>
           </Pressable>
@@ -323,9 +324,9 @@ const estilos = StyleSheet.create({
     paddingHorizontal: 16,
   },
   lado: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  ladoDireito: { justifyContent: 'flex-end', gap: 8 },
+  ladoDireito: { justifyContent: 'flex-end' },
   centro: { alignItems: 'center' },
-  hora: { fontSize: 13, color: cores.textoSuave },
+  hora: { fontSize: 20, fontWeight: '600', color: cores.texto, fontVariant: ['tabular-nums'] },
   pequeno: { fontSize: 12, color: cores.textoSuave },
   // Mesa cinza do Google Docs com a folha A4 (210 mm = 794 px) no meio
   mesa: { flex: 1, backgroundColor: '#F1F3F4', marginTop: 12 },
