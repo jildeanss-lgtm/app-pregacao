@@ -139,6 +139,15 @@ export default function EditorTela() {
     }));
   };
 
+  // Começa uma página nova nesta caixa: ela e tudo abaixo vão para a próxima página (de novo, junta de volta)
+  const quebrarPagina = (blocoId: string) => {
+    guardarPasso();
+    atualizar(sermao.id, (s) => ({
+      ...s,
+      blocos: s.blocos.map((b) => (b.id === blocoId ? { ...b, novaPagina: !b.novaPagina || undefined } : b)),
+    }));
+  };
+
   const apagarBloco = (blocoId: string) => {
     guardarPasso();
     atualizar(sermao.id, (s) => ({ ...s, blocos: s.blocos.filter((b) => b.id !== blocoId) }));
@@ -297,6 +306,8 @@ export default function EditorTela() {
                       onApagar={() => apagarBloco(bloco.id)}
                       onInserir={(tipo) => inserirBloco(tipo, bloco.id)}
                       onMudarTipo={(tipo) => mudarTipo(bloco.id, tipo)}
+                      paginaNova={!!bloco.novaPagina}
+                      onQuebrarPagina={() => quebrarPagina(bloco.id)}
                       mostrarInserir={bloco.id === (ultimaConcluida ?? ultimaPreenchida)}
                       onConcluir={() => setUltimaConcluida(bloco.id)}
                     />
@@ -394,6 +405,9 @@ type BlocoEditorProps = {
   onApagar: () => void;
   onInserir: (tipo: TipoBloco) => void;
   onMudarTipo: (tipo: TipoBloco) => void;
+  // A caixa começa uma página (criada pelo + ou pelo botão "Próxima página")
+  paginaNova: boolean;
+  onQuebrarPagina: () => void;
   // "+ Inserir" clarinho embaixo (só na caixa concluída por último)
   mostrarInserir: boolean;
   onConcluir: () => void;
@@ -413,6 +427,8 @@ function BlocoEditor({
   onApagar,
   onInserir,
   onMudarTipo,
+  paginaNova,
+  onQuebrarPagina,
   mostrarInserir,
   onConcluir,
 }: BlocoEditorProps) {
@@ -482,7 +498,7 @@ function BlocoEditor({
       {focado || inserindo ? (
         <View style={estilos.cabecalhoBloco}>
           <Text style={estilos.rotuloBloco}>{rotulo}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={estilos.acoesBloco}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Inserir bloco abaixo"
@@ -493,6 +509,19 @@ function BlocoEditor({
               style={[estilos.botaoInserir, inserindo && estilos.botaoInserirAberto]}
             >
               <Text style={[estilos.textoInserir, inserindo && { color: '#FFFFFF' }]}>+ INSERIR</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={paginaNova ? 'Juntar com a página de cima' : 'Levar para a próxima página'}
+              onPress={() => {
+                clearTimeout(saida.current);
+                setFocado(false);
+                if (bloco.texto.trim()) setEditando(false);
+                onQuebrarPagina();
+              }}
+              style={[estilos.botaoInserir, { marginLeft: 6 }]}
+            >
+              <Text style={estilos.textoInserir}>{paginaNova ? '⤒ JUNTAR' : '⤓ PRÓX. PÁGINA'}</Text>
             </Pressable>
             <Acao rotulo="Subir bloco" simbolo="↑" onPress={onSubir} />
             <Acao rotulo="Descer bloco" simbolo="↓" onPress={onDescer} />
@@ -843,6 +872,14 @@ const estilos = StyleSheet.create({
   marcador: { fontSize: 12, color: '#000000' },
   tituloEstudo: { fontSize: 13, fontWeight: '700', color: cores.apoioTexto },
   textoEstudo: { fontSize: 15, lineHeight: 21, color: cores.texto },
+  acoesBloco: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    flexShrink: 1,
+    rowGap: 4,
+  },
   botaoInserir: {
     minHeight: 32,
     paddingHorizontal: 10,
