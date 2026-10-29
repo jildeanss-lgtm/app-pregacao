@@ -178,19 +178,6 @@ export default function EditorTela() {
                 id: 'cabecalho',
                 conteudo: (
                   <>
-                    <View style={estilos.botoesTopo}>
-                      <Botao
-                        titulo="Pregar"
-                        onPress={() => router.push(`/pregar/${sermao.id}`)}
-                        style={estilos.acaoSermao}
-                      />
-                      <Botao
-                        titulo="Editar dados"
-                        variante="contorno"
-                        onPress={() => router.push(`/novo?id=${sermao.id}`)}
-                        style={estilos.acaoSermao}
-                      />
-                    </View>
                     <View style={estilos.linhaMeta}>
                       <TextInput
                         accessibilityLabel="Culto"
@@ -209,6 +196,15 @@ export default function EditorTela() {
                         style={[estilos.entradaMeta, { flex: 1, textAlign: 'right' }]}
                       />
                     </View>
+                    {/* Atalho discreto para pregar, logo abaixo da data */}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Pregar"
+                      onPress={() => router.push(`/pregar/${sermao.id}`)}
+                      style={({ pressed }) => [estilos.pregarTopo, pressed && { opacity: 0.6 }]}
+                    >
+                      <Text style={estilos.textoPregarTopo}>▶ Pregar</Text>
+                    </Pressable>
                     <TextInput
                       accessibilityLabel="Título do sermão"
                       value={sermao.titulo}
@@ -294,6 +290,11 @@ export default function EditorTela() {
             style={estilos.acaoSermao}
           />
         </View>
+        <Botao
+          titulo="Editar dados e saudação"
+          variante="contorno"
+          onPress={() => router.push(`/novo?id=${sermao.id}`)}
+        />
         <Botao
           titulo="Estudar no hebraico e grego"
           variante="contorno"
@@ -687,7 +688,16 @@ const estilos = StyleSheet.create({
   },
   linhaMeta: { flexDirection: 'row', gap: 12 },
   avisoSalvo: { fontSize: 14, fontWeight: '600', color: '#38761D', textAlign: 'center' },
-  botoesTopo: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  pregarTopo: {
+    alignSelf: 'flex-end',
+    marginTop: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: cores.borda,
+  },
+  textoPregarTopo: { fontSize: 12, color: cores.textoSuave, fontWeight: '600' },
   entradaMeta: {
     fontSize: 13,
     color: cores.textoSuave,
