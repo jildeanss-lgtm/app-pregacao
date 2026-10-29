@@ -15,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TextoFormatado } from '../../components/TextoFormatado';
 import { nomesBloco } from '../../data/modelos';
-import { rotuloVisivel } from '../../estilo';
+import { coresPregacao, rotuloVisivel } from '../../estilo';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
 import { cores } from '../../theme';
 
@@ -189,7 +189,7 @@ export default function PulpitoTela() {
               onLayout={(e) => setAlturaFolha(e.nativeEvent.layout.height)}
               style={[estilos.folha, { transform: [{ scale: escala }], transformOrigin: 'top left' }]}
             >
-              <Text style={estilos.titulo}>{sermao.titulo || 'Sem título'}</Text>
+              <Text style={[estilos.titulo, estilos.tema]}>{sermao.titulo || 'Sem título'}</Text>
               {sermao.textoBase ? <Text style={estilos.base}>{sermao.textoBase}</Text> : null}
               {partes.map((parte, i) => (
                 <View key={i} style={{ gap: 10 }}>
@@ -315,6 +315,8 @@ const estilos = StyleSheet.create({
   barra: { height: 4, backgroundColor: cores.borda, borderRadius: 2, marginTop: 12, marginHorizontal: 24 },
   barraCheia: { height: 4, backgroundColor: cores.destaque, borderRadius: 2 },
   titulo: { fontSize: 22, fontWeight: '700', lineHeight: 28, color: cores.texto },
+  // O tema do sermão com o fundo verde dos tópicos
+  tema: { alignSelf: 'flex-start', backgroundColor: coresPregacao.fundoTopico, paddingHorizontal: 6 },
   subtitulo: { fontSize: 15, fontWeight: '700', color: cores.texto, textTransform: 'uppercase' },
   base: { fontSize: 15, fontWeight: '600', color: cores.textoSuave },
   rotulo: { fontSize: 13, fontWeight: '600', color: cores.textoSuave, textTransform: 'uppercase' },

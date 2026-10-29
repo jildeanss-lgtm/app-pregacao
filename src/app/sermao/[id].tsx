@@ -8,7 +8,7 @@ import { Botao, Cartao, Rotulo } from '../../components/ui';
 import { etapasDeEstudo, nomesEstudo } from '../../data/etapas';
 import { perguntasDaEtapa } from '../../data/roteiro';
 import { modelos, nomesBloco, type TipoBloco } from '../../data/modelos';
-import { coresPregacao, estiloBloco, pontosDoQuadro, quebraNoTopo, rotuloVisivel } from '../../estilo';
+import { abreNovaPagina, coresPregacao, estiloBloco, pontosDoQuadro, quebraNoTopo, rotuloVisivel } from '../../estilo';
 import { exportarPdf } from '../../lib/pdf';
 import { textoDaBiblioteca } from '../../ia/estudo';
 import { minutosEstimados, useSermao, useSermoes, type Bloco } from '../../store/sermoes';
@@ -181,7 +181,7 @@ export default function EditorTela() {
               },
               ...sermao.blocos.map((bloco, i) => ({
                 id: bloco.id,
-                novaPagina: bloco.tipo === 'topico',
+                novaPagina: abreNovaPagina(sermao.blocos, i),
                 conteudo: (
                   <BlocoEditor
                     bloco={bloco}
@@ -495,7 +495,7 @@ const margemVertical = { larga: 64, estreita: 28 };
 const margemLateral = { larga: 72, estreita: 20 };
 const espacoEntrePartes = 10;
 
-// novaPagina: a parte sempre abre uma folha nova (cada Tópico, como o JILDEAN pediu)
+// novaPagina: a parte sempre abre uma folha nova (veja abreNovaPagina)
 type Parte = { id: string; conteudo: ReactNode; novaPagina?: boolean };
 
 // Distribui as partes do sermão em páginas do tamanho de uma folha A4. Uma parte que não cabe no resto da página
@@ -585,7 +585,13 @@ const estilos = StyleSheet.create({
     minWidth: 0,
     outlineWidth: 0,
   },
+  // O tema do sermão com o mesmo fundo verde dos tópicos
   entradaTitulo: {
+    alignSelf: 'flex-start',
+    minWidth: 220,
+    maxWidth: '100%',
+    backgroundColor: coresPregacao.fundoTopico,
+    paddingHorizontal: 6,
     fontSize: 26,
     fontWeight: '700',
     color: cores.texto,

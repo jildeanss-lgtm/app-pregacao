@@ -119,6 +119,14 @@ const semCorPropria = new Set<TipoBloco>([
   'palavra',
 ]);
 
+// Folhas do sermão, como o JILDEAN padronizou: a 1ª página só com os dados do sermão (tema, texto e objetivo);
+// a 2ª começa na saudação, com a leitura do texto e a introdução; cada Tópico e a Conclusão abrem página nova
+export function abreNovaPagina(blocos: { tipo: TipoBloco }[], i: number) {
+  const tipo = blocos[i].tipo;
+  if (tipo === 'topico' || tipo === 'conclusao') return true;
+  return i === blocos.findIndex((b) => b.tipo !== 'objetivo');
+}
+
 export function rotuloVisivel(b: { tipo: TipoBloco; rotulo?: string }) {
   return b.rotulo ?? (semCorPropria.has(b.tipo) ? nomesBloco[b.tipo] : undefined);
 }
