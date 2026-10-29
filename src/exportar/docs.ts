@@ -228,14 +228,14 @@ export async function quandoMudouNoDocs(t: string, id: string) {
   return ((await r.json()) as { modifiedTime: string }).modifiedTime;
 }
 
-// O Salvar também grava no Docs ligado ao sermão, menos quando o Docs foi editado pelo Drive depois da
-// última gravação do app: aí as edições de lá seriam perdidas
+// O Google ainda mexe no Docs logo depois de converter o .docx: até 2 minutos depois da gravação do app não
+// conta como edição feita no Drive
+export const editadoNoDrive = (mudou: string, docEm: string) => Date.parse(mudou) > Date.parse(docEm) + 120_000;
+
+// O Salvar também grava no Docs ligado ao sermão, sempre por cima do que está no Drive (JILDEAN, 29/10/2026):
+// as edições feitas no Drive vêm para o app pelo Atualizar do Docs
 export async function salvarNoDocsLigado(t: string, s: Sermao) {
   if (!s.docId) return undefined;
-  if (s.docEm) {
-    const mudou = await quandoMudouNoDocs(t, s.docId).catch(() => undefined);
-    if (mudou && mudou > s.docEm) return 'mudou' as const;
-  }
   return gravarNoDocs(t, s);
 }
 
