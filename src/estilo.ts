@@ -166,12 +166,16 @@ export const marcas: Record<string, Marca> = {
   roxo: { cor: '#9900FF', italico: true },
   preto: { cor: coresPregacao.texto },
 };
-const reMarca = new RegExp(`\\[(${Object.keys(marcas).join('|')})\\]([\\s\\S]*?)\\[\\/\\]`, 'g');
+// Além das cores com nome, a cor exata que veio do Google Docs: "[fundo #00ffff]OBJETIVO[/]", "[cor #ff00ff]...[/]"
+const nomesMarca = `${Object.keys(marcas).join('|')}|fundo #[0-9a-f]{6}|cor #[0-9a-f]{6}`;
+const marcaDe = (nome: string): Marca =>
+  marcas[nome] ?? (nome.startsWith('fundo #') ? { fundo: nome.slice(6) } : { cor: nome.slice(4) });
+const reMarca = new RegExp(`\\[(${nomesMarca})\\]([\\s\\S]*?)\\[\\/\\]`, 'g');
 export const temMarca = (texto: string) => /\[\/\]/.test(texto);
 
 // Uma cor aberta numa linha e fechada noutra vale para cada linha do meio (as linhas são mostradas separadas)
 export function marcasPorLinha(texto: string) {
-  const abertura = new RegExp(`\\[(${Object.keys(marcas).join('|')})\\]|\\[\\/\\]`, 'g');
+  const abertura = new RegExp(`\\[(${nomesMarca})\\]|\\[\\/\\]`, 'g');
   let aberta = '';
   return texto
     .split('\n')
@@ -199,7 +203,7 @@ export function dividirDestaques(texto: string) {
   let ultimo = 0;
   for (const m of texto.matchAll(reMarca)) {
     if (m.index > ultimo) chaves(texto.slice(ultimo, m.index));
-    chaves(m[2], marcas[m[1]]);
+    chaves(m[2], marcaDe(m[1]));
     ultimo = m.index + m[0].length;
   }
   if (ultimo < texto.length) chaves(texto.slice(ultimo));
